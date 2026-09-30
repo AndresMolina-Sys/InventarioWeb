@@ -8,6 +8,7 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 - Interfaz/modelos: `src/App.tsx`, `src/types.ts`; persistencia: `src/lib/inventoryRepository.ts`; demo: `src/data/demo.ts`.
 - Supabase usa RLS por propietario, migraciones en `supabase/migrations/` y la Edge Function `registered-user-count`.
 - Dashboard: artículos y categorías; el conteo global solo lo consulta Admin. Demo con 3 categorías y 15 artículos.
+- En Supabase ya se aplicó la migración de retiro de stock; la cuenta actual tiene rol Admin y 15 artículos de prueba, además del artículo previo.
 
 ## Decisiones (y por qué)
 - Mantener demo local cuando falten variables Supabase; esos datos no se presentan como remotos.
@@ -24,3 +25,4 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 
 ## Próximos pasos
 - Al cambiar código TypeScript/UI, ejecutar `npm run build`; no hay scripts de prueba ni lint.
+- Cerrar sesión y volver a entrar para renovar el token que recibió el rol Admin.
