@@ -1,0 +1,37 @@
+---
+description: Project conventions for InventarioWeb
+globs:
+  - "src/**/*.{ts,tsx}"
+  - "supabase/**/*"
+alwaysApply: true
+---
+
+# Product direction
+
+- Build a Spanish-language, responsive internal article register.
+- Keep the React/TypeScript frontend separate from the legacy WPF desktop application.
+- Preserve local demo mode when either Supabase variable is missing. Label it “Demo local” and persist its data in the browser.
+- The article table has exactly four columns: Nombre, Categoría, Fecha de ingreso, Acciones (Ver, Editar, Borrar).
+
+# Architecture and quality
+
+- Keep UI components presentational where practical; persistence belongs in `src/lib/inventoryRepository.ts` and demo fixtures in `src/data/demo.ts`.
+- Keep database snake_case mapping at the repository boundary. Use shared camelCase models from `src/types.ts`.
+- Validate required values and duplicate internal codes. Show useful Spanish errors; do not swallow backend errors.
+- Set entry dates on creation: database `created_at` default or the current system time in demo.
+- Keep keyboard focus, semantic labels, and reduced-motion support intact.
+
+# Supabase security
+
+- Use only `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in browser code.
+- Never put service-role keys, secrets, or passwords in frontend code, `.env.example`, commits, or logs.
+- Enable RLS on exposed tables and enforce row ownership in Postgres, not only in React filters.
+- The global Auth user count is available only through the JWT-protected Edge Function and only to callers with `app_metadata.role = "admin"`.
+- Keep SQL changes under `supabase/`; review RLS and grants before applying them remotely.
+
+# Workflow
+
+- Pin dependencies and keep the package lockfile synchronized.
+- Run `npm run build` after TypeScript or UI changes.
+- When layout or visual tokens change, update `docs/figma-brief.md`.
+- Do not commit secrets, generated build output, or `node_modules`.

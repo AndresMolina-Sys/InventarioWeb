@@ -1,0 +1,2 @@
+[functions.registered-user-count]
+verify_jwt = true
