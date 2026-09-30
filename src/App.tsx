@@ -244,7 +244,8 @@ function App() {
         categories={snapshot.categories}
         categoryName={categoryName}
         userName={userName}
-        registeredUsers={isAdmin ? registeredUsers : null}
+        isAdmin={isAdmin}
+        registeredUsers={registeredUsers}
         onViewInventory={() => setPage("inventory")}
       />}
       {page === "inventory" && <InventoryPage
@@ -310,11 +311,12 @@ function Sidebar({ page, onPage, userName, itemCount }: { page: Page; onPage: (p
   </aside>;
 }
 
-function DashboardPage({ items, categories, categoryName, userName, registeredUsers, onViewInventory }: {
+function DashboardPage({ items, categories, categoryName, userName, isAdmin, registeredUsers, onViewInventory }: {
   items: InventoryItem[];
   categories: Category[];
   categoryName: Map<string, string>;
   userName: string;
+  isAdmin: boolean;
   registeredUsers: number | null;
   onViewInventory: () => void;
 }) {
@@ -327,7 +329,7 @@ function DashboardPage({ items, categories, categoryName, userName, registeredUs
   const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string }> = [
     { label: "Artículos registrados", value: String(items.length).padStart(2, "0"), detail: "En el registro actual", icon: "box", color: "violet" },
     { label: "Categorías", value: String(categories.length).padStart(2, "0"), detail: "Para clasificar artículos", icon: "layers", color: "blue" },
-    ...(registeredUsers !== null ? [{ label: "Usuarios registrados", value: String(registeredUsers), detail: "Cuentas del sistema", icon: "view" as const, color: "green" }] : []),
+    ...(isAdmin ? [{ label: "Usuarios registrados", value: registeredUsers === null ? "—" : String(registeredUsers), detail: "Cuentas del sistema", icon: "view" as const, color: "green" }] : []),
   ];
   return <section className="page-content">
     <div className="page-heading dashboard-heading">
@@ -335,7 +337,7 @@ function DashboardPage({ items, categories, categoryName, userName, registeredUs
       <button className="button button-primary" onClick={onViewInventory}><Icon name="box" size={17} />Ver artículos</button>
     </div>
 
-    <div className="stats-grid stats-grid-internal">
+    <div className={`stats-grid stats-grid-internal ${isAdmin ? "" : "stats-grid-nonadmin"}`}>
       {stats.map((stat) => <article className="stat-card" key={stat.label}>
         <div className="stat-top"><span>{stat.label}</span><span className={`stat-icon ${stat.color}`}><Icon name={stat.icon} size={17} /></span></div>
         <strong className="stat-value">{stat.value}</strong><span className="stat-detail">{stat.detail}</span>
