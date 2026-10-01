@@ -6,7 +6,7 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 - La interfaz está en `src/App.tsx`, los modelos compartidos en `src/types.ts`, la persistencia IndexedDB en `src/lib/inventoryRepository.ts` y los datos iniciales/migración en `src/data/demo.ts`.
 - La base local nueva se inicializa con 3 categorías y 15 artículos. Los datos quedan en el navegador y no se sincronizan entre equipos.
 - Skills disponibles en el proyecto: `vercel-react-best-practices`, `frontend-design`, `webapp-testing`, `accessibility` y `grill-me`.
-- Chrome DevTools MCP está instalado y disponible para inspeccionar páginas, consola, red, accesibilidad y rendimiento.
+- Chrome DevTools MCP está instalado, pero en este equipo no abre páginas porque falta Google Chrome estable.
 
 ## Decisiones (y por qué)
 - Usar IndexedDB sin Supabase ni cuentas para que cualquier persona pueda probar Portfolio localmente; la versión de Empresa se hará en otro repositorio.
@@ -18,7 +18,7 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 - No incluir cantidades, estados de stock, usuarios ni autenticación en Portfolio.
 
 ## Aprendizajes y errores a evitar
-- (vacío por ahora)
+- Chrome DevTools MCP requiere Google Chrome estable, ausente en este equipo; Edge está instalado. El helper de CUA falló al iniciar, así que no declarar pruebas de navegador completadas sin resolver el acceso.
 
 ## Próximos pasos
-- (vacío por ahora)
+- (Editar segun el proyecto)
