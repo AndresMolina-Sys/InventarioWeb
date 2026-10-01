@@ -16,9 +16,10 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 - Impedir borrar categorías con artículos asociados para evitar registros huérfanos.
 - Conservar la fecha de ingreso al editar y actualizar `updatedAt` con la fecha y hora del navegador.
 - No incluir cantidades, estados de stock, usuarios ni autenticación en Portfolio.
+- Mantener `.agents/` y `skills-lock.json` fuera de GitHub; son skills instaladas localmente.
 
 ## Aprendizajes y errores a evitar
 - Chrome DevTools MCP requiere Google Chrome estable. En 375 px la tabla usa desplazamiento horizontal; la carga también registra un 404 de `/favicon.ico`, sin errores JavaScript.
 
 ## Próximos pasos
-- Confirmar si se incorporan `.agents/` y `skills-lock.json` al repositorio; contienen 88 archivos de skills.
+- (Sin pasos pendientes.)
