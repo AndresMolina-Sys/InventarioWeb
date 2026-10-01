@@ -1,14 +1,14 @@
-# AGENTS.md — InventarioWeb
+# AGENTS.md — InventarioWeb Portfolio
 
-InventarioWeb es un registro web interno de artículos para organizar activos de un negocio. Permite consultar, clasificar y mantener datos de los artículos; usa Supabase o una demo local persistida en el navegador.
+InventarioWeb Portfolio es un registro web de control interno para consultar y mantener artículos y categorías. Se ejecuta sin login y guarda los datos localmente en el navegador.
 
 ## Stack y estructura
 
-- React 19.3.0, TypeScript 5.9.3, Vite 8.3.1, Supabase JS 2.117.1; requiere Node.js 22+.
-- `src/App.tsx`: interfaz; `src/types.ts`: modelos compartidos.
-- `src/lib/inventoryRepository.ts`: persistencia y mapeo snake_case; `src/data/demo.ts`: catálogo de prueba y `localStorage`.
-- `supabase/schema.sql`: esquema inicial y RLS. `supabase/migrations/`: cambios incrementales. `supabase/functions/registered-user-count/`: conteo protegido para Admin.
-- `docs/figma-brief.md` y `.cursor/rules/inventory-app.mdc` son referencias de diseño y convenciones.
+- React 19.3, TypeScript 5.9, Vite 8.3 y Node.js 22+.
+- `src/App.tsx`: pantallas y diálogos; `src/types.ts`: modelos compartidos.
+- `src/lib/inventoryRepository.ts`: operaciones IndexedDB y validaciones; `src/data/demo.ts`: categorías, artículos de ejemplo y migración desde `localStorage`.
+- `docs/figma-brief.md` y `.cursor/rules/inventory-app.mdc` describen diseño y convenciones.
+- `supabase/` contiene archivos históricos no usados por Portfolio. No ejecutar su SQL ni conectar recursos remotos desde esta app.
 
 ## Comandos
 
@@ -19,33 +19,34 @@ npm run build
 npm run preview
 ```
 
-`npm run build` valida TypeScript y genera el bundle. No hay scripts de prueba ni lint.
+`npm run build` valida TypeScript y genera el bundle. No hay scripts de pruebas ni lint. No se requieren variables de entorno.
 
 ## Convenciones
 
 - Componentes funcionales; dos espacios, comillas dobles, punto y coma y nombres camelCase.
-- Texto visible y errores en español. Usa los tipos compartidos y mantiene el mapeo snake_case en el repositorio.
-- Sigue los patrones de `src/App.tsx`; conserva etiquetas accesibles, teclado y diseño adaptable.
-- El alta asigna `created_at` en Postgres o la hora del sistema en demo.
+- Texto visible, errores y comentarios breves en español. Reutiliza los tipos compartidos y sigue `.cursor/rules/inventory-app.mdc`; conserva accesibilidad, teclado y diseño adaptable.
+- Mantén la persistencia en el repositorio y el contenido inicial en `src/data/demo.ts`.
 
 ## Reglas de dominio / trampas conocidas
 
-- Sin ambas variables Supabase, los datos solo viven en `localStorage`; no informes sincronización remota.
-- La primera cuenta recibe tres categorías. La demo incluye 15 artículos y la carga remota es explícita e idempotente por código.
-- El total global de usuarios solo se consulta en la Edge Function y para cuentas con `app_metadata.role = "admin"`.
-- RLS y `auth.uid()` limitan cada artículo y categoría a su propietario. La clave de servicio nunca va al cliente.
-- `schema.sql` no es idempotente: revisa migraciones remotas antes de aplicarlo.
+- La primera base IndexedDB recibe 3 categorías y 15 artículos; no volver a sembrarlos después.
+- Migra `inventario-web-demo-v2` y `inventario-web-demo-v1`; conserva artículos y categorías, `department` pasa a `location` y `price` a `cost`.
+- Código y nombre de categoría no se duplican; el número de serie es único si se proporciona. No borrar categorías con artículos asociados.
+- La fecha de ingreso se conserva al editar; `updatedAt` usa la hora del navegador en cada modificación.
+- Los datos pertenecen al perfil local del navegador y no se sincronizan entre equipos. Portfolio no tiene usuarios ni autenticación.
 
 ## Forma de trabajar
 
-Planifica cambios de varios módulos, autenticación, seguridad o base de datos. Mantén cambios acotados y actualiza `docs/figma-brief.md` si cambia la composición. Al terminar, explica archivos, comportamiento y verificación.
+Planifica cambios que afecten persistencia o varias pantallas. Mantén el alcance acotado y actualiza `docs/figma-brief.md` ante cambios de interfaz. Al terminar, resume los archivos modificados y cómo verificaste el cambio.
 
 ## Límites
 
-- ✅ Siempre: conserva la demo, RLS, grants mínimos y versiones fijadas; ejecuta `npm run build` tras cambios de código.
-- ⚠️ Pregunta antes: añadir dependencias, cambiar contratos persistidos o aplicar migraciones remotas.
-- 🚫 Nunca: edites el proyecto WPF, expongas claves, eludas RLS ni muestres el total global a cuentas sin rol Admin.
+- ✅ Siempre: conserva la persistencia local con IndexedDB y las versiones fijadas; ejecuta el build después de cambios de código.
+- ✅ Siempre: actualizar `MEMORY.md` al terminar cada tarea. 
+- ✅ Siempre: al terminar cambios, genera el commit en inglés usando estrictamente `<type>(<scope>): <subject>` (<50 chars) y un cuerpo con `<description>` (<100 chars, verbo en presente simple/imperativo respondiendo por qué y cómo; tipos: fix, feat, test, refactor, revert, build, chore).
+- ⚠️ Pregunta antes: añadir dependencias o archivos, o cambiar el formato persistido y sus migraciones.
+- 🚫 Nunca: edites la app WPF, expongas claves, conectes o apliques recursos Supabase desde Portfolio, ni incorpores autenticación o cuentas a esta versión.
 
 ## Verificación
 
-Ejecuta `npm run build`. Si cambia el arranque, comprueba Supabase y demo local. Para SQL, inspecciona tablas, RLS, políticas, grants y triggers con consultas de solo lectura.
+Ejecuta `npm run build`. Si cambia el arranque o la persistencia, comprueba que `npm run dev` abra sin variables de entorno y que los datos sobrevivan una recarga. No hay scripts de pruebas ni lint configurados.
