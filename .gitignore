@@ -5,3 +5,5 @@ dist/
 .env
 .agents/
 skills-lock.json
+/AGENTS.md
+/MEMORY.md
