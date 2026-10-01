@@ -3,17 +3,20 @@ export type Category = {
   name: string;
 };
 
+export type CategoryDraft = Pick<Category, "name">;
+
 export type InventoryItem = {
   id: string;
   code: string;
   name: string;
   sku: string;
+  serialNumber: string;
   brand: string;
   model: string;
-  department: string;
+  location: string;
   notes: string;
   categoryId: string;
-  price: number | null;
+  cost: number | null;
   createdAt: string;
   updatedAt: string;
 };
