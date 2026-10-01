@@ -9,6 +9,7 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 
 ## Decisiones (y por qué)
 - Usar IndexedDB sin Supabase ni cuentas para que cualquier persona pueda probar Portfolio localmente; la versión de Empresa se hará en otro repositorio.
+- Diseñar las interfaces primero en Figma y usar `figma-design-to-code` para llevarlas a React; `frontend-design` aporta criterio visual al código, pero no se conecta directamente a Figma.
 - Importar registros previos de `localStorage`, conservando `price` como `cost` y `department` como `location` para no perder datos.
 - Mantener campos opcionales `serialNumber` y `cost`; los números de serie informados son únicos.
 - Impedir borrar categorías con artículos asociados para evitar registros huérfanos.
