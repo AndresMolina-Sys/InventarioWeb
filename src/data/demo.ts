@@ -1,33 +1,38 @@
 import type { Category, InventoryItem, InventorySnapshot } from "../types";
 
-const defaultCategories: Category[] = [
+export const defaultCategories: Category[] = [
   { id: "cat-electronica", name: "Electrónica" },
   { id: "cat-hogar", name: "Hogar y Cocina" },
   { id: "cat-oficina", name: "Oficina y Papelería" },
 ];
 
 export const testArticles = [
-  { code: "INT-ELE-001", name: "Portátil de préstamo", category: "Electrónica", brand: "Lenovo", model: "ThinkPad E14", department: "Administración", notes: "Asignado al puesto de recepción." },
-  { code: "INT-ELE-002", name: "Monitor para sala de reuniones", category: "Electrónica", brand: "Dell", model: "P2422H", department: "Salas", notes: "Sala de reuniones principal." },
-  { code: "INT-ELE-003", name: "Proyector de capacitación", category: "Electrónica", brand: "Epson", model: "CO-W01", department: "Capacitación", notes: "Incluye control remoto y estuche." },
-  { code: "INT-ELE-004", name: "Router de respaldo", category: "Electrónica", brand: "TP-Link", model: "Archer AX55", department: "Tecnología", notes: "Guardado en el gabinete de comunicaciones." },
-  { code: "INT-ELE-005", name: "Tableta para inspecciones", category: "Electrónica", brand: "Samsung", model: "Galaxy Tab A9", department: "Operaciones", notes: "Uso interno del equipo de inspección." },
-  { code: "INT-HOG-001", name: "Cafetera de sala común", category: "Hogar y Cocina", brand: "Oster", model: "BVSTEM7300", department: "Servicios generales", notes: "Sala de descanso." },
-  { code: "INT-HOG-002", name: "Microondas del comedor", category: "Hogar y Cocina", brand: "Panasonic", model: "NN-SB458S", department: "Servicios generales", notes: "Comedor del personal." },
-  { code: "INT-HOG-003", name: "Refrigeradora de oficina", category: "Hogar y Cocina", brand: "Mabe", model: "RMA1025VMXE", department: "Servicios generales", notes: "Área de comedor." },
-  { code: "INT-HOG-004", name: "Dispensador de agua", category: "Hogar y Cocina", brand: "Primo", model: "Bottom Load", department: "Recepción", notes: "Recepción principal." },
-  { code: "INT-HOG-005", name: "Ventilador de sala de archivo", category: "Hogar y Cocina", brand: "Lasko", model: "T42950", department: "Archivo", notes: "Torre oscilante." },
-  { code: "INT-OFI-001", name: "Silla ergonómica de recepción", category: "Oficina y Papelería", brand: "ErgoSit", model: "LX-200", department: "Recepción", notes: "Respaldo ajustable." },
-  { code: "INT-OFI-002", name: "Escritorio de coordinación", category: "Oficina y Papelería", brand: "OfficePro", model: "Desk-140", department: "Coordinación", notes: "Puesto de coordinación." },
-  { code: "INT-OFI-003", name: "Archivador de contratos", category: "Oficina y Papelería", brand: "MetalOffice", model: "File-4", department: "Administración", notes: "Documentos de uso interno." },
-  { code: "INT-OFI-004", name: "Impresora del área administrativa", category: "Oficina y Papelería", brand: "Brother", model: "MFC-L8900CDW", department: "Administración", notes: "Conectada a la red interna." },
-  { code: "INT-OFI-005", name: "Pizarra móvil de capacitación", category: "Oficina y Papelería", brand: "Quartet", model: "Mobile 120", department: "Capacitación", notes: "Incluye bandeja para marcadores." },
+  { code: "INT-ELE-001", name: "Portátil de préstamo", category: "Electrónica", brand: "Lenovo", model: "ThinkPad E14", location: "Administración", notes: "Asignado al puesto de recepción." },
+  { code: "INT-ELE-002", name: "Monitor para sala de reuniones", category: "Electrónica", brand: "Dell", model: "P2422H", location: "Salas", notes: "Sala de reuniones principal." },
+  { code: "INT-ELE-003", name: "Proyector de capacitación", category: "Electrónica", brand: "Epson", model: "CO-W01", location: "Capacitación", notes: "Incluye control remoto y estuche." },
+  { code: "INT-ELE-004", name: "Router de respaldo", category: "Electrónica", brand: "TP-Link", model: "Archer AX55", location: "Tecnología", notes: "Guardado en el gabinete de comunicaciones." },
+  { code: "INT-ELE-005", name: "Tableta para inspecciones", category: "Electrónica", brand: "Samsung", model: "Galaxy Tab A9", location: "Operaciones", notes: "Uso interno del equipo de inspección." },
+  { code: "INT-HOG-001", name: "Cafetera de sala común", category: "Hogar y Cocina", brand: "Oster", model: "BVSTEM7300", location: "Servicios generales", notes: "Sala de descanso." },
+  { code: "INT-HOG-002", name: "Microondas del comedor", category: "Hogar y Cocina", brand: "Panasonic", model: "NN-SB458S", location: "Servicios generales", notes: "Comedor del personal." },
+  { code: "INT-HOG-003", name: "Refrigeradora de oficina", category: "Hogar y Cocina", brand: "Mabe", model: "RMA1025VMXE", location: "Servicios generales", notes: "Área de comedor." },
+  { code: "INT-HOG-004", name: "Dispensador de agua", category: "Hogar y Cocina", brand: "Primo", model: "Bottom Load", location: "Recepción", notes: "Recepción principal." },
+  { code: "INT-HOG-005", name: "Ventilador de sala de archivo", category: "Hogar y Cocina", brand: "Lasko", model: "T42950", location: "Archivo", notes: "Torre oscilante." },
+  { code: "INT-OFI-001", name: "Silla ergonómica de recepción", category: "Oficina y Papelería", brand: "ErgoSit", model: "LX-200", location: "Recepción", notes: "Respaldo ajustable." },
+  { code: "INT-OFI-002", name: "Escritorio de coordinación", category: "Oficina y Papelería", brand: "OfficePro", model: "Desk-140", location: "Coordinación", notes: "Puesto de coordinación." },
+  { code: "INT-OFI-003", name: "Archivador de contratos", category: "Oficina y Papelería", brand: "MetalOffice", model: "File-4", location: "Administración", notes: "Documentos de uso interno." },
+  { code: "INT-OFI-004", name: "Impresora del área administrativa", category: "Oficina y Papelería", brand: "Brother", model: "MFC-L8900CDW", location: "Administración", notes: "Conectada a la red interna." },
+  { code: "INT-OFI-005", name: "Pizarra móvil de capacitación", category: "Oficina y Papelería", brand: "Quartet", model: "Mobile 120", location: "Capacitación", notes: "Incluye bandeja para marcadores." },
 ] as const;
 
 const STORAGE_KEY = "inventario-web-demo-v2";
 const LEGACY_STORAGE_KEY = "inventario-web-demo-v1";
 
-function buildDemoItems(categories: Category[]): InventoryItem[] {
+type LegacyInventoryItem = Partial<InventoryItem> & {
+  department?: string;
+  price?: number | string | null;
+};
+
+export function buildDemoItems(categories: Category[]): InventoryItem[] {
   const categoryIds = new Map(categories.map((category) => [category.name, category.id]));
   const now = Date.now();
   return testArticles.map((article, index) => {
@@ -37,74 +42,78 @@ function buildDemoItems(categories: Category[]): InventoryItem[] {
       code: article.code,
       name: article.name,
       sku: "",
+      serialNumber: "",
       brand: article.brand,
       model: article.model,
-      department: article.department,
+      location: article.location,
       notes: article.notes,
       categoryId: categoryIds.get(article.category) ?? categories[0]?.id ?? "",
-      price: null,
+      cost: null,
       createdAt,
       updatedAt: createdAt,
     };
   });
 }
 
-function normalizeSnapshot(value: unknown, categoriesFallback: Category[], preserveSample: boolean): InventorySnapshot | null {
+function normalizeSnapshot(value: unknown, categoriesFallback: Category[], addMissingSamples: boolean): InventorySnapshot | null {
   if (typeof value !== "object" || value === null || !("items" in value) || !Array.isArray(value.items)) return null;
   const record = value as { categories?: unknown; items: unknown[] };
   const categories = Array.isArray(record.categories) ? record.categories as Category[] : categoriesFallback;
   const savedItems = record.items.flatMap((entry): InventoryItem[] => {
     if (typeof entry !== "object" || entry === null) return [];
-    const item = entry as Partial<InventoryItem>;
+    const item = entry as LegacyInventoryItem;
     if (!item.id || !item.code || !item.name || !item.categoryId) return [];
-    if (!preserveSample && item.id.startsWith("demo-")) return [];
+    if (addMissingSamples && item.id.startsWith("demo-")) return [];
     const createdAt = item.createdAt ?? new Date().toISOString();
+    const rawCost = item.cost !== undefined ? item.cost : item.price ?? null;
+    const parsedCost = rawCost === null || rawCost === "" ? null : Number(rawCost);
     return [{
       id: item.id,
       code: item.code,
       name: item.name,
       sku: item.sku ?? "",
+      serialNumber: item.serialNumber ?? "",
       brand: item.brand ?? "",
       model: item.model ?? "",
-      department: item.department ?? "",
+      location: item.location ?? item.department ?? "",
       notes: item.notes ?? "",
       categoryId: item.categoryId,
-      price: item.price ?? null,
+      cost: parsedCost !== null && Number.isFinite(parsedCost) && parsedCost >= 0 ? parsedCost : null,
       createdAt,
       updatedAt: item.updatedAt ?? createdAt,
     }];
   });
-  return { categories, items: preserveSample ? savedItems : [...savedItems, ...buildDemoItems(categories)] };
+  if (!addMissingSamples) return { categories, items: savedItems };
+
+  const categoriesWithDefaults = [...categories];
+  for (const defaultCategory of defaultCategories) {
+    if (!categoriesWithDefaults.some((category) => category.name.trim().toLocaleLowerCase("es-CR") === defaultCategory.name.toLocaleLowerCase("es-CR"))) {
+      categoriesWithDefaults.push(defaultCategory);
+    }
+  }
+  const knownCodes = new Set(savedItems.map((item) => item.code.trim().toLocaleLowerCase("es-CR")));
+  const sampleItems = buildDemoItems(categoriesWithDefaults).filter((item) => !knownCodes.has(item.code.toLocaleLowerCase("es-CR")));
+  return { categories: categoriesWithDefaults, items: [...savedItems, ...sampleItems] };
 }
 
-export function getDemoSnapshot(): InventorySnapshot {
-  try {
-    const current = localStorage.getItem(STORAGE_KEY);
-    if (current) {
-      const migrated = normalizeSnapshot(JSON.parse(current) as unknown, defaultCategories, true);
-      if (migrated) {
-        saveDemoSnapshot(migrated);
-        return migrated;
-      }
-    }
-    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacy) {
-      const migrated = normalizeSnapshot(JSON.parse(legacy) as unknown, defaultCategories, false);
-      if (migrated) {
-        saveDemoSnapshot(migrated);
-        return migrated;
-      }
-    }
-  } catch {
-    // Fall back to the built-in sample if browser storage is unavailable or invalid.
-  }
+export function createSampleSnapshot(): InventorySnapshot {
   return { categories: defaultCategories, items: buildDemoItems(defaultCategories) };
 }
 
-export function saveDemoSnapshot(snapshot: InventorySnapshot): void {
+export function readLegacySnapshot(): InventorySnapshot | null {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    const current = localStorage.getItem(STORAGE_KEY);
+    if (current) {
+      const migrated = normalizeSnapshot(JSON.parse(current) as unknown, defaultCategories, false);
+      if (migrated) return migrated;
+    }
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      const migrated = normalizeSnapshot(JSON.parse(legacy) as unknown, defaultCategories, true);
+      if (migrated) return migrated;
+    }
   } catch {
-    // The current session still works if persistence is blocked by the browser.
+    // A malformed or blocked legacy value must not prevent a fresh local database.
   }
+  return null;
 }
