@@ -1,28 +1,22 @@
-# MEMORY.md — Diario de Estudio
-
+# MEMORY.md — Inventario Web
 Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo que ya no aporte.
 
 ## Estado actual
-- InventarioWeb es un registro interno de artículos, separado del programa WPF.
-- Stack fijado: React 19.3.0, TypeScript 5.9.3, Vite 8.3.1, Supabase JS 2.117.1, Node.js 22+.
-- Interfaz/modelos: `src/App.tsx`, `src/types.ts`; persistencia: `src/lib/inventoryRepository.ts`; demo: `src/data/demo.ts`.
-- Supabase usa RLS por propietario, migraciones en `supabase/migrations/` y la Edge Function `registered-user-count`.
-- Dashboard: artículos y categorías; el conteo global solo lo consulta Admin. Demo con 3 categorías y 15 artículos.
-- En Supabase ya se aplicó la migración de retiro de stock; la cuenta actual tiene rol Admin y 15 artículos de prueba, además del artículo previo.
+- Este repositorio contiene la versión Portfolio: una aplicación de control interno para administrar artículos y categorías sin inicio de sesión.
+- La interfaz está en `src/App.tsx`, los modelos compartidos en `src/types.ts`, la persistencia IndexedDB en `src/lib/inventoryRepository.ts` y los datos iniciales/migración en `src/data/demo.ts`.
+- La base local nueva se inicializa con 3 categorías y 15 artículos. Los datos quedan en el navegador y no se sincronizan entre equipos.
+- Skills candidatas, todavía no instaladas: `vercel-labs/agent-skills@vercel-react-best-practices`, `anthropics/skills@frontend-design`, `anthropics/skills@webapp-testing` y `addyosmani/web-quality-skills@accessibility`.
 
 ## Decisiones (y por qué)
-- Mantener demo local cuando falten variables Supabase; esos datos no se presentan como remotos.
-- El registro conserva nombre, categoría, fecha de ingreso y acciones Ver/Editar/Borrar.
-- No guardar cantidades ni movimientos de stock. La migración elimina el seguimiento de existencias.
-- Usar modelos camelCase y mapear snake_case solo en el repositorio.
-- El total de usuarios se consulta del lado servidor y requiere `app_metadata.role = "admin"`.
-- Cargar los 15 artículos en Supabase solo mediante acción explícita e idempotente por código.
-- Conservar versiones fijadas, grants mínimos y claves secretas solo en el servidor.
+- Usar IndexedDB sin Supabase ni cuentas para que cualquier persona pueda probar Portfolio localmente; la versión de Empresa se hará en otro repositorio.
+- Importar registros previos de `localStorage`, conservando `price` como `cost` y `department` como `location` para no perder datos.
+- Mantener campos opcionales `serialNumber` y `cost`; los números de serie informados son únicos.
+- Impedir borrar categorías con artículos asociados para evitar registros huérfanos.
+- Conservar la fecha de ingreso al editar y actualizar `updatedAt` con la fecha y hora del navegador.
+- No incluir cantidades, estados de stock, usuarios ni autenticación en Portfolio.
 
 ## Aprendizajes y errores a evitar
-- `supabase/schema.sql` es inicial y no idempotente; revisar el historial remoto antes de aplicarlo.
-- En demo, migrar la clave `inventario-web-demo-v1` para conservar artículos personalizados.
+- (vacío por ahora)
 
 ## Próximos pasos
-- Al cambiar código TypeScript/UI, ejecutar `npm run build`; no hay scripts de prueba ni lint.
-- Cerrar sesión y volver a entrar para renovar el token que recibió el rol Admin.
+- (vacío por ahora)
