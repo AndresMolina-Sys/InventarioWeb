@@ -5,7 +5,8 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 - Este repositorio contiene la versión Portfolio: una aplicación de control interno para administrar artículos y categorías sin inicio de sesión.
 - La interfaz está en `src/App.tsx`, los modelos compartidos en `src/types.ts`, la persistencia IndexedDB en `src/lib/inventoryRepository.ts` y los datos iniciales/migración en `src/data/demo.ts`.
 - La base local nueva se inicializa con 3 categorías y 15 artículos. Los datos quedan en el navegador y no se sincronizan entre equipos.
-- Skills candidatas, todavía no instaladas: `vercel-labs/agent-skills@vercel-react-best-practices`, `anthropics/skills@frontend-design`, `anthropics/skills@webapp-testing` y `addyosmani/web-quality-skills@accessibility`.
+- Skills disponibles en el proyecto: `vercel-react-best-practices`, `frontend-design`, `webapp-testing`, `accessibility` y `grill-me`.
+- Chrome DevTools MCP está instalado y disponible para inspeccionar páginas, consola, red, accesibilidad y rendimiento.
 
 ## Decisiones (y por qué)
 - Usar IndexedDB sin Supabase ni cuentas para que cualquier persona pueda probar Portfolio localmente; la versión de Empresa se hará en otro repositorio.
