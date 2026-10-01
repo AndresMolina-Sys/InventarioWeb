@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import type { User } from "@supabase/supabase-js";
-import { getDemoSnapshot } from "./data/demo";
-import { createItem, deleteItem, loadSnapshot, seedTestItems, updateItem } from "./lib/inventoryRepository";
-import { isSupabaseConfigured, supabase } from "./lib/supabase";
-import type { Category, InventoryItem, InventorySnapshot, ItemDraft } from "./types";
+import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
+import type { Category, CategoryDraft, InventoryItem, InventorySnapshot, ItemDraft } from "./types";
 
-type Page = "dashboard" | "inventory";
-type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "mail" | "lock" | "spark" | "logout" | "clock" | "alert" | "layers";
+type Page = "dashboard" | "inventory" | "categories" | "category-detail";
+type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers";
 
 const iconPaths: Record<IconName, ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>,
@@ -21,10 +18,7 @@ const iconPaths: Record<IconName, ReactNode> = {
   view: <><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.5" /></>,
   close: <><path d="m6 6 12 12M18 6 6 18" /></>,
   check: <path d="m5 12 4 4L19 6" />,
-  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m4 7 8 6 8-6" /></>,
-  lock: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 1 1 8 0v3" /></>,
   spark: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" /><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z" /></>,
-  logout: <><path d="M10 17l5-5-5-5m5 5H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></>,
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   alert: <><path d="M10.3 4.8 2.8 18a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.8a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4m0 4h.01" /></>,
   layers: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 16l9 5 9-5" /></>,
@@ -40,6 +34,11 @@ function dateLabel(value: string): string {
   }).format(new Date(value));
 }
 
+function costLabel(value: number | null): string {
+  if (value === null) return "Sin especificar";
+  return new Intl.NumberFormat("es-CR", { style: "currency", currency: "USD" }).format(value);
+}
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   return hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
@@ -48,15 +47,14 @@ function getGreeting(): string {
 function App() {
   const [page, setPage] = useState<Page>("dashboard");
   const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [] });
-  const [user, setUser] = useState<User | null>(null);
-  const [authChecked, setAuthChecked] = useState(!isSupabaseConfigured);
-  const [dataLoading, setDataLoading] = useState(isSupabaseConfigured);
+  const [dataLoading, setDataLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [itemModal, setItemModal] = useState<InventoryItem | "new" | null>(null);
   const [viewedItem, setViewedItem] = useState<InventoryItem | null>(null);
-  const [registeredUsers, setRegisteredUsers] = useState<number | null>(null);
+  const [categoryModal, setCategoryModal] = useState<Category | "new" | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -73,73 +71,24 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!supabase) return;
     let active = true;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setUser(data.session?.user ?? null);
-      setAuthChecked(true);
-    }).catch(() => {
-      if (active) setAuthChecked(true);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setSnapshot(getDemoSnapshot());
-      setDataLoading(false);
-      return;
-    }
-    if (!authChecked) return;
-    if (!user) {
-      setDataLoading(false);
-      return;
-    }
-    let active = true;
-    setDataLoading(true);
     void loadSnapshot().then((data) => {
-      if (active) {
-        setSnapshot(data);
-        setError("");
-      }
+      if (active) setSnapshot(data);
     }).catch((reason: unknown) => {
       if (active) setError(errorMessage(reason));
     }).finally(() => {
       if (active) setDataLoading(false);
     });
-    return () => { active = false; };
-  }, [authChecked, user]);
-
-  const isAdmin = user?.app_metadata?.role === "admin";
-
-  useEffect(() => {
-    if (!supabase || !user || !isAdmin) {
-      setRegisteredUsers(null);
-      return;
-    }
-    let active = true;
-    void supabase.functions.invoke<{ count: number }>("registered-user-count").then(({ data, error: functionError }) => {
-      if (functionError) throw functionError;
-      if (typeof data?.count !== "number") throw new Error("Respuesta no válida al consultar las cuentas.");
-      if (active) setRegisteredUsers(data.count);
-    }).catch(() => {
-      if (active) setError("No se pudo consultar el total de usuarios registrados.");
-    });
-    return () => { active = false; };
-  }, [isAdmin, user]);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const categoryName = useMemo(() => new Map(snapshot.categories.map((category) => [category.id, category.name])), [snapshot.categories]);
   const filteredItems = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("es");
     return snapshot.items.filter((item) => {
-      const matchesQuery = !query || [item.name, item.code, item.sku, item.brand, item.model, item.department, item.notes, categoryName.get(item.categoryId) ?? ""]
+      const matchesQuery = !query || [item.name, item.code, item.serialNumber, item.sku, item.brand, item.model, item.location, item.notes, categoryName.get(item.categoryId) ?? ""]
         .some((value) => value.toLocaleLowerCase("es").includes(query));
       return matchesQuery && (categoryFilter === "all" || item.categoryId === categoryFilter);
     });
@@ -181,20 +130,21 @@ function App() {
     await mutate(() => deleteItem(item.id), "Artículo borrado.");
   }
 
-  async function addTestItems() {
-    if (!window.confirm("Se agregarán los artículos de prueba que aún no existen en tu cuenta. ¿Continuar?")) return;
-    setWorking(true);
-    setError("");
-    setNotice("");
-    try {
-      const added = await seedTestItems();
-      await refresh();
-      setNotice(added ? `Se agregaron ${added} artículos de prueba.` : "Los 15 artículos de prueba ya están registrados.");
-      window.setTimeout(() => setNotice(""), 3200);
-    } catch (reason) {
-      setError(errorMessage(reason));
-    } finally {
-      setWorking(false);
+  async function saveCategory(draft: CategoryDraft): Promise<void> {
+    const existing = categoryModal !== "new" && categoryModal ? categoryModal : null;
+    const saved = await mutate(
+      () => existing ? updateCategory(existing.id, draft) : createCategory(draft),
+      existing ? "Categoría actualizada." : "Categoría agregada.",
+    );
+    if (saved) setCategoryModal(null);
+  }
+
+  async function removeCategory(category: Category) {
+    if (!window.confirm(`¿Borrar la categoría «${category.name}»? Esta acción no se puede deshacer.`)) return;
+    const deleted = await mutate(() => deleteCategory(category.id), "Categoría borrada.");
+    if (deleted && selectedCategoryId === category.id) {
+      setSelectedCategoryId(null);
+      setPage("categories");
     }
   }
 
@@ -212,25 +162,22 @@ function App() {
     URL.revokeObjectURL(href);
   }
 
-  if (isSupabaseConfigured && !authChecked) return <LoadingScreen />;
-  if (isSupabaseConfigured && !user) return <AuthScreen error={error} onError={setError} />;
   if (dataLoading) return <LoadingScreen />;
-
-  const userName = user?.email?.split("@")[0] ?? "Cuenta demo";
+  const selectedCategory = snapshot.categories.find((category) => category.id === selectedCategoryId) ?? null;
+  const pageTitle = page === "dashboard" ? "Resumen" : page === "inventory" ? "Artículos" : page === "category-detail" ? selectedCategory?.name ?? "Categoría" : "Categorías";
 
   return <div className="app-shell">
-    <Sidebar page={page} onPage={setPage} userName={userName} itemCount={snapshot.items.length} />
+    <Sidebar page={page} onPage={setPage} itemCount={snapshot.items.length} categoryCount={snapshot.categories.length} />
     <main className="main-area">
       <div className="topbar">
-        <div className="breadcrumb"><span>Control interno</span><Icon name="chevron" size={14} /><strong>{page === "dashboard" ? "Resumen" : "Artículos"}</strong></div>
+        <div className="breadcrumb"><span>Control interno</span><Icon name="chevron" size={14} /><strong>{pageTitle}</strong></div>
         <label className="global-search">
           <Icon name="search" size={17} />
           <input aria-label="Buscar artículos" placeholder="Buscar artículo o código..." value={search} onChange={(event) => { setSearch(event.target.value); setPage("inventory"); }} />
           <kbd>⌘ K</kbd>
         </label>
         <div className="topbar-right">
-          <span className={`connection-pill ${isSupabaseConfigured ? "is-live" : "is-demo"}`}><span className="connection-dot" />{isSupabaseConfigured ? "Supabase" : "Demo local"}</span>
-          <div className="user-avatar" aria-label="Perfil de usuario">{userName.slice(0, 1).toUpperCase()}</div>
+          <span className="connection-pill is-demo"><span className="connection-dot" />Datos locales</span>
         </div>
       </div>
 
@@ -243,10 +190,8 @@ function App() {
         items={snapshot.items}
         categories={snapshot.categories}
         categoryName={categoryName}
-        userName={userName}
-        isAdmin={isAdmin}
-        registeredUsers={registeredUsers}
         onViewInventory={() => setPage("inventory")}
+        onViewCategories={() => setPage("categories")}
       />}
       {page === "inventory" && <InventoryPage
         items={filteredItems}
@@ -259,37 +204,54 @@ function App() {
         onEdit={(item) => { setError(""); setItemModal(item); }}
         onDelete={removeItem}
         onExport={exportCsv}
-        onSeed={addTestItems}
-        showSeedButton={isSupabaseConfigured}
-        working={working}
+      />}
+      {page === "categories" && <CategoriesPage
+        categories={snapshot.categories}
+        items={snapshot.items}
+        onNew={() => { setError(""); setCategoryModal("new"); }}
+        onView={(category) => { setSelectedCategoryId(category.id); setPage("category-detail"); }}
+        onEdit={(category) => { setError(""); setCategoryModal(category); }}
+        onDelete={(category) => void removeCategory(category)}
+      />}
+      {page === "category-detail" && selectedCategory && <CategoryDetailPage
+        category={selectedCategory}
+        items={snapshot.items.filter((item) => item.categoryId === selectedCategory.id)}
+        onBack={() => setPage("categories")}
+        onViewItem={setViewedItem}
+        onDeleteItem={removeItem}
       />}
     </main>
 
     {itemModal && <ItemModal
       item={itemModal === "new" ? null : itemModal}
       categories={snapshot.categories}
+      error={error}
       saving={working}
       onClose={() => setItemModal(null)}
       onSave={saveItem}
     />}
     {viewedItem && <ItemDetailModal item={viewedItem} categoryName={categoryName.get(viewedItem.categoryId) ?? "Sin categoría"} onClose={() => setViewedItem(null)} />}
+    {categoryModal && <CategoryModal
+      category={categoryModal === "new" ? null : categoryModal}
+      error={error}
+      saving={working}
+      onClose={() => setCategoryModal(null)}
+      onSave={saveCategory}
+    />}
   </div>;
 }
 
 function errorMessage(reason: unknown): string {
-  const code = typeof reason === "object" && reason !== null && "code" in reason && typeof reason.code === "string" ? reason.code : "";
-  if (code === "23505") return "Ya existe un artículo con ese código interno.";
-  if (code === "23503") return "La categoría ya no está disponible. Actualiza la página e inténtalo de nuevo.";
-  if (code === "42501") return "Tu cuenta no tiene permiso para realizar esta acción.";
-  if (code === "42P01" || code === "PGRST205") return "Falta configurar el esquema de Supabase. Consulta la guía de instalación.";
   if (reason instanceof Error) return reason.message;
   return "Ocurrió un error inesperado. Intenta de nuevo.";
 }
 
-function Sidebar({ page, onPage, userName, itemCount }: { page: Page; onPage: (page: Page) => void; userName: string; itemCount: number }) {
-  const links: Array<{ key: Page; label: string; icon: IconName }> = [
+function Sidebar({ page, onPage, itemCount, categoryCount }: { page: Page; onPage: (page: Page) => void; itemCount: number; categoryCount: number }) {
+  const activePage = page === "category-detail" ? "categories" : page;
+  const links: Array<{ key: Exclude<Page, "category-detail">; label: string; icon: IconName }> = [
     { key: "dashboard", label: "Resumen", icon: "dashboard" },
     { key: "inventory", label: "Artículos", icon: "box" },
+    { key: "categories", label: "Categorías", icon: "layers" },
   ];
   return <aside className="sidebar">
     <a className="brand" href="#inicio" onClick={(event) => { event.preventDefault(); onPage("dashboard"); }}>
@@ -298,27 +260,21 @@ function Sidebar({ page, onPage, userName, itemCount }: { page: Page; onPage: (p
     <div className="workspace-select"><span className="workspace-mark">I</span><span><strong>InventarioWeb</strong><small>Registro de artículos</small></span><Icon name="chevron" size={15} /></div>
     <div className="nav-label">MENÚ</div>
     <nav className="side-nav" aria-label="Navegación principal">
-      {links.map((link) => <button key={link.key} className={`nav-link ${page === link.key ? "active" : ""}`} aria-label={link.label} title={link.label} onClick={() => onPage(link.key)}>
-        <Icon name={link.icon} size={18} /><span>{link.label}</span>{link.key === "inventory" && <span className="nav-count">{itemCount}</span>}
+      {links.map((link) => <button key={link.key} className={`nav-link ${activePage === link.key ? "active" : ""}`} aria-label={link.label} title={link.label} onClick={() => onPage(link.key)}>
+        <Icon name={link.icon} size={18} /><span>{link.label}</span>{link.key !== "dashboard" && <span className="nav-count">{link.key === "inventory" ? itemCount : categoryCount}</span>}
       </button>)}
     </nav>
     <div className="sidebar-spacer" />
     <div className="sidebar-note"><span className="note-icon"><Icon name="spark" size={16} /></span><strong>Control organizado</strong><p>Consulta los artículos y sus datos en un solo lugar.</p></div>
-    <button className="profile-row" onClick={() => { if (supabase) void supabase.auth.signOut(); }} title={isSupabaseConfigured ? "Cerrar sesión" : "Sesión demo local"}>
-      <span className="profile-avatar">{userName.slice(0, 1).toUpperCase()}</span><span className="profile-copy"><strong>{userName}</strong><small>{isSupabaseConfigured ? "Cuenta conectada" : "Modo de demostración"}</small></span>
-      {isSupabaseConfigured && <Icon name="logout" size={16} />}
-    </button>
   </aside>;
 }
 
-function DashboardPage({ items, categories, categoryName, userName, isAdmin, registeredUsers, onViewInventory }: {
+function DashboardPage({ items, categories, categoryName, onViewInventory, onViewCategories }: {
   items: InventoryItem[];
   categories: Category[];
   categoryName: Map<string, string>;
-  userName: string;
-  isAdmin: boolean;
-  registeredUsers: number | null;
   onViewInventory: () => void;
+  onViewCategories: () => void;
 }) {
   const categoryTotals = categories.map((category) => ({
     ...category,
@@ -329,15 +285,14 @@ function DashboardPage({ items, categories, categoryName, userName, isAdmin, reg
   const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string }> = [
     { label: "Artículos registrados", value: String(items.length).padStart(2, "0"), detail: "En el registro actual", icon: "box", color: "violet" },
     { label: "Categorías", value: String(categories.length).padStart(2, "0"), detail: "Para clasificar artículos", icon: "layers", color: "blue" },
-    ...(isAdmin ? [{ label: "Usuarios registrados", value: registeredUsers === null ? "—" : String(registeredUsers), detail: "Cuentas del sistema", icon: "view" as const, color: "green" }] : []),
   ];
   return <section className="page-content">
     <div className="page-heading dashboard-heading">
-      <div><div className="eyebrow">{new Intl.DateTimeFormat("es-CR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}</div><h1>{getGreeting()}, {userName} <span className="wave">✦</span></h1><p>Resumen del registro interno de artículos.</p></div>
-      <button className="button button-primary" onClick={onViewInventory}><Icon name="box" size={17} />Ver artículos</button>
+      <div><div className="eyebrow">{new Intl.DateTimeFormat("es-CR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}</div><h1>{getGreeting()} <span className="wave">✦</span></h1><p>Resumen del registro interno de artículos.</p></div>
+      <div className="dashboard-actions"><button className="button button-outline" onClick={onViewCategories}><Icon name="layers" size={17} />Ver categorías</button><button className="button button-primary" onClick={onViewInventory}><Icon name="box" size={17} />Ver artículos</button></div>
     </div>
 
-    <div className={`stats-grid stats-grid-internal ${isAdmin ? "" : "stats-grid-nonadmin"}`}>
+    <div className="stats-grid stats-grid-internal">
       {stats.map((stat) => <article className="stat-card" key={stat.label}>
         <div className="stat-top"><span>{stat.label}</span><span className={`stat-icon ${stat.color}`}><Icon name={stat.icon} size={17} /></span></div>
         <strong className="stat-value">{stat.value}</strong><span className="stat-detail">{stat.detail}</span>
@@ -368,7 +323,7 @@ function DashboardPage({ items, categories, categoryName, userName, isAdmin, reg
   </section>;
 }
 
-function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, onNew, onView, onEdit, onDelete, onExport, onSeed, showSeedButton, working }: {
+function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, onNew, onView, onEdit, onDelete, onExport }: {
   items: InventoryItem[];
   allItems: InventoryItem[];
   categories: Category[];
@@ -379,9 +334,6 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
   onEdit: (item: InventoryItem) => void;
   onDelete: (item: InventoryItem) => void;
   onExport: () => void;
-  onSeed: () => void;
-  showSeedButton: boolean;
-  working: boolean;
 }) {
   return <section className="page-content">
     <div className="page-heading">
@@ -393,7 +345,6 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
         <div><h2>Registro de artículos</h2><p>{items.length} de {allItems.length} artículos</p></div>
         <div className="toolbar-actions">
           <select aria-label="Filtrar por categoría" value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">Todas las categorías</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
-          {showSeedButton && <button className="button button-outline seed-button" onClick={onSeed} disabled={working}>Cargar 15 artículos de prueba</button>}
           <button className="button button-outline" onClick={onExport} disabled={items.length === 0}><Icon name="download" size={16} />Exportar</button>
         </div>
       </div>
@@ -410,7 +361,76 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
           </div></td>
         </tr>)}</tbody>
       </table></div> : <EmptyState title="No hay artículos para mostrar" text="Ajusta el filtro o agrega un artículo para comenzar." />}
-      <div className="table-foot"><span>Mostrando <strong>{items.length}</strong> de <strong>{allItems.length}</strong> artículos</span><span className="table-foot-note"><Icon name="lock" size={14} />Tus datos están protegidos</span></div>
+      <div className="table-foot"><span>Mostrando <strong>{items.length}</strong> de <strong>{allItems.length}</strong> artículos</span><span className="table-foot-note"><Icon name="layers" size={14} />Guardados en este navegador</span></div>
+    </section>
+  </section>;
+}
+
+function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete }: {
+  categories: Category[];
+  items: InventoryItem[];
+  onNew: () => void;
+  onView: (category: Category) => void;
+  onEdit: (category: Category) => void;
+  onDelete: (category: Category) => void;
+}) {
+  const sortedCategories = [...categories].sort((left, right) => left.name.localeCompare(right.name, "es"));
+  return <section className="page-content">
+    <div className="page-heading">
+      <div><div className="eyebrow">CONTROL INTERNO</div><h1>Categorías</h1><p>Organiza los artículos por grupos de uso.</p></div>
+      <button className="button button-primary" onClick={onNew}><Icon name="plus" size={18} />Agregar categoría</button>
+    </div>
+    <section className="panel inventory-panel">
+      <div className="inventory-toolbar"><div><h2>Registro de categorías</h2><p>{categories.length} categorías</p></div></div>
+      {sortedCategories.length > 0 ? <div className="table-scroll"><table className="product-table category-table">
+        <thead><tr><th>Nombre</th><th>Artículos asociados</th><th>Acciones</th></tr></thead>
+        <tbody>{sortedCategories.map((category, index) => {
+          const count = items.filter((item) => item.categoryId === category.id).length;
+          return <tr key={category.id}>
+            <td><div className="product-cell"><span className={`category-mark mark-${index % 4}`}>{category.name.slice(0, 1)}</span><strong>{category.name}</strong></div></td>
+            <td>{count} {count === 1 ? "artículo" : "artículos"}</td>
+            <td><div className="row-actions">
+              <button className="quiet-icon" onClick={() => onView(category)} title={`Ver ${category.name}`} aria-label={`Ver ${category.name}`}><Icon name="view" size={16} /></button>
+              <button className="quiet-icon" onClick={() => onEdit(category)} title={`Editar ${category.name}`} aria-label={`Editar ${category.name}`}><Icon name="edit" size={16} /></button>
+              <button className="quiet-icon danger-icon" onClick={() => onDelete(category)} title={`Borrar ${category.name}`} aria-label={`Borrar ${category.name}`}><Icon name="trash" size={16} /></button>
+            </div></td>
+          </tr>;
+        })}</tbody>
+      </table></div> : <EmptyState title="Aún no hay categorías" text="Agrega una categoría para clasificar artículos." />}
+      <div className="table-foot"><span>Mostrando <strong>{categories.length}</strong> categorías</span><span className="table-foot-note"><Icon name="layers" size={14} />Guardadas en este navegador</span></div>
+    </section>
+  </section>;
+}
+
+function CategoryDetailPage({ category, items, onBack, onViewItem, onDeleteItem }: {
+  category: Category;
+  items: InventoryItem[];
+  onBack: () => void;
+  onViewItem: (item: InventoryItem) => void;
+  onDeleteItem: (item: InventoryItem) => void;
+}) {
+  const sortedItems = [...items].sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+  return <section className="page-content">
+    <div className="page-heading">
+      <div><button className="text-link category-back" onClick={onBack}><Icon name="chevron" size={15} />Volver a categorías</button><div className="eyebrow">DETALLE DE CATEGORÍA</div><h1>{category.name}</h1><p>{items.length} {items.length === 1 ? "artículo asociado" : "artículos asociados"}.</p></div>
+    </div>
+    <section className="panel inventory-panel">
+      <div className="inventory-toolbar"><div><h2>Artículos de {category.name}</h2><p>La fecha refleja la última modificación.</p></div></div>
+      {sortedItems.length > 0 ? <div className="table-scroll"><table className="product-table category-detail-table">
+        <thead><tr><th>Código</th><th>Nombre</th><th>N.º de serie</th><th>Ubicación</th><th>Última modificación</th><th>Acciones</th></tr></thead>
+        <tbody>{sortedItems.map((item) => <tr key={item.id}>
+          <td className="sku-code">{item.code}</td>
+          <td><strong className="category-item-name">{item.name}</strong></td>
+          <td>{item.serialNumber || "—"}</td>
+          <td>{item.location || "General"}</td>
+          <td className="date-cell">{dateLabel(item.updatedAt)}</td>
+          <td><div className="row-actions">
+            <button className="quiet-icon" onClick={() => onViewItem(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
+            <button className="quiet-icon danger-icon" onClick={() => onDeleteItem(item)} title={`Borrar ${item.name}`} aria-label={`Borrar ${item.name}`}><Icon name="trash" size={16} /></button>
+          </div></td>
+        </tr>)}</tbody>
+      </table></div> : <EmptyState title="No hay artículos asociados" text="Los artículos de esta categoría aparecerán aquí." />}
+      <div className="table-foot"><span>Mostrando <strong>{items.length}</strong> artículos</span><span className="table-foot-note"><Icon name="layers" size={14} />Guardados en este navegador</span></div>
     </section>
   </section>;
 }
@@ -423,50 +443,19 @@ function LoadingScreen() {
   return <div className="loading-screen"><span className="loading-mark"><Icon name="layers" size={20} /></span><span>Preparando el registro...</span></div>;
 }
 
-function AuthScreen({ error, onError }: { error: string; onError: (message: string) => void }) {
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-
+function CategoryModal({ category, error, saving, onClose, onSave }: { category: Category | null; error: string; saving: boolean; onClose: () => void; onSave: (draft: CategoryDraft) => Promise<void> }) {
+  const [name, setName] = useState(category?.name ?? "");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabase) return;
-    setBusy(true);
-    setMessage("");
-    onError("");
-    try {
-      const result = mode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
-      if (result.error) throw result.error;
-      if (mode === "signup" && !result.data.session) setMessage("Revisa tu correo para confirmar la cuenta y volver a iniciar sesión.");
-    } catch (reason) {
-      onError(errorMessage(reason));
-    } finally {
-      setBusy(false);
-    }
+    await onSave({ name });
   }
-
-  return <main className="auth-screen">
-    <div className="auth-card">
-      <a className="brand auth-brand" href="#inicio"><span className="brand-symbol"><Icon name="layers" size={19} /></span><span>Control<span> interno</span></span></a>
-      <div className="auth-eyebrow">REGISTRO INTERNO DE ARTÍCULOS</div>
-      <h1>{mode === "login" ? "Qué bueno verte." : "Crea tu espacio."}</h1>
-      <p className="auth-intro">{mode === "login" ? "Inicia sesión para consultar los artículos registrados." : "Registra una cuenta para empezar a organizar los artículos."}</p>
-      <form className="auth-form" onSubmit={(event) => void submit(event)}>
-        <label>Correo electrónico<span className="input-with-icon"><Icon name="mail" size={17} /><input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="tu@correo.com" /></span></label>
-        <label>Contraseña<span className="input-with-icon"><Icon name="lock" size={17} /><input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={8} required value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Al menos 8 caracteres" /></span></label>
-        {error && <div className="inline-error" role="alert"><Icon name="alert" size={16} />{error}</div>}
-        {message && <div className="inline-success" role="status"><Icon name="check" size={16} />{message}</div>}
-        <button className="button button-primary auth-submit" disabled={busy}>{busy ? "Un momento..." : mode === "login" ? "Iniciar sesión" : "Crear cuenta"}<Icon name="chevron" size={16} /></button>
-      </form>
-      <div className="auth-switch">{mode === "login" ? "¿Primera vez aquí?" : "¿Ya tienes cuenta?"}<button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setMessage(""); onError(""); }}>{mode === "login" ? "Crear cuenta" : "Iniciar sesión"}</button></div>
-      <div className="auth-secure"><Icon name="lock" size={14} />Conexión protegida con Supabase Auth</div>
-    </div>
-    <div className="auth-side-note"><span className="note-star">✳</span><span>Un registro claro.<br /><strong>Una consulta más simple.</strong></span></div>
-  </main>;
+  return <ModalFrame title={category ? "Editar categoría" : "Agregar categoría"} subtitle="Escribe un nombre para organizar los artículos." onClose={onClose}>
+    <form className="modal-form" onSubmit={(event) => void submit(event)}>
+      <label>Nombre<input autoFocus required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder="Ej. Equipo audiovisual" /></label>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="modal-footer"><span className="modal-hint">El nombre debe ser único.</span><button className="button button-outline" type="button" onClick={onClose}>Cancelar</button><button className="button button-primary" disabled={saving}>{saving ? "Guardando..." : category ? "Guardar cambios" : "Agregar categoría"}</button></div>
+    </form>
+  </ModalFrame>;
 }
 
 function ModalFrame({ title, subtitle, onClose, children, className = "" }: { title: string; subtitle: string; onClose: () => void; children: ReactNode; className?: string }) {
@@ -492,19 +481,22 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
       <dl className="article-detail-grid">
         <div><dt>Categoría</dt><dd>{categoryName}</dd></div>
         <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
-        <div><dt>Área responsable</dt><dd>{item.department || "General"}</dd></div>
+        <div><dt>Código</dt><dd>{item.code}</dd></div>
+        <div><dt>N.º de serie</dt><dd>{item.serialNumber || "Sin especificar"}</dd></div>
+        <div><dt>Ubicación</dt><dd>{item.location || "General"}</dd></div>
+        <div><dt>Costo</dt><dd>{costLabel(item.cost)}</dd></div>
         <div><dt>Marca y modelo</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || "Sin especificar"}</dd></div>
         <div className="detail-span"><dt>Notas</dt><dd>{item.notes || "Sin notas"}</dd></div>
       </dl>
-      <div className="modal-footer"><span className="modal-hint">Código interno: {item.code}</span><button className="button button-primary" onClick={onClose}>Cerrar</button></div>
+      <div className="modal-footer"><span className="modal-hint">Última modificación: {dateLabel(item.updatedAt)}</span><button className="button button-primary" onClick={onClose}>Cerrar</button></div>
     </div>
   </ModalFrame>;
 }
 
-function ItemModal({ item, categories, saving, onClose, onSave }: { item: InventoryItem | null; categories: Category[]; saving: boolean; onClose: () => void; onSave: (draft: ItemDraft) => Promise<void> }) {
+function ItemModal({ item, categories, error, saving, onClose, onSave }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onSave: (draft: ItemDraft) => Promise<void> }) {
   const [draft, setDraft] = useState<ItemDraft>(() => item ? draftFromItem(item) : {
-    code: "", name: "", sku: "", brand: "", model: "", department: "General", notes: "",
-    categoryId: categories[0]?.id ?? "", price: null,
+    code: "", name: "", sku: "", serialNumber: "", brand: "", model: "", location: "General", notes: "",
+    categoryId: categories[0]?.id ?? "", cost: null,
   });
   const [formError, setFormError] = useState("");
   function field<K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) {
@@ -520,14 +512,17 @@ function ItemModal({ item, categories, saving, onClose, onSave }: { item: Invent
     <form className="modal-form" onSubmit={(event) => void submit(event)}>
       <div className="form-grid">
         <label className="field-span-2">Nombre<input autoFocus required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
-        <label>Código interno<input required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
+        <label>Código<input required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
         <label>Categoría<select required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
-        <label>Área responsable<input maxLength={100} value={draft.department} onChange={(event) => field("department", event.target.value)} placeholder="Ej. Administración" /></label>
+        <label>Ubicación<input maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
+        <label>N.º de serie (Opcional)<input maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
+        <label>Costo $ (Opcional)<input type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
         <label>Marca<input maxLength={100} value={draft.brand} onChange={(event) => field("brand", event.target.value)} placeholder="Opcional" /></label>
         <label className="field-span-2">Modelo<input maxLength={100} value={draft.model} onChange={(event) => field("model", event.target.value)} placeholder="Opcional" /></label>
         <label className="field-span-2">Notas<textarea rows={3} maxLength={500} value={draft.notes} onChange={(event) => field("notes", event.target.value)} placeholder="Detalles útiles para identificar este artículo" /></label>
       </div>
       {formError && <p className="form-error" role="alert">{formError}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
       <div className="modal-footer"><span className="modal-hint">La fecha de ingreso se registra al guardar.</span><button className="button button-outline" type="button" onClick={onClose}>Cancelar</button><button className="button button-primary" disabled={saving}>{saving ? "Guardando..." : item ? "Guardar cambios" : "Agregar artículo"}</button></div>
     </form>
   </ModalFrame>;
@@ -535,8 +530,8 @@ function ItemModal({ item, categories, saving, onClose, onSave }: { item: Invent
 
 function draftFromItem(item: InventoryItem): ItemDraft {
   return {
-    code: item.code, name: item.name, sku: item.sku, brand: item.brand, model: item.model,
-    department: item.department, notes: item.notes, categoryId: item.categoryId, price: item.price,
+    code: item.code, name: item.name, sku: item.sku, serialNumber: item.serialNumber, brand: item.brand, model: item.model,
+    location: item.location, notes: item.notes, categoryId: item.categoryId, cost: item.cost,
   };
 }
 
