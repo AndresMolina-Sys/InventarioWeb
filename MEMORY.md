@@ -21,4 +21,4 @@ Memoria del proyecto entre sesiones. Máximo ~50 líneas: resume o elimina lo qu
 - Chrome DevTools MCP requiere Google Chrome estable. En 375 px la tabla usa desplazamiento horizontal; la carga también registra un 404 de `/favicon.ico`, sin errores JavaScript.
 
 ## Próximos pasos
-- (Editar segun el proyecto)
+- Confirmar si se incorporan `.agents/` y `skills-lock.json` al repositorio; contienen 88 archivos de skills.
