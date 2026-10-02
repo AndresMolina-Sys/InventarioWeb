@@ -3,7 +3,8 @@ import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
 import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventorySnapshot, ItemDraft } from "./types";
 
-type Page = "dashboard" | "inventory" | "categories" | "category-detail";
+type Page = "dashboard" | "inventory" | "categories" | "movements" | "category-detail";
+type MovementFilter = "all" | InventoryMovement["type"];
 type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers" | "currency";
 
 const iconPaths: Record<IconName, ReactNode> = {
@@ -25,8 +26,8 @@ const iconPaths: Record<IconName, ReactNode> = {
   currency: <><circle cx="12" cy="12" r="9" /><path d="M15 8.5c-.5-.7-1.5-1.1-3-1.1-1.6 0-2.6.7-2.6 1.8 0 3 5.2 1.2 5.2 4.1 0 1.1-1 2-2.7 2-1.4 0-2.5-.4-3.2-1.2M12 6v12" /></>,
 };
 
-function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
-  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{iconPaths[name]}</svg>;
+function Icon({ name, size = 18, className }: { name: IconName; size?: number; className?: string }) {
+  return <svg aria-hidden="true" className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{iconPaths[name]}</svg>;
 }
 
 function dateLabel(value: string): string {
@@ -169,7 +170,7 @@ function App() {
 
   if (dataLoading) return <LoadingScreen />;
   const selectedCategory = snapshot.categories.find((category) => category.id === selectedCategoryId) ?? null;
-  const pageTitle = page === "dashboard" ? "Resumen" : page === "inventory" ? "Artículos" : page === "category-detail" ? selectedCategory?.name ?? "Categoría" : "Categorías";
+  const pageTitle = page === "dashboard" ? "Resumen" : page === "inventory" ? "Artículos" : page === "movements" ? "Movimientos" : page === "category-detail" ? selectedCategory?.name ?? "Categoría" : "Categorías";
 
   return <div className="app-shell">
     <Sidebar page={page} onPage={setPage} itemCount={snapshot.items.length} categoryCount={snapshot.categories.length} />
@@ -226,6 +227,7 @@ function App() {
         onViewItem={setViewedItem}
         onDeleteItem={removeItem}
       />}
+      {page === "movements" && <MovementsPage movements={snapshot.movements} />}
     </main>
 
     {itemModal && <ItemModal
@@ -258,6 +260,7 @@ function Sidebar({ page, onPage, itemCount, categoryCount }: { page: Page; onPag
     { key: "dashboard", label: "Resumen", icon: "dashboard" },
     { key: "inventory", label: "Artículos", icon: "box" },
     { key: "categories", label: "Categorías", icon: "layers" },
+    { key: "movements", label: "Movimientos", icon: "clock" },
   ];
   return <aside className="sidebar">
     <a className="brand" href="#inicio" onClick={(event) => { event.preventDefault(); onPage("dashboard"); }}>
@@ -267,7 +270,7 @@ function Sidebar({ page, onPage, itemCount, categoryCount }: { page: Page; onPag
     <div className="nav-label">MENÚ</div>
     <nav className="side-nav" aria-label="Navegación principal">
       {links.map((link) => <button key={link.key} className={`nav-link ${activePage === link.key ? "active" : ""}`} aria-label={link.label} title={link.label} onClick={() => onPage(link.key)}>
-        <Icon name={link.icon} size={18} /><span>{link.label}</span>{link.key !== "dashboard" && <span className="nav-count">{link.key === "inventory" ? itemCount : categoryCount}</span>}
+        <Icon name={link.icon} size={18} /><span>{link.label}</span>{link.key === "inventory" ? <span className="nav-count">{itemCount}</span> : link.key === "categories" ? <span className="nav-count">{categoryCount}</span> : null}
       </button>)}
     </nav>
     <div className="sidebar-spacer" />
@@ -339,6 +342,79 @@ function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
       </div>
     </div>
     <div className="chart-legend"><span className="legend-dot" /><span>Movimientos por día</span><strong className="chart-total">{total} {total === 1 ? "movimiento" : "movimientos"} en la semana</strong></div>
+  </section>;
+}
+
+function movementActionLabel(type: InventoryMovement["type"]): string {
+  if (type === "created") return "Alta";
+  if (type === "updated") return "Edición";
+  return "Baja";
+}
+
+function movementActionIcon(type: InventoryMovement["type"]): IconName {
+  if (type === "created") return "plus";
+  if (type === "updated") return "edit";
+  return "trash";
+}
+
+function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
+  const [filter, setFilter] = useState<MovementFilter>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
+  const filteredMovements = useMemo(() => movements
+    .map((movement, index) => ({ movement, index }))
+    .filter(({ movement }) => filter === "all" || movement.type === filter)
+    .sort((left, right) => Date.parse(right.movement.occurredAt) - Date.parse(left.movement.occurredAt) || right.index - left.index)
+    .map(({ movement }) => movement), [filter, movements]);
+  const pageCount = Math.max(1, Math.ceil(filteredMovements.length / pageSize));
+  const safePage = Math.min(currentPage, pageCount);
+  const firstIndex = (safePage - 1) * pageSize;
+  const visibleMovements = filteredMovements.slice(firstIndex, firstIndex + pageSize);
+  const rangeStart = filteredMovements.length === 0 ? 0 : firstIndex + 1;
+  const rangeEnd = Math.min(firstIndex + pageSize, filteredMovements.length);
+
+  function changeFilter(value: MovementFilter) {
+    setFilter(value);
+    setCurrentPage(1);
+  }
+
+  return <section className="page-content">
+    <div className="page-heading movement-page-heading">
+      <div><div className="eyebrow">CONTROL INTERNO</div><h1>Movimientos</h1><p>Consulta las altas, ediciones y bajas de artículos.</p></div>
+    </div>
+    <section className="panel inventory-panel movement-history-panel">
+      <div className="inventory-toolbar movement-toolbar">
+        <div><h2>Historial de actividad</h2><p>{filteredMovements.length} {filteredMovements.length === 1 ? "movimiento" : "movimientos"} en el historial</p></div>
+        <label className="movement-filter">Tipo de acción
+          <select id="movement-filter" name="movementFilter" aria-label="Filtrar por tipo de acción" value={filter} onChange={(event) => changeFilter(event.target.value as MovementFilter)}>
+            <option value="all">Todos los movimientos</option>
+            <option value="created">Altas</option>
+            <option value="updated">Ediciones</option>
+            <option value="deleted">Bajas</option>
+          </select>
+        </label>
+      </div>
+      {visibleMovements.length > 0 ? <div className="table-scroll"><table className="product-table movement-history-table">
+        <caption className="sr-only">Historial completo de movimientos de artículos</caption>
+        <thead><tr><th scope="col">Acción</th><th scope="col">Artículo</th><th scope="col">Fecha y hora</th></tr></thead>
+        <tbody>{visibleMovements.map((movement) => <tr key={movement.id}>
+          <td><span className={`movement-action action-${movement.type}`}><Icon name={movementActionIcon(movement.type)} size={14} />{movementActionLabel(movement.type)}</span></td>
+          <td><div className="movement-article"><strong>{movement.itemSnapshot?.name ?? "Artículo sin datos asociados"}</strong><small>{movement.itemSnapshot ? `${movement.itemSnapshot.code} · ${movement.itemSnapshot.categoryName}` : "Este movimiento no conserva los datos del artículo."}</small></div></td>
+          <td className="date-cell"><time dateTime={movement.occurredAt}>{dateLabel(movement.occurredAt)}</time></td>
+        </tr>)}</tbody>
+      </table></div> : <EmptyState
+        title={movements.length === 0 ? "Todavía no hay movimientos" : "No hay movimientos de este tipo"}
+        text={movements.length === 0 ? "Las altas, ediciones y bajas de artículos aparecerán aquí." : "Prueba otro filtro para consultar el historial."}
+      />}
+      <div className="table-foot movement-table-foot">
+        <span>Mostrando <strong>{rangeStart}–{rangeEnd}</strong> de <strong>{filteredMovements.length}</strong> movimientos</span>
+        {filteredMovements.length > 0 && <nav className="movement-pagination" aria-label="Paginación de movimientos">
+          <button className="movement-page-button" aria-label="Página anterior" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safePage === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
+          <span aria-live="polite">Página {safePage} de {pageCount}</span>
+          <button className="movement-page-button" aria-label="Página siguiente" onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={safePage === pageCount}><Icon name="chevron" size={15} /></button>
+        </nav>}
+      </div>
+    </section>
   </section>;
 }
 

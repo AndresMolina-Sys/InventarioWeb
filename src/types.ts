@@ -21,10 +21,15 @@ export type InventoryItem = {
   updatedAt: string;
 };
 
+export type MovementItemSnapshot = Pick<InventoryItem, "code" | "name"> & {
+  categoryName: string;
+};
+
 export type InventoryMovement = {
   id: string;
   type: "created" | "updated" | "deleted";
   occurredAt: string;
+  itemSnapshot?: MovementItemSnapshot;
 };
 
 export type InventorySnapshot = {

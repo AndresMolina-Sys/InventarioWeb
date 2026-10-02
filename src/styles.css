@@ -245,6 +245,29 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .activity-chart-panel { grid-column: 1 / -1; }
 .stat-value-currency { font-size: clamp(16px, 2vw, 24px); letter-spacing: -.45px; white-space: nowrap; }
 .chart-empty-note { margin: 12px 0 -3px; color: var(--muted); font-size: 10px; }
+.movement-page-heading .eyebrow, .movement-page-heading p, .movement-toolbar > div > p { color: #626a78; }
+.movement-toolbar { align-items: flex-end; }
+.movement-filter { min-width: 190px; display: grid; gap: 5px; color: #626a78; font-size: 10px; font-weight: 600; }
+.movement-filter select { width: 100%; height: 35px; padding: 0 30px 0 10px; border: 1px solid #e7e9ed; border-radius: 7px; color: #626a78; background: #fff; cursor: pointer; font-size: 10px; }
+.movement-history-table { min-width: 620px; }
+.movement-history-table th { color: #626a78; }
+.movement-history-table th:first-child { width: 16%; }
+.movement-history-table th:nth-child(2) { width: 54%; }
+.movement-history-table th:last-child { width: 30%; }
+.movement-history-table td { white-space: normal; }
+.movement-action { min-width: 88px; padding: 6px 8px; border-radius: 7px; display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 650; }
+.action-created { color: #28785f; background: #eff8f4; }
+.action-updated { color: #5147bd; background: #f1f0ff; }
+.action-deleted { color: #a14549; background: #fff3f3; }
+.movement-article strong, .movement-article small { display: block; }
+.movement-article strong { color: #303746; font-size: 11px; font-weight: 650; overflow-wrap: anywhere; }
+.movement-article small { margin-top: 4px; color: #626a78; font-size: 9px; overflow-wrap: anywhere; }
+.movement-history-table .date-cell { color: #626a78 !important; }
+.movement-table-foot { gap: 12px; color: #626a78; }
+.movement-pagination { display: flex; align-items: center; gap: 9px; color: #626a78; }
+.movement-page-button { width: 32px; height: 32px; padding: 0; border: 1px solid #e4e6eb; border-radius: 7px; display: grid; place-items: center; color: #626a78; background: #fff; cursor: pointer; }
+.movement-page-button:not(:disabled):hover { border-color: #c9c5e9; color: var(--accent); }
+.rotate-left { transform: rotate(180deg); }
 .dashboard-heading .eyebrow, .dashboard-heading p, .stats-grid-internal .stat-top, .stats-grid-internal .stat-detail,
 .category-panel .panel-heading p, .recent-panel .panel-heading p, .activity-chart-panel .panel-heading p,
 .category-panel .category-name small, .recent-panel .recent-copy small,
@@ -295,6 +318,10 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   .stats-grid-internal { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .stats-grid-internal .stat-card:last-child { grid-column: 1 / -1; }
   .internal-dashboard-grid { grid-template-columns: 1fr; }
+  .movement-toolbar { align-items: stretch; flex-direction: column; }
+  .movement-filter { min-width: 0; width: 100%; }
+  .movement-table-foot { align-items: flex-start; flex-direction: column; padding: 11px 14px; }
+  .movement-pagination { width: 100%; justify-content: space-between; }
   .dashboard-actions { width: 100%; }
   .dashboard-actions .button { flex: 1; padding: 0 7px; font-size: 9px; }
   .toolbar-actions .seed-button { flex: 1 1 100%; }

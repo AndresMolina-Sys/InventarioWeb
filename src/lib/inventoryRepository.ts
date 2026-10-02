@@ -1,5 +1,5 @@
 import { createSampleSnapshot, readLegacySnapshot } from "../data/demo";
-import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventorySnapshot, ItemDraft } from "../types";
+import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventorySnapshot, ItemDraft, MovementItemSnapshot } from "../types";
 
 const DATABASE_NAME = "inventario-web-portfolio";
 const DATABASE_VERSION = 1;
@@ -47,13 +47,27 @@ function openDatabase(): Promise<IDBDatabase> {
   });
   return databasePromise;
 }
-function isMovement(value: unknown): value is InventoryMovement {
-  if (typeof value !== "object" || value === null) return false;
+function normalizeMovement(value: unknown): InventoryMovement | null {
+  if (typeof value !== "object" || value === null) return null;
   const movement = value as Partial<InventoryMovement>;
-  return typeof movement.id === "string"
-    && (movement.type === "created" || movement.type === "updated" || movement.type === "deleted")
-    && typeof movement.occurredAt === "string"
-    && Number.isFinite(Date.parse(movement.occurredAt));
+  if (typeof movement.id !== "string"
+    || (movement.type !== "created" && movement.type !== "updated" && movement.type !== "deleted")
+    || typeof movement.occurredAt !== "string"
+    || !Number.isFinite(Date.parse(movement.occurredAt))) return null;
+
+  const itemSnapshot = movement.itemSnapshot;
+  const hasValidItemSnapshot = typeof itemSnapshot === "object"
+    && itemSnapshot !== null
+    && typeof itemSnapshot.code === "string"
+    && typeof itemSnapshot.name === "string"
+    && typeof itemSnapshot.categoryName === "string";
+
+  return {
+    id: movement.id,
+    type: movement.type,
+    occurredAt: movement.occurredAt,
+    ...(hasValidItemSnapshot ? { itemSnapshot: itemSnapshot as MovementItemSnapshot } : {}),
+  };
 }
 
 function normalizeSnapshot(value: unknown): InventorySnapshot | null {
@@ -63,7 +77,9 @@ function normalizeSnapshot(value: unknown): InventorySnapshot | null {
   return {
     categories: record.categories as Category[],
     items: record.items as InventoryItem[],
-    movements: Array.isArray(record.movements) ? record.movements.filter(isMovement) : [],
+    movements: Array.isArray(record.movements)
+      ? record.movements.map(normalizeMovement).filter((movement): movement is InventoryMovement => movement !== null)
+      : [],
   };
 }
 
@@ -106,8 +122,16 @@ function normalized(value: string): string {
   return value.trim().toLocaleLowerCase("es-CR");
 }
 
-function createMovement(type: InventoryMovement["type"], occurredAt: string): InventoryMovement {
-  return { id: crypto.randomUUID(), type, occurredAt };
+function movementItemSnapshot(item: InventoryItem, categories: Category[]): MovementItemSnapshot {
+  return {
+    code: item.code,
+    name: item.name,
+    categoryName: categories.find((category) => category.id === item.categoryId)?.name ?? "Sin categoría",
+  };
+}
+
+function createMovement(type: InventoryMovement["type"], occurredAt: string, item: InventoryItem, categories: Category[]): InventoryMovement {
+  return { id: crypto.randomUUID(), type, occurredAt, itemSnapshot: movementItemSnapshot(item, categories) };
 }
 
 function validateItemDraft(draft: ItemDraft, items: InventoryItem[], currentId?: string): void {
@@ -163,7 +187,7 @@ export function createItem(draft: ItemDraft): Promise<void> {
       snapshot: {
         ...snapshot,
         items: [item, ...snapshot.items],
-        movements: [...snapshot.movements, createMovement("created", now)],
+        movements: [...snapshot.movements, createMovement("created", now, item, snapshot.categories)],
       },
       result: undefined,
     };
@@ -172,26 +196,28 @@ export function createItem(draft: ItemDraft): Promise<void> {
 
 export function updateItem(id: string, draft: ItemDraft): Promise<void> {
   return transactSnapshot((snapshot) => {
-    if (!snapshot.items.some((item) => item.id === id)) throw new Error("El artículo ya no existe.");
+    const currentItem = snapshot.items.find((item) => item.id === id);
+    if (!currentItem) throw new Error("El artículo ya no existe.");
     validateItemDraft(draft, snapshot.items, id);
     const now = new Date().toISOString();
+    const updatedItem: InventoryItem = {
+      ...currentItem,
+      ...draft,
+      code: draft.code.trim(),
+      name: draft.name.trim(),
+      sku: draft.sku.trim(),
+      serialNumber: draft.serialNumber.trim(),
+      brand: draft.brand.trim(),
+      model: draft.model.trim(),
+      location: draft.location.trim() || "General",
+      notes: draft.notes.trim(),
+      updatedAt: now,
+    };
     return {
       snapshot: {
         ...snapshot,
-        items: snapshot.items.map((item) => item.id === id ? {
-          ...item,
-          ...draft,
-          code: draft.code.trim(),
-          name: draft.name.trim(),
-          sku: draft.sku.trim(),
-          serialNumber: draft.serialNumber.trim(),
-          brand: draft.brand.trim(),
-          model: draft.model.trim(),
-          location: draft.location.trim() || "General",
-          notes: draft.notes.trim(),
-          updatedAt: now,
-        } : item),
-        movements: [...snapshot.movements, createMovement("updated", now)],
+        items: snapshot.items.map((item) => item.id === id ? updatedItem : item),
+        movements: [...snapshot.movements, createMovement("updated", now, updatedItem, snapshot.categories)],
       },
       result: undefined,
     };
@@ -200,7 +226,8 @@ export function updateItem(id: string, draft: ItemDraft): Promise<void> {
 
 export function deleteItem(id: string): Promise<void> {
   return transactSnapshot((snapshot) => {
-    if (!snapshot.items.some((item) => item.id === id)) {
+    const deletedItem = snapshot.items.find((item) => item.id === id);
+    if (!deletedItem) {
       return { snapshot, result: undefined };
     }
     const now = new Date().toISOString();
@@ -208,7 +235,7 @@ export function deleteItem(id: string): Promise<void> {
       snapshot: {
         ...snapshot,
         items: snapshot.items.filter((item) => item.id !== id),
-        movements: [...snapshot.movements, createMovement("deleted", now)],
+        movements: [...snapshot.movements, createMovement("deleted", now, deletedItem, snapshot.categories)],
       },
       result: undefined,
     };
