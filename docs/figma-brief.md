@@ -31,9 +31,16 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 
 ### 04 · Artículos y categorías — móvil (390 × 844)
 
-- Navegación inferior con Resumen, Artículos y Categorías.
+- Navegación inferior con Resumen, Artículos, Categorías y Movimientos.
 - La tabla puede desplazarse horizontalmente; conserva las cuatro columnas y acciones accesibles.
 - Reordena paneles y formulario para una columna; los modales pueden ocupar la parte inferior.
+
+### 05 · Movimientos — escritorio y móvil
+
+- Historial completo ordenado del más reciente al más antiguo, con filtro por altas, ediciones y bajas.
+- La tabla muestra acción, artículo (nombre, código y categoría) y fecha/hora local; pagina 25 registros.
+- En pantallas estrechas, el filtro ocupa el ancho disponible y la tabla conserva desplazamiento horizontal.
+- Cada evento nuevo guarda una instantánea identificadora del artículo; los eventos antiguos sin ella muestran que no conservan esos datos.
 
 ## Sistema visual
 
@@ -59,6 +66,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - El número de serie es único cuando se proporciona; el costo acepta importes no negativos.
 - La app guarda en IndexedDB y migra datos de la demo anterior desde `localStorage`.
 - Cada alta, edición o baja de artículo se registra localmente junto con el cambio; las categorías no generan movimientos.
+- Cada movimiento conserva el código, nombre y categoría vigentes al momento de la operación, incluso al borrar; no guarda diferencias de campos anteriores y nuevos.
 - Los snapshots anteriores se migran con el historial vacío; no se reconstruyen eventos pasados. El historial completo se conserva localmente.
 - No hay login, perfil de usuario ni sincronización entre dispositivos en Portfolio.
 
