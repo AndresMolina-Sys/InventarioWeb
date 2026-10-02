@@ -83,7 +83,7 @@ function normalizeSnapshot(value: unknown, categoriesFallback: Category[], addMi
       updatedAt: item.updatedAt ?? createdAt,
     }];
   });
-  if (!addMissingSamples) return { categories, items: savedItems };
+  if (!addMissingSamples) return { categories, items: savedItems, movements: [] };
 
   const categoriesWithDefaults = [...categories];
   for (const defaultCategory of defaultCategories) {
@@ -93,11 +93,11 @@ function normalizeSnapshot(value: unknown, categoriesFallback: Category[], addMi
   }
   const knownCodes = new Set(savedItems.map((item) => item.code.trim().toLocaleLowerCase("es-CR")));
   const sampleItems = buildDemoItems(categoriesWithDefaults).filter((item) => !knownCodes.has(item.code.toLocaleLowerCase("es-CR")));
-  return { categories: categoriesWithDefaults, items: [...savedItems, ...sampleItems] };
+  return { categories: categoriesWithDefaults, items: [...savedItems, ...sampleItems], movements: [] };
 }
 
 export function createSampleSnapshot(): InventorySnapshot {
-  return { categories: defaultCategories, items: buildDemoItems(defaultCategories) };
+  return { categories: defaultCategories, items: buildDemoItems(defaultCategories), movements: [] };
 }
 
 export function readLegacySnapshot(): InventorySnapshot | null {

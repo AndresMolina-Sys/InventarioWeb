@@ -10,8 +10,11 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 
 - Navegación fija a la izquierda, barra superior y área de contenido adaptable.
 - Saludo, fecha actual y accesos a Artículos y Categorías.
-- Tarjetas para Artículos registrados y Categorías.
-- Dos paneles: artículos por categoría e ingresos recientes.
+- Tarjetas para Artículos registrados, Categorías y Valor registrado.
+- El Valor registrado suma los costos informados en USD; cada artículo cuenta como un registro.
+- En móvil, las tarjetas de conteo comparten dos columnas y Valor registrado ocupa una fila completa.
+- Paneles de artículos por categoría, ingresos recientes y actividad reciente.
+- El gráfico de actividad resume por día las altas, ediciones y bajas de artículos de los últimos siete días locales.
 
 ### 02 · Artículos — escritorio (1440 × 1024)
 
@@ -55,6 +58,8 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - La fecha de ingreso y la última modificación usan la hora del navegador.
 - El número de serie es único cuando se proporciona; el costo acepta importes no negativos.
 - La app guarda en IndexedDB y migra datos de la demo anterior desde `localStorage`.
+- Cada alta, edición o baja de artículo se registra localmente junto con el cambio; las categorías no generan movimientos.
+- Los snapshots anteriores se migran con el historial vacío; no se reconstruyen eventos pasados. El historial completo se conserva localmente.
 - No hay login, perfil de usuario ni sincronización entre dispositivos en Portfolio.
 
 ## Accesibilidad y fuente de verdad

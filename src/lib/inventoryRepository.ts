@@ -1,5 +1,5 @@
 import { createSampleSnapshot, readLegacySnapshot } from "../data/demo";
-import type { Category, CategoryDraft, InventoryItem, InventorySnapshot, ItemDraft } from "../types";
+import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventorySnapshot, ItemDraft } from "../types";
 
 const DATABASE_NAME = "inventario-web-portfolio";
 const DATABASE_VERSION = 1;
@@ -47,10 +47,24 @@ function openDatabase(): Promise<IDBDatabase> {
   });
   return databasePromise;
 }
-function isSnapshot(value: unknown): value is InventorySnapshot {
+function isMovement(value: unknown): value is InventoryMovement {
   if (typeof value !== "object" || value === null) return false;
-  const record = value as Partial<InventorySnapshot>;
-  return Array.isArray(record.categories) && Array.isArray(record.items);
+  const movement = value as Partial<InventoryMovement>;
+  return typeof movement.id === "string"
+    && (movement.type === "created" || movement.type === "updated" || movement.type === "deleted")
+    && typeof movement.occurredAt === "string"
+    && Number.isFinite(Date.parse(movement.occurredAt));
+}
+
+function normalizeSnapshot(value: unknown): InventorySnapshot | null {
+  if (typeof value !== "object" || value === null) return null;
+  const record = value as { categories?: unknown; items?: unknown; movements?: unknown };
+  if (!Array.isArray(record.categories) || !Array.isArray(record.items)) return null;
+  return {
+    categories: record.categories as Category[],
+    items: record.items as InventoryItem[],
+    movements: Array.isArray(record.movements) ? record.movements.filter(isMovement) : [],
+  };
 }
 
 function transactSnapshot<T>(change: (snapshot: InventorySnapshot) => SnapshotChange<T>): Promise<T> {
@@ -63,9 +77,9 @@ function transactSnapshot<T>(change: (snapshot: InventorySnapshot) => SnapshotCh
 
     request.onsuccess = () => {
       const stored = request.result as SnapshotRecord | undefined;
-      const snapshot = stored && isSnapshot(stored.value)
-        ? stored.value
-        : readLegacySnapshot() ?? createSampleSnapshot();
+      const snapshot = (stored && normalizeSnapshot(stored.value))
+        || readLegacySnapshot()
+        || createSampleSnapshot();
       try {
         const update = change(snapshot);
         result = update.result;
@@ -90,6 +104,10 @@ function transactSnapshot<T>(change: (snapshot: InventorySnapshot) => SnapshotCh
 
 function normalized(value: string): string {
   return value.trim().toLocaleLowerCase("es-CR");
+}
+
+function createMovement(type: InventoryMovement["type"], occurredAt: string): InventoryMovement {
+  return { id: crypto.randomUUID(), type, occurredAt };
 }
 
 function validateItemDraft(draft: ItemDraft, items: InventoryItem[], currentId?: string): void {
@@ -141,7 +159,14 @@ export function createItem(draft: ItemDraft): Promise<void> {
       createdAt: now,
       updatedAt: now,
     };
-    return { snapshot: { ...snapshot, items: [item, ...snapshot.items] }, result: undefined };
+    return {
+      snapshot: {
+        ...snapshot,
+        items: [item, ...snapshot.items],
+        movements: [...snapshot.movements, createMovement("created", now)],
+      },
+      result: undefined,
+    };
   });
 }
 
@@ -166,6 +191,7 @@ export function updateItem(id: string, draft: ItemDraft): Promise<void> {
           notes: draft.notes.trim(),
           updatedAt: now,
         } : item),
+        movements: [...snapshot.movements, createMovement("updated", now)],
       },
       result: undefined,
     };
@@ -173,10 +199,20 @@ export function updateItem(id: string, draft: ItemDraft): Promise<void> {
 }
 
 export function deleteItem(id: string): Promise<void> {
-  return transactSnapshot((snapshot) => ({
-    snapshot: { ...snapshot, items: snapshot.items.filter((item) => item.id !== id) },
-    result: undefined,
-  }));
+  return transactSnapshot((snapshot) => {
+    if (!snapshot.items.some((item) => item.id === id)) {
+      return { snapshot, result: undefined };
+    }
+    const now = new Date().toISOString();
+    return {
+      snapshot: {
+        ...snapshot,
+        items: snapshot.items.filter((item) => item.id !== id),
+        movements: [...snapshot.movements, createMovement("deleted", now)],
+      },
+      result: undefined,
+    };
+  });
 }
 
 export function createCategory(draft: CategoryDraft): Promise<void> {

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
-import type { Category, CategoryDraft, InventoryItem, InventorySnapshot, ItemDraft } from "./types";
+import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventorySnapshot, ItemDraft } from "./types";
 
 type Page = "dashboard" | "inventory" | "categories" | "category-detail";
-type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers";
+type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers" | "currency";
 
 const iconPaths: Record<IconName, ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>,
@@ -22,6 +22,7 @@ const iconPaths: Record<IconName, ReactNode> = {
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   alert: <><path d="M10.3 4.8 2.8 18a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.8a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4m0 4h.01" /></>,
   layers: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 16l9 5 9-5" /></>,
+  currency: <><circle cx="12" cy="12" r="9" /><path d="M15 8.5c-.5-.7-1.5-1.1-3-1.1-1.6 0-2.6.7-2.6 1.8 0 3 5.2 1.2 5.2 4.1 0 1.1-1 2-2.7 2-1.4 0-2.5-.4-3.2-1.2M12 6v12" /></>,
 };
 
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
@@ -39,6 +40,10 @@ function costLabel(value: number | null): string {
   return new Intl.NumberFormat("es-CR", { style: "currency", currency: "USD" }).format(value);
 }
 
+function registeredValueLabel(value: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+}
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   return hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
@@ -46,7 +51,7 @@ function getGreeting(): string {
 
 function App() {
   const [page, setPage] = useState<Page>("dashboard");
-  const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [] });
+  const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [], movements: [] });
   const [dataLoading, setDataLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [search, setSearch] = useState("");
@@ -173,7 +178,7 @@ function App() {
         <div className="breadcrumb"><span>Control interno</span><Icon name="chevron" size={14} /><strong>{pageTitle}</strong></div>
         <label className="global-search">
           <Icon name="search" size={17} />
-          <input aria-label="Buscar artículos" placeholder="Buscar artículo o código..." value={search} onChange={(event) => { setSearch(event.target.value); setPage("inventory"); }} />
+          <input id="global-search" name="search" aria-label="Buscar artículos" placeholder="Buscar artículo o código..." value={search} onChange={(event) => { setSearch(event.target.value); setPage("inventory"); }} />
           <kbd>⌘ K</kbd>
         </label>
         <div className="topbar-right">
@@ -189,6 +194,7 @@ function App() {
       {page === "dashboard" && <DashboardPage
         items={snapshot.items}
         categories={snapshot.categories}
+        movements={snapshot.movements}
         categoryName={categoryName}
         onViewInventory={() => setPage("inventory")}
         onViewCategories={() => setPage("categories")}
@@ -269,9 +275,77 @@ function Sidebar({ page, onPage, itemCount, categoryCount }: { page: Page; onPag
   </aside>;
 }
 
-function DashboardPage({ items, categories, categoryName, onViewInventory, onViewCategories }: {
+type WeeklyActivityDay = {
+  dateKey: string;
+  label: string;
+  longLabel: string;
+  count: number;
+  isToday: boolean;
+};
+
+function localDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function buildWeeklyActivity(movements: InventoryMovement[]): WeeklyActivityDay[] {
+  const today = new Date();
+  const shortDate = new Intl.DateTimeFormat("es-CR", { weekday: "short", day: "numeric" });
+  const longDate = new Intl.DateTimeFormat("es-CR", { weekday: "long", day: "numeric", month: "long" });
+  const todayKey = localDateKey(today);
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6 + index);
+    return {
+      dateKey: localDateKey(date),
+      label: shortDate.format(date).replace(/\.$/, ""),
+      longLabel: longDate.format(date),
+      count: 0,
+      isToday: localDateKey(date) === todayKey,
+    };
+  });
+  const counts = new Map(days.map((day) => [day.dateKey, 0]));
+
+  for (const movement of movements) {
+    const timestamp = Date.parse(movement.occurredAt);
+    if (!Number.isFinite(timestamp)) continue;
+    const key = localDateKey(new Date(timestamp));
+    if (counts.has(key)) counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return days.map((day) => ({ ...day, count: counts.get(day.dateKey) ?? 0 }));
+}
+
+function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
+  const days = useMemo(() => buildWeeklyActivity(movements), [movements]);
+  const maximum = Math.max(1, ...days.map((day) => day.count));
+  const total = days.reduce((sum, day) => sum + day.count, 0);
+  const activitySummary = days.map((day) => `${day.longLabel}: ${day.count} ${day.count === 1 ? "movimiento" : "movimientos"}`).join(". ");
+
+  return <section className="panel movement-chart-panel activity-chart-panel" aria-labelledby="activity-chart-title">
+    <div className="panel-heading">
+      <div><h2 id="activity-chart-title">Actividad reciente</h2><p>Altas, ediciones y bajas de artículos en los últimos siete días.</p></div>
+      <span className="panel-icon"><Icon name="clock" size={18} /></span>
+    </div>
+    {total === 0 && <p className="chart-empty-note">Sin movimientos registrados en los últimos siete días.</p>}
+    <div className="chart-area" role="img" aria-label={`Movimientos diarios. ${activitySummary}`}>
+      <div className="chart-y-labels" aria-hidden="true"><span>{maximum}</span><span>{maximum > 1 ? Math.floor(maximum / 2) : ""}</span><span>0</span></div>
+      <div className="chart-bars" aria-hidden="true">
+        <span className="chart-gridline top" />
+        <span className="chart-gridline middle" />
+        <span className="chart-gridline bottom" />
+        {days.map((day) => <div className="chart-column" key={day.dateKey}>
+          <div className="bar-rail"><span className={`bar-fill${day.isToday ? " current" : ""}`} style={{ height: `${day.count / maximum * 100}%` }} /></div>
+          <span>{day.label}</span>
+        </div>)}
+      </div>
+    </div>
+    <div className="chart-legend"><span className="legend-dot" /><span>Movimientos por día</span><strong className="chart-total">{total} {total === 1 ? "movimiento" : "movimientos"} en la semana</strong></div>
+  </section>;
+}
+
+function DashboardPage({ items, categories, movements, categoryName, onViewInventory, onViewCategories }: {
   items: InventoryItem[];
   categories: Category[];
+  movements: InventoryMovement[];
   categoryName: Map<string, string>;
   onViewInventory: () => void;
   onViewCategories: () => void;
@@ -282,9 +356,11 @@ function DashboardPage({ items, categories, categoryName, onViewInventory, onVie
   })).sort((a, b) => b.count - a.count);
   const maxCategoryCount = Math.max(1, ...categoryTotals.map((category) => category.count));
   const recentItems = [...items].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5);
-  const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string }> = [
+  const registeredValue = items.reduce((total, item) => total + (item.cost !== null && Number.isFinite(item.cost) && item.cost >= 0 ? item.cost : 0), 0);
+  const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string; currency?: boolean }> = [
     { label: "Artículos registrados", value: String(items.length).padStart(2, "0"), detail: "En el registro actual", icon: "box", color: "violet" },
     { label: "Categorías", value: String(categories.length).padStart(2, "0"), detail: "Para clasificar artículos", icon: "layers", color: "blue" },
+    { label: "Valor registrado", value: registeredValueLabel(registeredValue), detail: "Suma de costos capturados", icon: "currency", color: "green", currency: true },
   ];
   return <section className="page-content">
     <div className="page-heading dashboard-heading">
@@ -295,7 +371,7 @@ function DashboardPage({ items, categories, categoryName, onViewInventory, onVie
     <div className="stats-grid stats-grid-internal">
       {stats.map((stat) => <article className="stat-card" key={stat.label}>
         <div className="stat-top"><span>{stat.label}</span><span className={`stat-icon ${stat.color}`}><Icon name={stat.icon} size={17} /></span></div>
-        <strong className="stat-value">{stat.value}</strong><span className="stat-detail">{stat.detail}</span>
+        <strong className={`stat-value${stat.currency ? " stat-value-currency" : ""}`}>{stat.value}</strong><span className="stat-detail">{stat.detail}</span>
       </article>)}
     </div>
 
@@ -319,6 +395,7 @@ function DashboardPage({ items, categories, categoryName, onViewInventory, onVie
           </div>)}
         </div> : <EmptyState title="Sin artículos todavía" text="Los artículos que agregues aparecerán aquí." />}
       </section>
+      <ActivityChart movements={movements} />
     </div>
   </section>;
 }

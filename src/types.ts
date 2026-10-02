@@ -21,9 +21,16 @@ export type InventoryItem = {
   updatedAt: string;
 };
 
+export type InventoryMovement = {
+  id: string;
+  type: "created" | "updated" | "deleted";
+  occurredAt: string;
+};
+
 export type InventorySnapshot = {
   categories: Category[];
   items: InventoryItem[];
+  movements: InventoryMovement[];
 };
 
 export type ItemDraft = Omit<InventoryItem, "id" | "createdAt" | "updatedAt">;
