@@ -18,7 +18,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - En móvil, los paneles se apilan en este orden: Actividad reciente, Ingresos recientes y Artículos por categoría.
 - Ingresos recientes pagina los artículos en orden descendente por fecha de ingreso, cinco por página; muestra navegación desde seis registros y deshabilita los extremos.
 - El gráfico de actividad resume por día las altas, ediciones y bajas de artículos de los últimos siete días locales.
-- Las barras tienen ancho adaptable de 12 a 30 px, forma de cápsula y marcas tenues de 3 px para días sin actividad.
+- Las barras tienen ancho adaptable de 12 a 30 px y esquinas de 7 px en las cuatro puntas; las marcas tenues de 3 px para días sin actividad usan el mismo radio.
 - El área del gráfico crece en escritorio y deja la leyenda anclada al fondo de la tarjeta; en móvil conserva 130 px de alto y la leyenda va debajo.
 - Las etiquetas del eje X quedan bajo la línea base y usan la inicial mayúscula del día con su número (`S 26`, `D 27`, `L 28`, `M 29`, `X 30`, `J 1`, `V 2`); miércoles siempre usa `X`.
 
