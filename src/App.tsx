@@ -298,14 +298,14 @@ function localDateKey(date: Date): string {
 
 function buildWeeklyActivity(movements: InventoryMovement[]): WeeklyActivityDay[] {
   const today = new Date();
-  const shortDate = new Intl.DateTimeFormat("es-CR", { weekday: "short", day: "numeric" });
+  const weekdayInitials = ["D", "L", "M", "X", "J", "V", "S"];
   const longDate = new Intl.DateTimeFormat("es-CR", { weekday: "long", day: "numeric", month: "long" });
   const todayKey = localDateKey(today);
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6 + index);
     return {
       dateKey: localDateKey(date),
-      label: shortDate.format(date).replace(/\.$/, ""),
+      label: `${weekdayInitials[date.getDay()]} ${date.getDate()}`,
       longLabel: longDate.format(date),
       count: 0,
       isToday: localDateKey(date) === todayKey,
@@ -343,7 +343,7 @@ function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
         <span className="chart-gridline bottom" />
         <div className="chart-bars">
           {days.map((day) => <div className="chart-column" key={day.dateKey}>
-            <div className="bar-rail"><span className={`bar-fill${day.isToday ? " current" : ""}`} style={{ height: `${day.count / maximum * 100}%` }} /></div>
+            <div className="bar-rail"><span className={`bar-fill${day.count === 0 ? " inactive" : day.isToday ? " current" : ""}`} style={{ height: `${day.count / maximum * 100}%` }} /></div>
           </div>)}
         </div>
       </div>
