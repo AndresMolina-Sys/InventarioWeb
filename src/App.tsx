@@ -392,8 +392,8 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
     </div>
     <section className="panel inventory-panel movement-history-panel">
       <div className="inventory-toolbar movement-toolbar">
-        <div><h2>Historial de actividad</h2><p>{filteredMovements.length} {filteredMovements.length === 1 ? "movimiento" : "movimientos"} en el historial</p></div>
-        <label className="movement-filter">Tipo de acción
+        <div><h2>Historial de actividad</h2><p className="inventory-count">{filteredMovements.length} {filteredMovements.length === 1 ? "movimiento" : "movimientos"} en el historial</p></div>
+        <label className="movement-filter"><span>Tipo de acción</span>
           <select id="movement-filter" name="movementFilter" aria-label="Filtrar por tipo de acción" value={filter} onChange={(event) => changeFilter(event.target.value as MovementFilter)}>
             <option value="all">Todos los movimientos</option>
             <option value="created">Altas</option>
