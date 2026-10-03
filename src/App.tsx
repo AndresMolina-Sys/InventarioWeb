@@ -51,6 +51,8 @@ function compactRegisteredValueLabel(value: number): string {
   }).format(value);
 }
 
+const categoryPercentageFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   return hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
@@ -435,6 +437,7 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
   onViewCategories: () => void;
 }) {
   const [recentPage, setRecentPage] = useState(1);
+  const [categoryViewMode, setCategoryViewMode] = useState<"percentage" | "count">("percentage");
   const categoryTotals = categories.map((category) => ({
     ...category,
     count: items.filter((item) => item.categoryId === category.id).length,
@@ -504,12 +507,28 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
         </div> : <EmptyState title="Sin artículos todavía" text="Los artículos que agregues aparecerán aquí." />}
       </section>
       <section className="panel category-panel">
-        <div className="panel-heading"><div><h2>Artículos por categoría</h2><p>Registros en cada grupo</p></div><span className="panel-icon"><Icon name="layers" size={18} /></span></div>
+        <div className="panel-heading category-panel-heading">
+          <div className="category-heading-copy"><h2>Artículos por categoría</h2><p>Registros en cada grupo</p></div>
+          <div className="category-heading-tools">
+            <div className="category-view-toggle" role="group" aria-label="Modo de visualización de artículos por categoría">
+              <button type="button" aria-label="Mostrar porcentajes" aria-pressed={categoryViewMode === "percentage"} onClick={() => setCategoryViewMode("percentage")}>%</button>
+              <button type="button" aria-label="Mostrar cantidad de artículos" aria-pressed={categoryViewMode === "count"} onClick={() => setCategoryViewMode("count")}>#</button>
+            </div>
+            <span className="panel-icon" aria-hidden="true"><Icon name="layers" size={18} /></span>
+          </div>
+        </div>
         <div className="category-list">
-          {categoryTotals.map((category, index) => <div className="category-item" key={category.id}>
-            <div className="category-label"><span className={`category-mark mark-${index % 4}`}>{category.name.slice(0, 1)}</span><span className="category-name">{category.name}<small>{category.count} artículos</small></span><strong>{category.count}</strong></div>
-            <div className="category-track"><span className={`category-progress progress-${index % 4}`} style={{ width: `${category.count / maxCategoryCount * 100}%` }} /></div>
-          </div>)}
+          {categoryTotals.map((category, index) => {
+            const percentage = items.length > 0 ? category.count / items.length * 100 : 0;
+            const barWidth = categoryViewMode === "percentage" ? percentage : category.count / maxCategoryCount * 100;
+            const displayValue = categoryViewMode === "percentage"
+              ? `${categoryPercentageFormatter.format(percentage)}%`
+              : String(category.count);
+            return <div className="category-item" key={category.id}>
+              <div className="category-label"><span className={`category-mark mark-${index % 4}`}>{category.name.slice(0, 1)}</span><span className="category-name">{category.name}<small>{category.count} artículos</small></span><strong>{displayValue}</strong></div>
+              <div className="category-track"><span className={`category-progress progress-${index % 4}`} style={{ width: `${barWidth}%` }} /></div>
+            </div>;
+          })}
           {categoryTotals.length === 0 && <EmptyState title="Aún no hay categorías" text="Se mostrarán aquí cuando agregues artículos." />}
         </div>
       </section>

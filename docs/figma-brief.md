@@ -16,6 +16,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - En móvil, las tarjetas de conteo comparten dos columnas y Valor registrado ocupa una fila completa.
 - En escritorio, Actividad reciente ocupa la columna superior izquierda junto a Ingresos recientes; Artículos por categoría ocupa la fila inferior completa con una lista vertical de una columna y altura según sus filas. Cada fila usa todo el ancho, con nombre a la izquierda, barra debajo y cantidad alineada a la derecha.
 - En móvil, los paneles se apilan en este orden: Actividad reciente, Ingresos recientes y Artículos por categoría.
+- El panel Artículos por categoría tiene un conmutador [% | #] junto al icono. Inicia en porcentaje, con barras según la proporción sobre todos los artículos y etiquetas con hasta un decimal; el modo cantidad conserva el ancho relativo a la categoría mayor y muestra el conteo.
 - Ingresos recientes pagina los artículos en orden descendente por fecha de ingreso, cinco por página; muestra navegación desde seis registros y deshabilita los extremos.
 - El gráfico de actividad resume por día las altas, ediciones y bajas de artículos de los últimos siete días locales.
 - Las barras tienen ancho adaptable de 18 a 32 px, centradas con las etiquetas del eje X, y esquinas de 7 px en las cuatro puntas; las marcas tenues de 3 px para días sin actividad usan el mismo radio.
