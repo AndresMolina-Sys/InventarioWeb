@@ -262,7 +262,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .stat-value-currency { letter-spacing: -.45px; white-space: nowrap; }
 .stat-value-currency[tabindex="0"] { cursor: help; }
 .chart-empty-note { margin: 12px 0 -3px; color: var(--muted); font-size: var(--type-supporting-size); font-weight: 400; line-height: 1.4; }
-.movement-page-heading .eyebrow, .movement-page-heading p, .movement-toolbar > div > p { color: #626a78; }
+.movement-page-heading p, .movement-toolbar > div > p { color: #626a78; }
 .movement-toolbar { align-items: center; }
 .movement-filter { min-width: 190px; display: grid; grid-template-columns: max-content minmax(190px, 1fr); align-items: center; gap: 8px; color: #626a78; font-size: var(--type-meta-size); font-weight: 500; line-height: 1.25; }
 .movement-filter select { width: 100%; height: 35px; padding: 0 30px 0 10px; border: 1px solid #e7e9ed; border-radius: 7px; color: #626a78; background: #fff; cursor: pointer; font-size: var(--type-supporting-size); line-height: 1.4; }
