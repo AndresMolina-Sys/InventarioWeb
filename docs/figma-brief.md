@@ -62,6 +62,9 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 | Peligro | `#C45155` | Acción de borrar |
 
 - Tipografía Inter con fallback sans-serif de sistema. Tarjetas con radio de 13 px y sombra sutil.
+- Las tablas de Artículos, Categorías, Movimientos y detalle de categoría comparten `.product-table`: nombres principales a 14 px/600, celdas a 13 px, metadatos a 12 px y encabezados a 12 px/700 en estilo oración, sin espaciado extra.
+- Las tablas usan celdas de 8 × 13 px y filas de 68 px; insignias de inicial de 32 × 32 px con radio de 8 px y texto de 13 px; acciones de 29 px con iconos de 16 px y 3 px entre botones. Los nombres largos se ajustan en líneas y pueden aumentar la fila.
+- Cada tabla conserva sus anchos de columna y desplazamiento horizontal interno en móvil; el documento no debe desbordarse horizontalmente.
 - Mantén contraste, foco visible, nombres accesibles para iconos y respeto por movimiento reducido.
 
 ## Componentes e interacción
