@@ -189,7 +189,7 @@ function App() {
           <kbd>⌘ K</kbd>
         </label>
         <div className="topbar-right">
-          <span className="connection-pill is-demo"><span className="connection-dot" />Datos locales</span>
+          <span className="connection-pill is-demo"><span className="connection-dot" aria-hidden="true" /><span className="connection-label">Datos locales</span></span>
         </div>
       </div>
 
