@@ -45,6 +45,12 @@ function registeredValueLabel(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 }
 
+function compactRegisteredValueLabel(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 2,
+  }).format(value);
+}
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   return hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
@@ -331,15 +337,17 @@ function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
     {total === 0 && <p className="chart-empty-note">Sin movimientos registrados en los últimos siete días.</p>}
     <div className="chart-area" role="img" aria-label={`Movimientos diarios. ${activitySummary}`}>
       <div className="chart-y-labels" aria-hidden="true"><span>{maximum}</span><span>{maximum > 1 ? Math.floor(maximum / 2) : ""}</span><span>0</span></div>
-      <div className="chart-bars" aria-hidden="true">
+      <div className="chart-plot" aria-hidden="true">
         <span className="chart-gridline top" />
         <span className="chart-gridline middle" />
         <span className="chart-gridline bottom" />
-        {days.map((day) => <div className="chart-column" key={day.dateKey}>
-          <div className="bar-rail"><span className={`bar-fill${day.isToday ? " current" : ""}`} style={{ height: `${day.count / maximum * 100}%` }} /></div>
-          <span>{day.label}</span>
-        </div>)}
+        <div className="chart-bars">
+          {days.map((day) => <div className="chart-column" key={day.dateKey}>
+            <div className="bar-rail"><span className={`bar-fill${day.isToday ? " current" : ""}`} style={{ height: `${day.count / maximum * 100}%` }} /></div>
+          </div>)}
+        </div>
       </div>
+      <div className="chart-x-labels" aria-hidden="true">{days.map((day) => <span key={day.dateKey}>{day.label}</span>)}</div>
     </div>
     <div className="chart-legend"><span className="legend-dot" /><span>Movimientos por día</span><strong className="chart-total">{total} {total === 1 ? "movimiento" : "movimientos"} en la semana</strong></div>
   </section>;
@@ -426,17 +434,35 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
   onViewInventory: () => void;
   onViewCategories: () => void;
 }) {
+  const [recentPage, setRecentPage] = useState(1);
   const categoryTotals = categories.map((category) => ({
     ...category,
     count: items.filter((item) => item.categoryId === category.id).length,
   })).sort((a, b) => b.count - a.count);
   const maxCategoryCount = Math.max(1, ...categoryTotals.map((category) => category.count));
-  const recentItems = [...items].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).slice(0, 5);
+  const recentItems = [...items].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || a.id.localeCompare(b.id));
+  const recentPageSize = 5;
+  const recentPageCount = Math.max(1, Math.ceil(recentItems.length / recentPageSize));
+  const currentRecentPage = Math.min(recentPage, recentPageCount);
+  const firstRecentIndex = (currentRecentPage - 1) * recentPageSize;
+  const visibleRecentItems = recentItems.slice(firstRecentIndex, firstRecentIndex + recentPageSize);
+  useEffect(() => setRecentPage(1), [items]);
   const registeredValue = items.reduce((total, item) => total + (item.cost !== null && Number.isFinite(item.cost) && item.cost >= 0 ? item.cost : 0), 0);
-  const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string; currency?: boolean }> = [
+  const fullRegisteredValue = registeredValueLabel(registeredValue);
+  const useCompactRegisteredValue = fullRegisteredValue.length > 10;
+  const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string; currency?: boolean; exactValue?: string; compact?: boolean }> = [
     { label: "Artículos registrados", value: String(items.length).padStart(2, "0"), detail: "En el registro actual", icon: "box", color: "violet" },
-    { label: "Categorías", value: String(categories.length).padStart(2, "0"), detail: "Para clasificar artículos", icon: "layers", color: "blue" },
-    { label: "Valor registrado", value: registeredValueLabel(registeredValue), detail: "Suma de costos capturados", icon: "currency", color: "green", currency: true },
+    { label: "Categorías", value: String(categories.length), detail: "Para clasificar artículos", icon: "layers", color: "blue" },
+    {
+      label: "Valor registrado",
+      value: useCompactRegisteredValue ? compactRegisteredValueLabel(registeredValue) : fullRegisteredValue,
+      detail: "Suma de costos capturados",
+      icon: "currency",
+      color: "green",
+      currency: true,
+      exactValue: fullRegisteredValue,
+      compact: useCompactRegisteredValue,
+    },
   ];
   return <section className="page-content">
     <div className="page-heading dashboard-heading">
@@ -447,11 +473,36 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
     <div className="stats-grid stats-grid-internal">
       {stats.map((stat) => <article className="stat-card" key={stat.label}>
         <div className="stat-top"><span>{stat.label}</span><span className={`stat-icon ${stat.color}`}><Icon name={stat.icon} size={17} /></span></div>
-        <strong className={`stat-value${stat.currency ? " stat-value-currency" : ""}`}>{stat.value}</strong><span className="stat-detail">{stat.detail}</span>
+        <strong
+          className={`stat-value${stat.currency ? " stat-value-currency" : ""}`}
+          aria-label={stat.exactValue}
+          title={stat.compact ? stat.exactValue : undefined}
+          tabIndex={stat.compact ? 0 : undefined}
+        >{stat.value}</strong><span className="stat-detail">{stat.detail}</span>
       </article>)}
     </div>
 
     <div className="dashboard-grid internal-dashboard-grid">
+      <ActivityChart movements={movements} />
+      <section className="panel recent-panel">
+        <div className="panel-heading">
+          <div className="recent-panel-heading-main">
+            <div><h2>Ingresos recientes</h2><p>Artículos agregados más recientemente</p></div>
+            {recentItems.length > recentPageSize && <nav className="recent-pagination" aria-label="Paginación de ingresos recientes">
+              <button className="quiet-icon recent-page-button" aria-label="Página anterior de ingresos" title="Ingresos anteriores" onClick={() => setRecentPage((page) => Math.max(1, Math.min(page, recentPageCount) - 1))} disabled={currentRecentPage === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
+              <span className="sr-only" aria-live="polite">Página {currentRecentPage} de {recentPageCount}</span>
+              <button className="quiet-icon recent-page-button" aria-label="Página siguiente de ingresos" title="Más ingresos" onClick={() => setRecentPage((page) => Math.min(recentPageCount, Math.min(page, recentPageCount) + 1))} disabled={currentRecentPage === recentPageCount}><Icon name="chevron" size={15} /></button>
+            </nav>}
+          </div>
+          <span className="panel-icon"><Icon name="clock" size={18} /></span>
+        </div>
+        {recentItems.length > 0 ? <div className="recent-list">
+          {visibleRecentItems.map((item) => <div className="recent-row article-recent-row" key={item.id}>
+            <span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span>
+            <span className="recent-copy"><strong>{item.name}</strong><small>{categoryName.get(item.categoryId) ?? "Sin categoría"} · {dateLabel(item.createdAt)}</small></span>
+          </div>)}
+        </div> : <EmptyState title="Sin artículos todavía" text="Los artículos que agregues aparecerán aquí." />}
+      </section>
       <section className="panel category-panel">
         <div className="panel-heading"><div><h2>Artículos por categoría</h2><p>Registros en cada grupo</p></div><span className="panel-icon"><Icon name="layers" size={18} /></span></div>
         <div className="category-list">
@@ -462,16 +513,6 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
           {categoryTotals.length === 0 && <EmptyState title="Aún no hay categorías" text="Se mostrarán aquí cuando agregues artículos." />}
         </div>
       </section>
-      <section className="panel recent-panel">
-        <div className="panel-heading"><div><h2>Ingresos recientes</h2><p>Artículos agregados más recientemente</p></div><span className="panel-icon"><Icon name="clock" size={18} /></span></div>
-        {recentItems.length > 0 ? <div className="recent-list">
-          {recentItems.map((item) => <div className="recent-row article-recent-row" key={item.id}>
-            <span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span>
-            <span className="recent-copy"><strong>{item.name}</strong><small>{categoryName.get(item.categoryId) ?? "Sin categoría"} · {dateLabel(item.createdAt)}</small></span>
-          </div>)}
-        </div> : <EmptyState title="Sin artículos todavía" text="Los artículos que agregues aparecerán aquí." />}
-      </section>
-      <ActivityChart movements={movements} />
     </div>
   </section>;
 }

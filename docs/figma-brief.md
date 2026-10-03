@@ -12,9 +12,13 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - Saludo, fecha actual y accesos a Artículos y Categorías.
 - Tarjetas para Artículos registrados, Categorías y Valor registrado.
 - El Valor registrado suma los costos informados en USD; cada artículo cuenta como un registro.
+- La cifra conserva el tamaño tipográfico de las métricas; si el valor completo supera 10 caracteres se muestra en formato compacto, con el importe exacto disponible de forma accesible.
 - En móvil, las tarjetas de conteo comparten dos columnas y Valor registrado ocupa una fila completa.
-- Paneles de artículos por categoría, ingresos recientes y actividad reciente.
+- En escritorio, Actividad reciente ocupa la columna superior izquierda junto a Ingresos recientes; Artículos por categoría ocupa la fila inferior completa con sus categorías en columnas adaptables y altura según las filas.
+- En móvil, los paneles se apilan en este orden: Actividad reciente, Ingresos recientes y Artículos por categoría.
+- Ingresos recientes pagina los artículos en orden descendente por fecha de ingreso, cinco por página; muestra navegación desde seis registros y deshabilita los extremos.
 - El gráfico de actividad resume por día las altas, ediciones y bajas de artículos de los últimos siete días locales.
+- Las etiquetas del eje X quedan en una fila propia debajo de la línea base de cero.
 
 ### 02 · Artículos — escritorio (1440 × 1024)
 
