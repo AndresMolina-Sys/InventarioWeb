@@ -536,7 +536,7 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
     </div>
     <section className="panel inventory-panel">
       <div className="inventory-toolbar">
-        <div><h2>Registro de artículos</h2><p>{items.length} de {allItems.length} artículos</p></div>
+        <div><h2>Registro de artículos</h2><p className="inventory-count">{items.length} de {allItems.length} artículos</p></div>
         <div className="toolbar-actions">
           <select aria-label="Filtrar por categoría" value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">Todas las categorías</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
           <button className="button button-outline" onClick={onExport} disabled={items.length === 0}><Icon name="download" size={16} />Exportar</button>
@@ -575,7 +575,7 @@ function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete }: 
       <button className="button button-primary" onClick={onNew}><Icon name="plus" size={18} />Agregar categoría</button>
     </div>
     <section className="panel inventory-panel">
-      <div className="inventory-toolbar"><div><h2>Registro de categorías</h2><p>{categories.length} categorías</p></div></div>
+      <div className="inventory-toolbar"><div><h2>Registro de categorías</h2><p className="inventory-count">{categories.length} categorías</p></div></div>
       {sortedCategories.length > 0 ? <div className="table-scroll"><table className="product-table category-table">
         <thead><tr><th>Nombre</th><th>Artículos asociados</th><th>Acciones</th></tr></thead>
         <tbody>{sortedCategories.map((category, index) => {

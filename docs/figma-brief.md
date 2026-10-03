@@ -62,6 +62,8 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 | Peligro | `#C45155` | Acción de borrar |
 
 - Tipografía Inter con fallback sans-serif de sistema. Tarjetas con radio de 13 px y sombra sutil.
+- Los rótulos KPI usan 13 px/600/1.3 y color `#626a78`; en móvil conservan ese tamaño y pueden ocupar dos líneas, con el icono protegido a la derecha. Los títulos de panel y tarjetas de registro usan 16 px/700/1.25 y color `#303746`; los conteos de registros usan 11 px/400/1.4.
+- Los títulos principales de página se mantienen en 26 px en escritorio y 22 px en móvil.
 - Las tablas de Artículos, Categorías, Movimientos y detalle de categoría comparten `.product-table`: nombres principales a 14 px/600, celdas a 13 px, metadatos a 12 px y encabezados a 12 px/700 en estilo oración, sin espaciado extra.
 - Las tablas usan celdas de 8 × 13 px y filas de 68 px; insignias de inicial de 32 × 32 px con radio de 8 px y texto de 13 px; acciones de 29 px con iconos de 16 px y 3 px entre botones. Los nombres largos se ajustan en líneas y pueden aumentar la fila.
 - Cada tabla conserva sus anchos de columna y desplazamiento horizontal interno en móvil; el documento no debe desbordarse horizontalmente.
