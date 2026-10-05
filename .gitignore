@@ -3,13 +3,5 @@ dist/
 .env.local
 .env.*.local
 .env
-# Skills and agent profiles are local workspace configuration.
-.agents/
-skills-lock.json
-.codex/agents/
-.codex/skills/
-# Design documentation and SDD specifications stay local.
-/docs/
-/specs/
-/AGENTS.md
+# Keep session memory local; project skills, agents, docs, and specs are versioned.
 /MEMORY.md
