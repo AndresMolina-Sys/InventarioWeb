@@ -11,7 +11,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
 
 ## Lógica pura y persistencia
 
-- [ ] **T02 — Normalización y comparación (`src/lib/inventoryRepository.ts`)** — 25 min
+- [x] **T02 — Normalización y comparación (`src/lib/inventoryRepository.ts`)** — 25 min
   - RF: RF-4–RF-7, RF-10. Constitución: P3 (lógica en el repositorio), P5 (datos), P6 (identificadores en inglés).
   - Cambio: Implementar normalización determinista para textos, valores opcionales, costo y nombre de categoría del evento; comparar los nueve campos auditables sin incluir SKU ni metadatos técnicos.
   - Hecho cuando: Espacios exteriores en texto y costo vacío/nulo/0 no producen diff; mayúsculas, espacios internos, contenido distinto y cambio de costo a un valor distinto de cero sí producen el diff esperado.

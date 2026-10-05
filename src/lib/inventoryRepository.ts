@@ -1,5 +1,18 @@
 import { createSampleSnapshot, readLegacySnapshot } from "../data/demo";
-import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventorySnapshot, ItemDraft, MovementItemSnapshot } from "../types";
+import type {
+  Category,
+  CategoryDraft,
+  InventoryItem,
+  InventoryMovement,
+  InventoryMovementAuditField,
+  InventoryMovementAuditSnapshot,
+  InventoryMovementChanges,
+  InventoryMovementFieldChange,
+  InventorySnapshot,
+  ItemDraft,
+  MovementItemSnapshot,
+  NonEmptyInventoryMovementChanges,
+} from "../types";
 
 const DATABASE_NAME = "inventario-web-portfolio";
 const DATABASE_VERSION = 1;
@@ -15,6 +28,11 @@ type SnapshotChange<T> = {
   snapshot: InventorySnapshot;
   result: T;
 };
+
+type AuditableItem = Pick<
+  InventoryItem,
+  "code" | "name" | "categoryId" | "serialNumber" | "location" | "cost" | "brand" | "model" | "notes"
+>;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
@@ -120,6 +138,101 @@ function transactSnapshot<T>(change: (snapshot: InventorySnapshot) => SnapshotCh
 
 function normalized(value: string): string {
   return value.trim().toLocaleLowerCase("es-CR");
+}
+
+function normalizeAuditText(value: string): string {
+  return value.trim();
+}
+
+function normalizeOptionalAuditText(value: string | null | undefined): string | null {
+  const trimmedValue = value?.trim();
+  return trimmedValue ? trimmedValue : null;
+}
+
+function normalizeAuditCost(value: number | null | undefined): number | null {
+  return value ?? null;
+}
+
+function auditCostsMatch(before: number | null, after: number | null): boolean {
+  const normalizedBefore = before === 0 ? null : before;
+  const normalizedAfter = after === 0 ? null : after;
+  return normalizedBefore === normalizedAfter;
+}
+
+function normalizeAuditSnapshot(item: AuditableItem, categoryName: string): InventoryMovementAuditSnapshot {
+  return {
+    code: normalizeAuditText(item.code),
+    name: normalizeAuditText(item.name),
+    categoryName: normalizeAuditText(categoryName),
+    serialNumber: normalizeOptionalAuditText(item.serialNumber),
+    location: normalizeOptionalAuditText(item.location),
+    cost: normalizeAuditCost(item.cost),
+    brand: normalizeOptionalAuditText(item.brand),
+    model: normalizeOptionalAuditText(item.model),
+    notes: normalizeOptionalAuditText(item.notes),
+  };
+}
+
+function auditValuesMatch<Field extends InventoryMovementAuditField>(
+  field: Field,
+  before: InventoryMovementAuditSnapshot[Field],
+  after: InventoryMovementAuditSnapshot[Field],
+): boolean {
+  if (field === "cost") {
+    return auditCostsMatch(before as number | null, after as number | null);
+  }
+  return before === after;
+}
+
+function auditFieldChange<Field extends InventoryMovementAuditField>(
+  before: InventoryMovementAuditSnapshot[Field],
+  after: InventoryMovementAuditSnapshot[Field],
+): InventoryMovementFieldChange<Field> {
+  return { before, after };
+}
+
+export function createInventoryMovementAuditSnapshot(
+  item: AuditableItem,
+  categoryName: string,
+): InventoryMovementAuditSnapshot {
+  return normalizeAuditSnapshot(item, categoryName);
+}
+
+export function calculateInventoryMovementChanges(
+  beforeItem: AuditableItem,
+  beforeCategoryName: string,
+  afterItem: AuditableItem,
+  afterCategoryName: string,
+): NonEmptyInventoryMovementChanges | null {
+  const before = normalizeAuditSnapshot(beforeItem, beforeCategoryName);
+  const after = normalizeAuditSnapshot(afterItem, afterCategoryName);
+  const fields: InventoryMovementAuditField[] = [
+    "code",
+    "name",
+    "categoryName",
+    "serialNumber",
+    "location",
+    "cost",
+    "brand",
+    "model",
+    "notes",
+  ];
+  const changes: InventoryMovementChanges = {};
+
+  for (const field of fields) {
+    const hasChanged = field === "categoryName"
+      ? beforeItem.categoryId !== afterItem.categoryId
+      : !auditValuesMatch(field, before[field], after[field]);
+    if (!hasChanged) continue;
+
+    Object.assign(changes, {
+      [field]: auditFieldChange(before[field], after[field]),
+    });
+  }
+
+  return Object.keys(changes).length > 0
+    ? changes as NonEmptyInventoryMovementChanges
+    : null;
 }
 
 function movementItemSnapshot(item: InventoryItem, categories: Category[]): MovementItemSnapshot {
