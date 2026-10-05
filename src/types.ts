@@ -25,12 +25,78 @@ export type MovementItemSnapshot = Pick<InventoryItem, "code" | "name"> & {
   categoryName: string;
 };
 
-export type InventoryMovement = {
-  id: string;
-  type: "created" | "updated" | "deleted";
-  occurredAt: string;
-  itemSnapshot?: MovementItemSnapshot;
+export type InventoryMovementType = "created" | "updated" | "deleted";
+
+export type InventoryMovementAuditSnapshot = {
+  code: string;
+  name: string;
+  categoryName: string;
+  serialNumber: string | null;
+  location: string | null;
+  cost: number | null;
+  brand: string | null;
+  model: string | null;
+  notes: string | null;
 };
+
+export type InventoryMovementAuditSummary = Pick<
+  InventoryMovementAuditSnapshot,
+  "code" | "name" | "categoryName"
+>;
+
+export type InventoryMovementAuditField = keyof InventoryMovementAuditSnapshot;
+
+export type InventoryMovementFieldChange<Field extends InventoryMovementAuditField> = {
+  before: InventoryMovementAuditSnapshot[Field];
+  after: InventoryMovementAuditSnapshot[Field];
+};
+
+export type InventoryMovementChanges = {
+  [Field in InventoryMovementAuditField]?: InventoryMovementFieldChange<Field>;
+};
+
+export type NonEmptyInventoryMovementChanges = {
+  [Field in InventoryMovementAuditField]: Required<Pick<InventoryMovementChanges, Field>>
+    & Partial<Omit<InventoryMovementChanges, Field>>;
+}[InventoryMovementAuditField];
+
+type VersionedInventoryMovementBase = {
+  id: string;
+  occurredAt: string;
+  auditVersion: 1;
+};
+
+export type CreatedInventoryMovement = VersionedInventoryMovementBase & {
+  type: "created";
+  itemSnapshot: InventoryMovementAuditSnapshot;
+};
+
+export type UpdatedInventoryMovement = VersionedInventoryMovementBase & {
+  type: "updated";
+  itemSnapshot: InventoryMovementAuditSummary;
+  changes: NonEmptyInventoryMovementChanges;
+};
+
+export type DeletedInventoryMovement = VersionedInventoryMovementBase & {
+  type: "deleted";
+  itemSnapshot: InventoryMovementAuditSnapshot;
+};
+
+export type VersionedInventoryMovement =
+  | CreatedInventoryMovement
+  | UpdatedInventoryMovement
+  | DeletedInventoryMovement;
+
+export type HistoricalInventoryMovement = {
+  id: string;
+  type: InventoryMovementType;
+  occurredAt: string;
+  auditVersion?: undefined;
+  itemSnapshot?: Partial<InventoryMovementAuditSnapshot>;
+  changes?: never;
+};
+
+export type InventoryMovement = VersionedInventoryMovement | HistoricalInventoryMovement;
 
 export type InventorySnapshot = {
   categories: Category[];

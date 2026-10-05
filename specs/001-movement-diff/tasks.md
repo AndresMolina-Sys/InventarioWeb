@@ -4,7 +4,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
 
 ## Tipos
 
-- [ ] **T01 — Tipos de auditoría (`src/types.ts`)** — 20 min
+- [x] **T01 — Tipos de auditoría (`src/types.ts`)** — 20 min
   - RF: RF-2–RF-7, RF-9–RF-10. Constitución: P1 (stack simple), P3 (lógica separada), P5 (preservación de datos), P6 (idioma).
   - Cambio: Conservar `InventoryMovement` y definir el marcador `auditVersion: 1`, snapshots completos, cambios tipados antes/después y compatibilidad con snapshots históricos parciales sin marcador.
   - Hecho cuando: Los tipos representan altas y bajas con ficha completa, ediciones con resumen y mapa de cambios, y movimientos históricos incompletos; SKU, ID y fechas técnicas no aparecen como campos auditados.
