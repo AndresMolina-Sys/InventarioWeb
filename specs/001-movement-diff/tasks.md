@@ -87,7 +87,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Abrir eventos antiguos parciales y movimientos huérfanos; cambiar o borrar después el artículo y renombrar su categoría; revisar el filtro, la página y la posición al cerrar el detalle.
   - Hecho cuando: El modal usa solo datos del evento, distingue los datos no registrados de los opcionales vacíos, y al cerrarse mantiene intactos filtro, página y posición.
 
-- [ ] **T16 — Accesibilidad, móvil, rendimiento y consola (Chrome DevTools)** — 25 min
+- [x] **T16 — Accesibilidad, móvil, rendimiento y consola (Chrome DevTools)** — 25 min
   - RF: RF-1–RF-2, RF-7, RF-9, RF-11–RF-12 y requisitos no funcionales. Constitución: P2 (consistencia), P4 (QA de escritorio/móvil), P5 (datos locales).
   - Cambio: Revisar escritorio y viewports de 375 y 360 px: teclado, foco, scroll, textos largos, aviso de datos locales, tiempo de apertura y solicitudes del favicon.
   - Hecho cuando: Tab/Mayús+Tab, Escape y restauración de foco funcionan; no hay overflow horizontal; las tres aperturas medidas tardan menos de 100 ms cada una; la interfaz identifica los datos como locales sin prometer sincronización ni inviolabilidad; no hay errores ni advertencias y `/favicon.svg` responde sin 404 de `/favicon.ico`.
