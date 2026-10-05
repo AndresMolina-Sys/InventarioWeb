@@ -65,6 +65,23 @@ function openDatabase(): Promise<IDBDatabase> {
   });
   return databasePromise;
 }
+
+function isCompleteAuditSnapshot(value: unknown): value is InventoryMovementAuditSnapshot {
+  if (typeof value !== "object" || value === null) return false;
+  const snapshot = value as Partial<InventoryMovementAuditSnapshot>;
+  const isOptionalText = (field: unknown) => field === null || typeof field === "string";
+
+  return typeof snapshot.code === "string"
+    && typeof snapshot.name === "string"
+    && typeof snapshot.categoryName === "string"
+    && isOptionalText(snapshot.serialNumber)
+    && isOptionalText(snapshot.location)
+    && (snapshot.cost === null || (typeof snapshot.cost === "number" && Number.isFinite(snapshot.cost)))
+    && isOptionalText(snapshot.brand)
+    && isOptionalText(snapshot.model)
+    && isOptionalText(snapshot.notes);
+}
+
 function normalizeMovement(value: unknown): InventoryMovement | null {
   if (typeof value !== "object" || value === null) return null;
   const movement = value as Partial<InventoryMovement>;
@@ -79,6 +96,18 @@ function normalizeMovement(value: unknown): InventoryMovement | null {
     && typeof itemSnapshot.code === "string"
     && typeof itemSnapshot.name === "string"
     && typeof itemSnapshot.categoryName === "string";
+
+  if (movement.auditVersion === 1
+    && (movement.type === "created" || movement.type === "deleted")
+    && isCompleteAuditSnapshot(itemSnapshot)) {
+    return {
+      id: movement.id,
+      type: movement.type,
+      occurredAt: movement.occurredAt,
+      auditVersion: 1,
+      itemSnapshot,
+    };
+  }
 
   return {
     id: movement.id,
@@ -247,6 +276,27 @@ function createMovement(type: InventoryMovement["type"], occurredAt: string, ite
   return { id: crypto.randomUUID(), type, occurredAt, itemSnapshot: movementItemSnapshot(item, categories) };
 }
 
+function createVersionedMovement(
+  type: "created" | "deleted",
+  occurredAt: string,
+  item: InventoryItem,
+  categories: Category[],
+): Extract<InventoryMovement, { type: "created" | "deleted" }> {
+  const movement = {
+    id: crypto.randomUUID(),
+    occurredAt,
+    auditVersion: 1 as const,
+    itemSnapshot: createInventoryMovementAuditSnapshot(
+      item,
+      movementItemSnapshot(item, categories).categoryName,
+    ),
+  };
+
+  return type === "created"
+    ? { ...movement, type: "created" }
+    : { ...movement, type: "deleted" };
+}
+
 function validateItemDraft(draft: ItemDraft, items: InventoryItem[], currentId?: string): void {
   if (!draft.code.trim()) throw new Error("Escribe el código del artículo.");
   if (!draft.name.trim()) throw new Error("Escribe el nombre del artículo.");
@@ -300,7 +350,7 @@ export function createItem(draft: ItemDraft): Promise<void> {
       snapshot: {
         ...snapshot,
         items: [item, ...snapshot.items],
-        movements: [...snapshot.movements, createMovement("created", now, item, snapshot.categories)],
+        movements: [...snapshot.movements, createVersionedMovement("created", now, item, snapshot.categories)],
       },
       result: undefined,
     };
@@ -348,7 +398,7 @@ export function deleteItem(id: string): Promise<void> {
       snapshot: {
         ...snapshot,
         items: snapshot.items.filter((item) => item.id !== id),
-        movements: [...snapshot.movements, createMovement("deleted", now, deletedItem, snapshot.categories)],
+        movements: [...snapshot.movements, createVersionedMovement("deleted", now, deletedItem, snapshot.categories)],
       },
       result: undefined,
     };

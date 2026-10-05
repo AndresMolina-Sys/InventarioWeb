@@ -16,7 +16,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Implementar normalización determinista para textos, valores opcionales, costo y nombre de categoría del evento; comparar los nueve campos auditables sin incluir SKU ni metadatos técnicos.
   - Hecho cuando: Espacios exteriores en texto y costo vacío/nulo/0 no producen diff; mayúsculas, espacios internos, contenido distinto y cambio de costo a un valor distinto de cero sí producen el diff esperado.
 
-- [ ] **T03 — Snapshots de altas y bajas (`src/lib/inventoryRepository.ts`)** — 20 min
+- [x] **T03 — Snapshots de altas y bajas (`src/lib/inventoryRepository.ts`)** — 20 min
   - RF: RF-3, RF-5, RF-7, RF-9–RF-10. Constitución: P3 (persistencia centralizada), P5 (sin pérdida de datos).
   - Cambio: Guardar en la transacción el snapshot versionado completo del estado nuevo al crear y del estado previo al borrar, usando el nombre de categoría vigente durante el evento.
   - Hecho cuando: Una alta conserva todos los campos auditables nuevos y una baja conserva esos campos antes de eliminar el artículo; ambos eventos incluyen `auditVersion: 1` y la operación y su movimiento se confirman juntos.
