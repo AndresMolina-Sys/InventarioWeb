@@ -371,6 +371,7 @@ function movementActionIcon(type: InventoryMovement["type"]): IconName {
 function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
   const [filter, setFilter] = useState<MovementFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
   const pageSize = 25;
   const filteredMovements = useMemo(() => movements
     .map((movement, index) => ({ movement, index }))
@@ -407,11 +408,12 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
       </div>
       {visibleMovements.length > 0 ? <div className="table-scroll"><table className="product-table movement-history-table">
         <caption className="sr-only">Historial completo de movimientos de artículos</caption>
-        <thead><tr><th scope="col">Acción</th><th scope="col">Artículo</th><th scope="col">Fecha y hora</th></tr></thead>
+        <thead><tr><th scope="col">Acción</th><th scope="col">Artículo</th><th scope="col">Fecha y hora</th><th scope="col">Acciones</th></tr></thead>
         <tbody>{visibleMovements.map((movement) => <tr key={movement.id}>
           <td><span className={`movement-action action-${movement.type}`}><Icon name={movementActionIcon(movement.type)} size={14} />{movementActionLabel(movement.type)}</span></td>
           <td><div className="movement-article"><strong>{movement.itemSnapshot?.name ?? "Artículo sin datos asociados"}</strong><small>{movement.itemSnapshot ? `${movement.itemSnapshot.code} · ${movement.itemSnapshot.categoryName}` : "Este movimiento no conserva los datos del artículo."}</small></div></td>
           <td className="date-cell"><time dateTime={movement.occurredAt}>{dateLabel(movement.occurredAt)}</time></td>
+          <td><button className="button button-outline movement-detail-button" type="button" onClick={() => setSelectedMovement(movement)}><Icon name="view" size={15} />Ver detalle</button></td>
         </tr>)}</tbody>
       </table></div> : <EmptyState
         title={movements.length === 0 ? "Todavía no hay movimientos" : "No hay movimientos de este tipo"}
@@ -426,6 +428,17 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
         </nav>}
       </div>
     </section>
+    {selectedMovement && <ModalFrame
+      title="Detalle de movimiento"
+      subtitle={movementActionLabel(selectedMovement.type)}
+      onClose={() => setSelectedMovement(null)}
+    >
+      <div className="modal-form">
+        <p>{selectedMovement.itemSnapshot?.name ?? "Artículo sin datos asociados"}</p>
+        <p>{selectedMovement.itemSnapshot ? `Código: ${selectedMovement.itemSnapshot.code}` : "Este movimiento no conserva los datos del artículo."}</p>
+        <p>Fecha y hora: {dateLabel(selectedMovement.occurredAt)}</p>
+      </div>
+    </ModalFrame>}
   </section>;
 }
 

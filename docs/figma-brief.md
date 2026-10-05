@@ -47,6 +47,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - Historial completo ordenado del más reciente al más antiguo, con filtro por altas, ediciones y bajas.
 - La cabecera usa el mismo título de 16 px/700 y contador que las barras de Artículos y Categorías; en escritorio la etiqueta «Tipo de acción» comparte una fila con el selector y en móvil queda encima de un selector de ancho completo.
 - La tabla muestra acción, artículo (nombre, código y categoría) y fecha/hora local; pagina 25 registros.
+- Cada movimiento tiene un botón «Ver detalle» en la columna Acciones; abre el evento seleccionado y al cerrar conserva filtro, página y posición. El historial vacío no ofrece acciones de detalle.
 - En pantallas estrechas, el filtro ocupa el ancho disponible y la tabla conserva desplazamiento horizontal.
 - Cada evento nuevo guarda una instantánea identificadora del artículo; los eventos antiguos sin ella muestran que no conservan esos datos.
 

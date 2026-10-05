@@ -33,7 +33,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Aceptar Ubicación vacía como opcional, gestionar el resultado `unchanged` y cerrar el editor con el aviso «No hubo cambios para guardar.» sin alterar el registro.
   - Hecho cuando: Guardar un artículo sin cambios auditables muestra el aviso, conserva sus valores y fecha de modificación, y no aumenta el historial; una Ubicación vacía se presenta como «Sin especificar».
 
-- [ ] **T06 — Acceso al detalle desde Movimientos (`src/App.tsx`)** — 20 min
+- [x] **T06 — Acceso al detalle desde Movimientos (`src/App.tsx`)** — 20 min
   - RF: RF-1, RF-2, RF-11. Constitución: P2 (spec sincronizada), P4 (flujo verificable), P6 (interfaz en español).
   - Cambio: Añadir el botón explícito «Ver detalle» en cada movimiento y abrir el evento seleccionado; no hacer interactiva la fila completa ni ofrecer acciones de modificación.
   - Hecho cuando: El botón abre el movimiento correcto; cerrar el modal conserva filtro, página y posición del historial; el estado vacío del historial no ofrece un detalle inexistente.
