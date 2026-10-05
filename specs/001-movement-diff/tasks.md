@@ -72,7 +72,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
 
 ## QA y documentación
 
-- [ ] **T13 — Build y revisión de datos locales (`npm run build`)** — 20 min
+- [x] **T13 — Build y revisión de datos locales (`npm run build`)** — 20 min
   - RF: RF-3–RF-10 y criterios de preservación. Constitución: P1 (dependencias fijadas), P4 (build), P5 (datos locales).
   - Cambio: Ejecutar el build y comprobar en IndexedDB que la evolución aditiva no cambia stores/versión ni descarta registros existentes; no instalar infraestructura de pruebas.
   - Hecho cuando: `npm run build` termina con código 0, y antes/después de abrir la aplicación coinciden los IDs y cantidades de artículos, categorías y movimientos preexistentes.
