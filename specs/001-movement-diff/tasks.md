@@ -97,7 +97,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Documentar en Figma brief el acceso, estados del modal, diff, textos históricos y móvil; actualizar las reglas locales de persistencia/cambios netos/compatibilidad y resumir las decisiones en memoria sin superar 50 líneas.
   - Hecho cuando: Los tres documentos describen los mismos campos, estados «Sin especificar»/«Dato no registrado», comportamiento accesible, límite de 12 px y compatibilidad antigua; `MEMORY.md` tiene como máximo 50 líneas.
 
-- [ ] **T18 — Commit de entrega** — 10 min
+- [x] **T18 — Commit de entrega** — 10 min
   - RF: Criterios de finalización RF-1–RF-12. Constitución: P1–P6 (alcance, sincronización, separación, verificación, datos e idioma).
   - Cambio: Revisar el diff final y registrar únicamente el alcance completado con el formato de commit requerido por `AGENTS.md`.
   - Hecho cuando: Existe un commit local en inglés con formato `<type>(<scope>): <subject>` (menos de 50 caracteres) y cuerpo imperativo en presente (menos de 100 caracteres), sin dependencias nuevas ni cambios ajenos a la funcionalidad.
