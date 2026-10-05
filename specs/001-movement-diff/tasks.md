@@ -65,7 +65,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Limitar la altura del diálogo al viewport, conservar visible la cabecera/cierre mientras desplaza el cuerpo y apilar campos y comparaciones para anchos de 360–375 px.
   - Hecho cuando: A 360 y 375 px, notas y nombres largos se envuelven, el cuerpo desplaza internamente, el botón de cierre permanece accesible y la página no presenta desbordamiento horizontal.
 
-- [ ] **T12 — Favicon servido por la aplicación (`index.html`, `public/favicon.svg`)** — 15 min
+- [x] **T12 — Favicon servido por la aplicación (`index.html`, `public/favicon.svg`)** — 15 min
   - RF: Criterio de consola limpia de la spec. Constitución: P1 (stack sin dependencias), P4 (verificación del navegador).
   - Cambio: Enlazar desde el documento HTML el SVG de marca previsto en el plan para que el navegador no solicite un favicon inexistente.
   - Hecho cuando: La aplicación enlaza `/favicon.svg`, el recurso responde correctamente y la consola/red no registra un 404 de `/favicon.ico`.
