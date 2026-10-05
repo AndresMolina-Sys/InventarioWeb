@@ -604,14 +604,17 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
       <section className="panel recent-panel">
         <div className="panel-heading">
           <div className="recent-panel-heading-main">
-            <div><h2>Ingresos recientes</h2><p>Artículos agregados más recientemente</p></div>
+            <h2>Ingresos recientes</h2>
+            <p>Artículos agregados más recientemente</p>
+          </div>
+          <div className="recent-heading-tools">
             {recentItems.length > recentPageSize && <nav className="recent-pagination" aria-label="Paginación de ingresos recientes">
               <button className="quiet-icon recent-page-button" aria-label="Página anterior de ingresos" title="Ingresos anteriores" onClick={() => setRecentPage((page) => Math.max(1, Math.min(page, recentPageCount) - 1))} disabled={currentRecentPage === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
               <span className="sr-only" aria-live="polite">Página {currentRecentPage} de {recentPageCount}</span>
               <button className="quiet-icon recent-page-button" aria-label="Página siguiente de ingresos" title="Más ingresos" onClick={() => setRecentPage((page) => Math.min(recentPageCount, Math.min(page, recentPageCount) + 1))} disabled={currentRecentPage === recentPageCount}><Icon name="chevron" size={15} /></button>
             </nav>}
+            <span className="panel-icon"><Icon name="clock" size={18} /></span>
           </div>
-          <span className="panel-icon"><Icon name="clock" size={18} /></span>
         </div>
         {recentItems.length > 0 ? <div className="recent-list">
           {visibleRecentItems.map((item) => <div className="recent-row article-recent-row" key={item.id}>

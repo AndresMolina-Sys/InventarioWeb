@@ -141,7 +141,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .category-track { height: 4px; margin-left: 33px; border-radius: 9px; background: #f1f2f5; overflow: hidden; }
 .category-panel-heading { align-items: flex-start; }
 .category-heading-copy { min-width: 0; flex: 1 1 auto; }
-.category-heading-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.category-heading-tools, .recent-heading-tools { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
 .category-view-toggle { height: 32px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; display: inline-flex; align-items: center; gap: 2px; background: #f8f9fb; }
 .category-view-toggle button { min-width: 31px; height: 26px; padding: 0 7px; border: 0; border-radius: 6px; color: #727988; background: transparent; cursor: pointer; font-size: var(--type-supporting-size); font-weight: 600; line-height: 1.2; transition: color .15s ease, background .15s ease, box-shadow .15s ease; }
 .category-view-toggle button[aria-pressed="true"] { color: var(--accent); background: var(--surface); box-shadow: 0 1px 3px #131b2b15; }
@@ -316,7 +316,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .article-table .product-cell { min-width: 210px; }
 .seed-button { white-space: nowrap; }
 .article-recent-row { align-items: center; }
-.recent-panel-heading-main { min-width: 0; flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.recent-panel-heading-main { min-width: 0; flex: 1 1 auto; }
 .recent-pagination { flex: 0 0 auto; display: flex; align-items: center; gap: 3px; }
 .recent-page-button { width: 27px; height: 27px; border: 1px solid var(--line); border-radius: 7px; color: #626a78; background: #fff; }
 .recent-page-button:not(:disabled):hover { border-color: #c9c5e9; color: var(--accent); background: #f7f6ff; }
