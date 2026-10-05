@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
 import type { UpdateItemResult } from "./lib/inventoryRepository";
@@ -529,6 +529,8 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
       title={movementItemNameLabel(selectedMovement)}
       subtitle={`${selectedMovement.auditVersion === 1 ? selectedMovement.itemSnapshot.code : historicalMovementValueLabel(selectedMovement.itemSnapshot, "code")} · ${dateLabel(selectedMovement.occurredAt)}`}
       badge={<span className={`movement-action action-${selectedMovement.type}`}><Icon name={movementActionIcon(selectedMovement.type)} size={14} />{movementActionLabel(selectedMovement.type)}</span>}
+      closeLabel="Cerrar detalle de movimiento"
+      manageFocus
       onClose={() => setSelectedMovement(null)}
     ><MovementDetailContent movement={selectedMovement} /></ModalFrame>}
   </section>;
@@ -777,17 +779,78 @@ function CategoryModal({ category, error, saving, onClose, onSave }: { category:
   </ModalFrame>;
 }
 
-function ModalFrame({ title, subtitle, onClose, children, className = "", badge }: { title: string; subtitle: string; onClose: () => void; children: ReactNode; className?: string; badge?: ReactNode }) {
+function ModalFrame({ title, subtitle, onClose, children, className = "", badge, closeLabel = "Cerrar", manageFocus = false }: {
+  title: string;
+  subtitle: string;
+  onClose: () => void;
+  children: ReactNode;
+  className?: string;
+  badge?: ReactNode;
+  closeLabel?: string;
+  manageFocus?: boolean;
+}) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
+    if (manageFocus) return;
     function dismissOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
     window.addEventListener("keydown", dismissOnEscape);
     return () => window.removeEventListener("keydown", dismissOnEscape);
-  }, [onClose]);
+  }, [manageFocus, onClose]);
+
+  useEffect(() => {
+    if (!manageFocus) return;
+
+    const dialog = dialogRef.current;
+    const previouslyFocusedElement = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    closeButtonRef.current?.focus();
+
+    function containKeyboardNavigation(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !dialog) return;
+
+      const focusableElements = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter((element) => element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0);
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+      if (event.shiftKey && (activeElement === firstElement || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && (activeElement === lastElement || !dialog.contains(activeElement))) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+
+    document.addEventListener("keydown", containKeyboardNavigation);
+    return () => {
+      document.removeEventListener("keydown", containKeyboardNavigation);
+      if (previouslyFocusedElement?.isConnected) previouslyFocusedElement.focus();
+    };
+  }, [manageFocus]);
+
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className={`modal-card ${className}`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <header className="modal-heading"><div>{badge ?? <span className="modal-mark"><Icon name="box" size={18} /></span>}<div><h2 id="modal-title">{title}</h2><p>{subtitle}</p></div></div><button className="quiet-icon" onClick={onClose} aria-label="Cerrar"><Icon name="close" size={19} /></button></header>
+    <section ref={dialogRef} className={`modal-card ${className}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1}>
+      <header className="modal-heading"><div>{badge ?? <span className="modal-mark"><Icon name="box" size={18} /></span>}<div><h2 id="modal-title">{title}</h2><p>{subtitle}</p></div></div><button ref={closeButtonRef} className="quiet-icon" onClick={onClose} aria-label={closeLabel}><Icon name="close" size={19} /></button></header>
       {children}
     </section>
   </div>;

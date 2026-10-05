@@ -48,7 +48,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Tratar eventos sin versión o diff como históricos incompletos; distinguir campos ausentes de valores opcionales vacíos y usar exclusivamente valores guardados en el evento.
   - Hecho cuando: Un movimiento antiguo parcial y uno huérfano muestran «Dato no registrado» donde faltan datos, conservan los datos disponibles y nunca completan valores con el artículo actual; editar/borrar después el artículo o renombrar la categoría no cambia el detalle anterior.
 
-- [ ] **T09 — Teclado y foco del diálogo (`src/App.tsx`)** — 25 min
+- [x] **T09 — Teclado y foco del diálogo (`src/App.tsx`)** — 25 min
   - RF: RF-1, RF-11–RF-12. Constitución: P2 (interfaz coherente), P4 (verificación con teclado), P6 (etiquetas en español).
   - Cambio: Dar al modal nombre accesible, semántica de diálogo modal, foco inicial en el botón de cierre, ciclo de foco con Tab y Mayús+Tab, cierre con Escape y devolución del foco al botón de origen.
   - Hecho cuando: El diálogo expone `role="dialog"`, `aria-modal` y `aria-labelledby`; el control de cierre tiene exactamente `aria-label="Cerrar detalle de movimiento"`; todas las transiciones de foco y Escape funcionan sin ratón.
