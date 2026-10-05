@@ -60,7 +60,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Aplicar tokens visuales existentes a acción, badges, cabecera, ficha y columnas Campo/Antes/Después; diferenciar «Sin especificar» de «Dato no registrado» y mantener el piso tipográfico de 12 px.
   - Hecho cuando: En escritorio, la ficha y el diff se leen con jerarquía consistente, los dos estados faltantes son distinguibles y ningún texto visible mide menos de 12 px.
 
-- [ ] **T11 — Scroll y diseño móvil del modal (`src/styles.css`)** — 25 min
+- [x] **T11 — Scroll y diseño móvil del modal (`src/styles.css`)** — 25 min
   - RF: RF-1, RF-7, RF-9, RF-12 y requisitos no funcionales de adaptación. Constitución: P2 (diseño adaptable), P4 (revisión móvil), P6 (legibilidad).
   - Cambio: Limitar la altura del diálogo al viewport, conservar visible la cabecera/cierre mientras desplaza el cuerpo y apilar campos y comparaciones para anchos de 360–375 px.
   - Hecho cuando: A 360 y 375 px, notas y nombres largos se envuelven, el cuerpo desplaza internamente, el botón de cierre permanece accesible y la página no presenta desbordamiento horizontal.

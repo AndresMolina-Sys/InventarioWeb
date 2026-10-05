@@ -388,3 +388,31 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .movement-diff-row > div + div { border-left: 1px solid var(--line); }
 .movement-diff-row > div > span { display: none; }
 .movement-diff-row p { margin: 0; color: var(--ink); font-size: 13px; font-weight: 400; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+/* Keep the audit header fixed while the detail body scrolls. */
+.modal-card:has(.movement-detail-content) {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  overflow: hidden;
+}
+.modal-card:has(.movement-detail-content) .modal-heading { flex: 0 0 auto; }
+.movement-detail-content { min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior: contain; }
+
+@media (max-width: 640px) {
+  .modal-card:has(.movement-detail-content) {
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+  .modal-card:has(.movement-detail-content) .modal-heading > div { min-width: 0; }
+  .movement-detail-content { padding: 15px; }
+  .movement-audit-fields { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .movement-audit-fields .detail-span { grid-column: auto; }
+  .movement-diff-heading { display: none; }
+  .movement-diff-row { grid-template-columns: minmax(0, 1fr); }
+  .movement-diff-row > strong { padding: 10px 12px 4px; }
+  .movement-diff-row > div { display: grid; grid-template-columns: 68px minmax(0, 1fr); align-items: start; gap: 8px; padding: 8px 12px; }
+  .movement-diff-row > div + div { border-top: 1px solid var(--line); border-left: 0; }
+  .movement-diff-row > div > span { display: block; color: #626a78; font-size: 12px; font-weight: 600; line-height: 1.4; }
+}
