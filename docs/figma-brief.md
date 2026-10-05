@@ -28,7 +28,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - Título y botón “Agregar artículo”, filtro de categoría y exportación.
 - La tabla presenta solo Nombre, Categoría, Fecha de ingreso y Acciones (Ver, Editar, Borrar).
 - La fecha incluye día, mes, año y hora local de ingreso.
-- El formulario recoge Código, nombre, categoría, Ubicación, N.º de serie opcional, Costo opcional, marca, modelo y notas.
+- El formulario recoge Código, nombre, categoría, Ubicación opcional, N.º de serie opcional, Costo opcional, marca, modelo y notas. Una ubicación vacía aparece como «Sin especificar».
 
 ### 03 · Categorías — escritorio (1440 × 1024)
 
@@ -77,6 +77,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 
 - Reutiliza marca, navegación, botones, búsqueda, tarjetas, filtro de categoría, fila de artículo y diálogos.
 - “Ver” abre los datos registrados en modo lectura; “Editar” valida y guarda; “Borrar” pide confirmación.
+- Guardar una edición sin cambios auditables cierra el formulario y avisa «No hubo cambios para guardar.» sin alterar el registro ni el historial.
 - La fecha de ingreso y la última modificación usan la hora del navegador.
 - El número de serie es único cuando se proporciona; el costo acepta importes no negativos.
 - La app guarda en IndexedDB y migra datos de la demo anterior desde `localStorage`.

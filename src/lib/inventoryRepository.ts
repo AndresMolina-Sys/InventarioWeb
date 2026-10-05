@@ -391,7 +391,7 @@ export function createItem(draft: ItemDraft): Promise<void> {
       serialNumber: draft.serialNumber.trim(),
       brand: draft.brand.trim(),
       model: draft.model.trim(),
-      location: draft.location.trim() || "General",
+      location: draft.location.trim(),
       notes: draft.notes.trim(),
       id: crypto.randomUUID(),
       createdAt: now,
@@ -422,7 +422,7 @@ export function updateItem(id: string, draft: ItemDraft): Promise<UpdateItemResu
       serialNumber: draft.serialNumber.trim(),
       brand: draft.brand.trim(),
       model: draft.model.trim(),
-      location: draft.location.trim() || "General",
+      location: draft.location.trim(),
       notes: draft.notes.trim(),
     };
 

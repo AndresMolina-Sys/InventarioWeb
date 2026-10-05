@@ -28,7 +28,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
 
 ## Interfaz y modal
 
-- [ ] **T05 — Integración del resultado de edición (`src/App.tsx`)** — 20 min
+- [x] **T05 — Integración del resultado de edición (`src/App.tsx`)** — 20 min
   - RF: RF-5–RF-8. Constitución: P2 (interfaz según spec), P3 (repositorio separado), P6 (textos en español).
   - Cambio: Aceptar Ubicación vacía como opcional, gestionar el resultado `unchanged` y cerrar el editor con el aviso «No hubo cambios para guardar.» sin alterar el registro.
   - Hecho cuando: Guardar un artículo sin cambios auditables muestra el aviso, conserva sus valores y fecha de modificación, y no aumenta el historial; una Ubicación vacía se presenta como «Sin especificar».

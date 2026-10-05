@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
+import type { UpdateItemResult } from "./lib/inventoryRepository";
 import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventorySnapshot, ItemDraft } from "./types";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "category-detail";
@@ -112,14 +113,14 @@ function App() {
     setSnapshot(await loadSnapshot());
   }
 
-  async function mutate(action: () => Promise<unknown>, successMessage: string): Promise<boolean> {
+  async function mutate(action: () => Promise<void | UpdateItemResult>, successMessage: string): Promise<boolean> {
     setWorking(true);
     setError("");
     setNotice("");
     try {
-      await action();
-      await refresh();
-      setNotice(successMessage);
+      const result = await action();
+      if (result !== "unchanged") await refresh();
+      setNotice(result === "unchanged" ? "No hubo cambios para guardar." : successMessage);
       window.setTimeout(() => setNotice(""), 3200);
       return true;
     } catch (reason) {
@@ -635,7 +636,7 @@ function CategoryDetailPage({ category, items, onBack, onViewItem, onDeleteItem 
           <td className="sku-code">{item.code}</td>
           <td><strong className="category-item-name">{item.name}</strong></td>
           <td>{item.serialNumber || "—"}</td>
-          <td>{item.location || "General"}</td>
+          <td>{item.location || "Sin especificar"}</td>
           <td className="date-cell">{dateLabel(item.updatedAt)}</td>
           <td><div className="row-actions">
             <button className="quiet-icon" onClick={() => onViewItem(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
@@ -696,7 +697,7 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
         <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
         <div><dt>Código</dt><dd>{item.code}</dd></div>
         <div><dt>N.º de serie</dt><dd>{item.serialNumber || "Sin especificar"}</dd></div>
-        <div><dt>Ubicación</dt><dd>{item.location || "General"}</dd></div>
+        <div><dt>Ubicación</dt><dd>{item.location || "Sin especificar"}</dd></div>
         <div><dt>Costo</dt><dd>{costLabel(item.cost)}</dd></div>
         <div><dt>Marca y modelo</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || "Sin especificar"}</dd></div>
         <div className="detail-span"><dt>Notas</dt><dd>{item.notes || "Sin notas"}</dd></div>
@@ -708,7 +709,7 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
 
 function ItemModal({ item, categories, error, saving, onClose, onSave }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onSave: (draft: ItemDraft) => Promise<void> }) {
   const [draft, setDraft] = useState<ItemDraft>(() => item ? draftFromItem(item) : {
-    code: "", name: "", sku: "", serialNumber: "", brand: "", model: "", location: "General", notes: "",
+    code: "", name: "", sku: "", serialNumber: "", brand: "", model: "", location: "", notes: "",
     categoryId: categories[0]?.id ?? "", cost: null,
   });
   const [formError, setFormError] = useState("");
@@ -727,7 +728,7 @@ function ItemModal({ item, categories, error, saving, onClose, onSave }: { item:
         <label className="field-span-2">Nombre<input autoFocus required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
         <label>Código<input required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
         <label>Categoría<select required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
-        <label>Ubicación<input maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
+        <label>Ubicación (Opcional)<input maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
         <label>N.º de serie (Opcional)<input maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
         <label>Costo $ (Opcional)<input type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
         <label>Marca<input maxLength={100} value={draft.brand} onChange={(event) => field("brand", event.target.value)} placeholder="Opcional" /></label>
