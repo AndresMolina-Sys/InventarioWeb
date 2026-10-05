@@ -21,7 +21,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Guardar en la transacción el snapshot versionado completo del estado nuevo al crear y del estado previo al borrar, usando el nombre de categoría vigente durante el evento.
   - Hecho cuando: Una alta conserva todos los campos auditables nuevos y una baja conserva esos campos antes de eliminar el artículo; ambos eventos incluyen `auditVersion: 1` y la operación y su movimiento se confirman juntos.
 
-- [ ] **T04 — Diff de edición y resultado sin cambios (`src/lib/inventoryRepository.ts`)** — 25 min
+- [x] **T04 — Diff de edición y resultado sin cambios (`src/lib/inventoryRepository.ts`)** — 25 min
   - RF: RF-4–RF-8, RF-10. Constitución: P3 (lógica y persistencia), P5 (integridad local).
   - Cambio: Persistir el resumen posterior y solo las diferencias netas de una edición en la misma transacción; devolver `unchanged` cuando no haya cambios auditables.
   - Hecho cuando: Una edición real guarda un movimiento con al menos un par Antes/Después; una edición sin diferencias no guarda artículo ni movimiento y deja `updatedAt` intacto.

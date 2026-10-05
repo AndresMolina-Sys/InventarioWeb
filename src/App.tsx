@@ -112,7 +112,7 @@ function App() {
     setSnapshot(await loadSnapshot());
   }
 
-  async function mutate(action: () => Promise<void>, successMessage: string): Promise<boolean> {
+  async function mutate(action: () => Promise<unknown>, successMessage: string): Promise<boolean> {
     setWorking(true);
     setError("");
     setNotice("");

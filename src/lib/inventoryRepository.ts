@@ -27,7 +27,10 @@ type SnapshotRecord = {
 type SnapshotChange<T> = {
   snapshot: InventorySnapshot;
   result: T;
+  persist?: boolean;
 };
+
+export type UpdateItemResult = "updated" | "unchanged";
 
 type AuditableItem = Pick<
   InventoryItem,
@@ -82,6 +85,42 @@ function isCompleteAuditSnapshot(value: unknown): value is InventoryMovementAudi
     && isOptionalText(snapshot.notes);
 }
 
+function normalizeAuditChanges(value: unknown): NonEmptyInventoryMovementChanges | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+
+  const allowedFields: InventoryMovementAuditField[] = [
+    "code",
+    "name",
+    "categoryName",
+    "serialNumber",
+    "location",
+    "cost",
+    "brand",
+    "model",
+    "notes",
+  ];
+  const entries = Object.entries(value);
+  if (entries.length === 0 || entries.some(([field]) => !allowedFields.includes(field as InventoryMovementAuditField))) {
+    return null;
+  }
+
+  for (const [field, change] of entries) {
+    if (typeof change !== "object" || change === null || Array.isArray(change)) return null;
+    const pair = change as { before?: unknown; after?: unknown };
+    if (!("before" in change) || !("after" in change)) return null;
+
+    const isCost = field === "cost";
+    const validValue = (item: unknown) => isCost
+      ? item === null || (typeof item === "number" && Number.isFinite(item))
+      : field === "code" || field === "name" || field === "categoryName"
+        ? typeof item === "string"
+        : item === null || typeof item === "string";
+    if (!validValue(pair.before) || !validValue(pair.after)) return null;
+  }
+
+  return value as NonEmptyInventoryMovementChanges;
+}
+
 function normalizeMovement(value: unknown): InventoryMovement | null {
   if (typeof value !== "object" || value === null) return null;
   const movement = value as Partial<InventoryMovement>;
@@ -106,6 +145,20 @@ function normalizeMovement(value: unknown): InventoryMovement | null {
       occurredAt: movement.occurredAt,
       auditVersion: 1,
       itemSnapshot,
+    };
+  }
+
+  const changes = movement.auditVersion === 1 && movement.type === "updated"
+    ? normalizeAuditChanges(movement.changes)
+    : null;
+  if (movement.auditVersion === 1 && movement.type === "updated" && hasValidItemSnapshot && changes) {
+    return {
+      id: movement.id,
+      type: "updated",
+      occurredAt: movement.occurredAt,
+      auditVersion: 1,
+      itemSnapshot: itemSnapshot as Pick<InventoryMovementAuditSnapshot, "code" | "name" | "categoryName">,
+      changes,
     };
   }
 
@@ -146,7 +199,9 @@ function transactSnapshot<T>(change: (snapshot: InventorySnapshot) => SnapshotCh
       try {
         const update = change(snapshot);
         result = update.result;
-        store.put({ id: SNAPSHOT_ID, value: update.snapshot } satisfies SnapshotRecord);
+        if (update.persist !== false) {
+          store.put({ id: SNAPSHOT_ID, value: update.snapshot } satisfies SnapshotRecord);
+        }
       } catch (error) {
         operationError = error;
         transaction.abort();
@@ -272,10 +327,6 @@ function movementItemSnapshot(item: InventoryItem, categories: Category[]): Move
   };
 }
 
-function createMovement(type: InventoryMovement["type"], occurredAt: string, item: InventoryItem, categories: Category[]): InventoryMovement {
-  return { id: crypto.randomUUID(), type, occurredAt, itemSnapshot: movementItemSnapshot(item, categories) };
-}
-
 function createVersionedMovement(
   type: "created" | "deleted",
   occurredAt: string,
@@ -357,13 +408,12 @@ export function createItem(draft: ItemDraft): Promise<void> {
   });
 }
 
-export function updateItem(id: string, draft: ItemDraft): Promise<void> {
+export function updateItem(id: string, draft: ItemDraft): Promise<UpdateItemResult> {
   return transactSnapshot((snapshot) => {
     const currentItem = snapshot.items.find((item) => item.id === id);
     if (!currentItem) throw new Error("El artículo ya no existe.");
     validateItemDraft(draft, snapshot.items, id);
-    const now = new Date().toISOString();
-    const updatedItem: InventoryItem = {
+    const candidateItem: InventoryItem = {
       ...currentItem,
       ...draft,
       code: draft.code.trim(),
@@ -374,15 +424,43 @@ export function updateItem(id: string, draft: ItemDraft): Promise<void> {
       model: draft.model.trim(),
       location: draft.location.trim() || "General",
       notes: draft.notes.trim(),
-      updatedAt: now,
     };
+
+    const beforeCategoryName = movementItemSnapshot(currentItem, snapshot.categories).categoryName;
+    const afterCategoryName = movementItemSnapshot(candidateItem, snapshot.categories).categoryName;
+    const changes = calculateInventoryMovementChanges(
+      currentItem,
+      beforeCategoryName,
+      candidateItem,
+      afterCategoryName,
+    );
+    if (!changes) {
+      return { snapshot, result: "unchanged", persist: false };
+    }
+
+    const now = new Date().toISOString();
+    const updatedItem = { ...candidateItem, updatedAt: now };
+    const auditSnapshot = createInventoryMovementAuditSnapshot(updatedItem, afterCategoryName);
+    const movement: InventoryMovement = {
+      id: crypto.randomUUID(),
+      type: "updated",
+      occurredAt: now,
+      auditVersion: 1,
+      itemSnapshot: {
+        code: auditSnapshot.code,
+        name: auditSnapshot.name,
+        categoryName: auditSnapshot.categoryName,
+      },
+      changes,
+    };
+
     return {
       snapshot: {
         ...snapshot,
         items: snapshot.items.map((item) => item.id === id ? updatedItem : item),
-        movements: [...snapshot.movements, createMovement("updated", now, updatedItem, snapshot.categories)],
+        movements: [...snapshot.movements, movement],
       },
-      result: undefined,
+      result: "updated",
     };
   });
 }
