@@ -351,6 +351,7 @@ function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
         {yTicks.map((tick) => <span className="chart-gridline" key={tick.value} style={{ bottom: tick.position }} />)}
         <div className="chart-bars">
           {days.map((day) => <div className="chart-column" key={day.dateKey}>
+            <span className="bar-count-label" aria-hidden="true" style={{ bottom: `calc(${day.count / maximum * 100}% + 6px)` }}>{day.count}</span>
             <div className="bar-rail"><span className={`bar-fill${day.count === 0 ? " inactive" : day.isToday ? " current" : ""}`} style={{ height: `${day.count / maximum * 100}%` }} /></div>
           </div>)}
         </div>

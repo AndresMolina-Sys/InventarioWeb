@@ -19,6 +19,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - El panel Artículos por categoría tiene un conmutador [% | #] junto al icono. Inicia en porcentaje, con barras según la proporción sobre todos los artículos y etiquetas con hasta un decimal; el modo cantidad conserva el ancho relativo a la categoría mayor y muestra el conteo.
 - Ingresos recientes pagina los artículos en orden descendente por fecha de ingreso, cinco por página; muestra navegación desde seis registros y deshabilita los extremos.
 - El gráfico de actividad resume por día las altas, ediciones y bajas de artículos de los últimos siete días locales.
+- Cada columna del gráfico muestra su conteo diario encima de la barra; incluye `0` en los días sin movimientos, centrado y con fuente mínima de 12 px.
 - El eje Y usa ticks enteros reales: con máximo de 3 o menos muestra todos los enteros hasta cero; con máximos mayores muestra máximo, entero medio y cero. Cada guía y cifra comparte la posición proporcional exacta `(máximo − tick) / máximo`, y las cifras quedan centradas sobre sus guías.
 - Las barras tienen ancho adaptable de 18 a 32 px, centradas con las etiquetas del eje X, y esquinas de 7 px en las cuatro puntas; las marcas tenues de 3 px para días sin actividad usan el mismo radio.
 - El área del gráfico crece en escritorio y deja la leyenda anclada al fondo de la tarjeta; en móvil conserva 130 px de alto y la leyenda va debajo.
