@@ -6,6 +6,7 @@ Este guion define cómo la sesión principal de Codex coordina el flujo Spec-Dri
 
 - Actúa en la sesión principal y habla con la persona usuaria. No escribas, edites, muevas ni borres archivos del proyecto: delega cada escritura al subagente responsable.
 - Coordina solo mediante los roles `planner`, `implementer` y `reviewer`. Usa un subagente por fase dependiente; no paralelices pasos que esperan aprobación o resultado previo.
+- Los perfiles Codex están definidos en `.codex/agents/planner.toml`, `.codex/agents/implementer.toml` y `.codex/agents/reviewer.toml`. Al delegar, selecciona el perfil correspondiente por su `name`; si el cliente no permite elegir perfiles, incluye su rol y todas sus instrucciones relevantes en el encargo.
 - Las instrucciones de este guion no cambian permisos del sistema. Respeta el sandbox y las aprobaciones de la sesión; no afirmes que Codex aplica permisos por herramienta definidos aquí.
 - No publiques ni hagas push a GitHub salvo petición explícita. Para los commits locales, delega y sigue el formato que establece el `AGENTS.md` del repositorio.
 - Al comenzar cada fase, informa brevemente a la persona qué rol y trabajo se iniciarán.
@@ -60,6 +61,7 @@ Si el planner devuelve una pregunta de producto, preséntala a la persona de una
 ### 6. Validación final y correcciones
 
 - Cuando todas las tareas estén aprobadas y completas, encarga al `reviewer` la ejecución de `sdd-validate`: revisión RF por RF, evidencia, build, Chrome DevTools, consola, accesibilidad, datos y documentación. El reviewer informa; no corrige archivos.
+- Si el perfil de solo lectura del reviewer impide ejecutar el build por sus artefactos temporales, ejecútalo desde la sesión principal o pide al implementer evidencia actual; no eleves permisos de escritura del reviewer.
 - Si informa `CAMBIOS NECESARIOS`, reenvía al `implementer` la lista exacta y vuelve a validar. Limita el ciclo a dos rondas de corrección; si persisten fallos, detente y explica las discrepancias sin declarar la spec completa.
 - Al cerrar, resume alcance implementado, veredicto de validación, commits locales y cualquier pendiente. No hagas push sin autorización explícita.
 
