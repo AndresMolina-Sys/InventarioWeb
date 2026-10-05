@@ -77,7 +77,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Ejecutar el build y comprobar en IndexedDB que la evolución aditiva no cambia stores/versión ni descarta registros existentes; no instalar infraestructura de pruebas.
   - Hecho cuando: `npm run build` termina con código 0, y antes/después de abrir la aplicación coinciden los IDs y cantidades de artículos, categorías y movimientos preexistentes.
 
-- [ ] **T14 — Flujos de creación, edición y baja (Chrome DevTools)** — 25 min
+- [x] **T14 — Flujos de creación, edición y baja (Chrome DevTools)** — 25 min
   - RF: RF-3–RF-8, RF-10. Constitución: P4 (Chrome DevTools), P5 (integridad local).
   - Cambio: Probar alta y baja, edición de uno y varios campos, texto con espacios, cambio de categoría, costos vacío/0/positivo y edición sin cambios.
   - Hecho cuando: Altas/bajas muestran el estado correcto; cada edición muestra únicamente los cambios esperados; texto normalizado y costo siguen RF-6; el no-op no altera artículo, `updatedAt` ni historial.
