@@ -114,12 +114,12 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .panel-heading p, .inventory-toolbar p { margin: 5px 0 0; color: #9a9fac; font-size: var(--type-supporting-size); font-weight: 400; line-height: 1.4; }
 .inventory-toolbar .inventory-count { color: var(--muted); font-size: var(--type-supporting-size); font-weight: 400; line-height: 1.4; }
 .panel-icon { width: 29px; height: 29px; color: #8176dc; background: #f3f1ff; }
-.chart-area { height: 145px; margin-top: 14px; display: grid; grid-template-columns: 24px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 18px; column-gap: 10px; row-gap: 5px; }
-.chart-y-labels { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; justify-content: space-between; align-items: end; color: #abb0ba; font-size: var(--type-meta-size); font-weight: 500; line-height: 1.25; }
+.chart-area { height: 145px; margin-top: 14px; display: grid; grid-template-columns: 24px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 18px; column-gap: 10px; row-gap: 9px; }
+.chart-y-labels { position: relative; grid-column: 1; grid-row: 1; color: #abb0ba; font-size: max(12px, var(--type-meta-size)); font-weight: 500; line-height: 1.25; }
+.chart-y-labels span { position: absolute; right: 0; transform: translateY(50%); white-space: nowrap; }
 .chart-plot { position: relative; grid-column: 2; grid-row: 1; min-height: 0; }
 .chart-bars { position: absolute; inset: 0; display: flex; align-items: stretch; justify-content: space-around; }
-.chart-gridline { position: absolute; z-index: 0; left: 0; right: 0; border-top: 1px dashed #eceef2; }
-.chart-gridline.top { top: 1px; }.chart-gridline.middle { top: 50%; }.chart-gridline.bottom { bottom: 0; }
+.chart-gridline { position: absolute; z-index: 0; left: 0; right: 0; border-top: 1px dashed #eceef2; transform: translateY(.5px); }
 .chart-column { position: relative; z-index: 1; width: 12%; display: flex; align-items: stretch; justify-content: center; }
 .chart-x-labels { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); align-items: flex-start; color: #a1a7b1; font-size: var(--type-meta-size); font-weight: 500; line-height: 1.25; }
 .chart-x-labels span { min-width: 0; text-align: center; white-space: nowrap; }

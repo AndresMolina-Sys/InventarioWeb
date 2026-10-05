@@ -329,6 +329,13 @@ function buildWeeklyActivity(movements: InventoryMovement[]): WeeklyActivityDay[
 function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
   const days = useMemo(() => buildWeeklyActivity(movements), [movements]);
   const maximum = Math.max(1, ...days.map((day) => day.count));
+  const yTicks = (maximum <= 3
+    ? Array.from({ length: maximum + 1 }, (_, index) => maximum - index)
+    : [maximum, Math.floor(maximum / 2), 0]
+  ).map((value) => ({
+    value,
+    position: `${value / maximum * 100}%`,
+  }));
   const total = days.reduce((sum, day) => sum + day.count, 0);
   const activitySummary = days.map((day) => `${day.longLabel}: ${day.count} ${day.count === 1 ? "movimiento" : "movimientos"}`).join(". ");
 
@@ -339,11 +346,9 @@ function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
     </div>
     {total === 0 && <p className="chart-empty-note">Sin movimientos registrados en los últimos siete días.</p>}
     <div className="chart-area" role="img" aria-label={`Movimientos diarios. ${activitySummary}`}>
-      <div className="chart-y-labels" aria-hidden="true"><span>{maximum}</span><span>{maximum > 1 ? Math.floor(maximum / 2) : ""}</span><span>0</span></div>
+      <div className="chart-y-labels" aria-hidden="true">{yTicks.map((tick) => <span key={tick.value} style={{ bottom: tick.position }}>{tick.value}</span>)}</div>
       <div className="chart-plot" aria-hidden="true">
-        <span className="chart-gridline top" />
-        <span className="chart-gridline middle" />
-        <span className="chart-gridline bottom" />
+        {yTicks.map((tick) => <span className="chart-gridline" key={tick.value} style={{ bottom: tick.position }} />)}
         <div className="chart-bars">
           {days.map((day) => <div className="chart-column" key={day.dateKey}>
             <div className="bar-rail"><span className={`bar-fill${day.count === 0 ? " inactive" : day.isToday ? " current" : ""}`} style={{ height: `${day.count / maximum * 100}%` }} /></div>
