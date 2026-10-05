@@ -365,3 +365,26 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   .activity-chart-panel .chart-total { grid-column: 2; margin-left: 0; }
   .connection-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; font-size: var(--type-meta-size); }
 }
+
+/* Movement audit detail — desktop presentation */
+.modal-card:has(.movement-detail-content) { width: min(720px, 100%); }
+.modal-card:has(.movement-detail-content) .modal-heading h2 { color: #303747; font-size: 16px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.modal-card:has(.movement-detail-content) .modal-heading p { color: #626a78; font-size: 12px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.modal-card:has(.movement-detail-content) .modal-heading .movement-action { flex: 0 0 auto; }
+.movement-detail-content { padding: 20px 22px 22px; }
+.movement-detail-content > h3 { margin: 0 0 12px; color: #303747; font-size: 14px; font-weight: 700; line-height: 1.3; }
+.movement-detail-content > p { margin: 0 0 14px; padding: 10px 12px; border-left: 3px solid var(--amber); border-radius: 6px; color: #76571f; background: #fff8e9; font-size: 13px; font-weight: 500; line-height: 1.4; }
+.movement-audit-fields { gap: 10px 12px; margin: 0; }
+.movement-audit-fields > div { padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.movement-detail-content .movement-audit-fields dt { margin-bottom: 6px; color: #626a78; font-size: 12px; font-weight: 600; line-height: 1.25; }
+.movement-detail-content .movement-audit-fields dd { color: var(--ink); font-size: 13px; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }
+.movement-diff-list { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; }
+.movement-diff-heading, .movement-diff-row { display: grid; grid-template-columns: minmax(112px, .72fr) minmax(0, 1fr) minmax(0, 1fr); }
+.movement-diff-heading { color: #626a78; background: #f7f8fa; }
+.movement-diff-heading span { padding: 10px 12px; font-size: 12px; font-weight: 700; line-height: 1.25; }
+.movement-diff-row { border-top: 1px solid var(--line); }
+.movement-diff-row > strong, .movement-diff-row > div { min-width: 0; padding: 12px; }
+.movement-diff-row > strong { color: #303747; font-size: 13px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.movement-diff-row > div + div { border-left: 1px solid var(--line); }
+.movement-diff-row > div > span { display: none; }
+.movement-diff-row p { margin: 0; color: var(--ink); font-size: 13px; font-weight: 400; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }

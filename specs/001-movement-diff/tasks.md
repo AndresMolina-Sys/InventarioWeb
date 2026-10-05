@@ -55,7 +55,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
 
 ## Estilos y adaptación
 
-- [ ] **T10 — Estilo de escritorio del detalle (`src/styles.css`)** — 20 min
+- [x] **T10 — Estilo de escritorio del detalle (`src/styles.css`)** — 20 min
   - RF: RF-2–RF-7, RF-11 y requisitos no funcionales de consistencia/legibilidad. Constitución: P2 (tokens visuales), P4 (verificación visual), P6 (contenido en español).
   - Cambio: Aplicar tokens visuales existentes a acción, badges, cabecera, ficha y columnas Campo/Antes/Después; diferenciar «Sin especificar» de «Dato no registrado» y mantener el piso tipográfico de 12 px.
   - Hecho cuando: En escritorio, la ficha y el diff se leen con jerarquía consistente, los dos estados faltantes son distinguibles y ningún texto visible mide menos de 12 px.
