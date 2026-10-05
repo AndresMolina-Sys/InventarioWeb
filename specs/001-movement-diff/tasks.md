@@ -82,7 +82,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Probar alta y baja, edición de uno y varios campos, texto con espacios, cambio de categoría, costos vacío/0/positivo y edición sin cambios.
   - Hecho cuando: Altas/bajas muestran el estado correcto; cada edición muestra únicamente los cambios esperados; texto normalizado y costo siguen RF-6; el no-op no altera artículo, `updatedAt` ni historial.
 
-- [ ] **T15 — Historial parcial y estado de navegación (Chrome DevTools)** — 20 min
+- [x] **T15 — Historial parcial y estado de navegación (Chrome DevTools)** — 20 min
   - RF: RF-1–RF-2, RF-7, RF-9–RF-10. Constitución: P4 (Chrome DevTools), P5 (datos locales).
   - Cambio: Abrir eventos antiguos parciales y movimientos huérfanos; cambiar o borrar después el artículo y renombrar su categoría; revisar el filtro, la página y la posición al cerrar el detalle.
   - Hecho cuando: El modal usa solo datos del evento, distingue los datos no registrados de los opcionales vacíos, y al cerrarse mantiene intactos filtro, página y posición.
