@@ -38,7 +38,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Añadir el botón explícito «Ver detalle» en cada movimiento y abrir el evento seleccionado; no hacer interactiva la fila completa ni ofrecer acciones de modificación.
   - Hecho cuando: El botón abre el movimiento correcto; cerrar el modal conserva filtro, página y posición del historial; el estado vacío del historial no ofrece un detalle inexistente.
 
-- [ ] **T07 — Contenido de altas, bajas y ediciones (`src/App.tsx`)** — 25 min
+- [x] **T07 — Contenido de altas, bajas y ediciones (`src/App.tsx`)** — 25 min
   - RF: RF-2–RF-7, RF-10–RF-11. Constitución: P2 (diseño documentado), P5 (fidelidad del evento), P6 (textos en español).
   - Cambio: Mostrar acción, nombre, código y fecha/hora en la cabecera; presentar la ficha completa en altas/bajas y solo campos modificados en ediciones. Incluir los campos auditables acordados y el formato monetario existente.
   - Hecho cuando: Altas muestran el estado nuevo, bajas el estado previo y ediciones únicamente sus diferencias; opcionales vacíos muestran «Sin especificar», y ningún detalle ofrece editar, borrar o restaurar.

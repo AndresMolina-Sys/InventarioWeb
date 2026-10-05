@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
 import type { UpdateItemResult } from "./lib/inventoryRepository";
-import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventorySnapshot, ItemDraft } from "./types";
+import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventorySnapshot, ItemDraft } from "./types";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
@@ -368,6 +368,65 @@ function movementActionIcon(type: InventoryMovement["type"]): IconName {
   return "trash";
 }
 
+const movementAuditFields: Array<{ field: InventoryMovementAuditField; label: string }> = [
+  { field: "code", label: "Código" },
+  { field: "name", label: "Nombre" },
+  { field: "categoryName", label: "Categoría" },
+  { field: "serialNumber", label: "N.º de serie" },
+  { field: "location", label: "Ubicación" },
+  { field: "cost", label: "Costo" },
+  { field: "brand", label: "Marca" },
+  { field: "model", label: "Modelo" },
+  { field: "notes", label: "Notas" },
+];
+
+function movementAuditValueLabel(value: string | number | null): string {
+  if (typeof value === "number") return costLabel(value);
+  return value?.trim() || "Sin especificar";
+}
+
+function MovementDetailContent({ movement }: { movement: InventoryMovement }) {
+  if (movement.auditVersion === 1 && movement.type === "updated") {
+    return <div className="modal-form movement-detail-content">
+      <h3>Campos modificados</h3>
+      <div className="movement-diff-list">
+        <div className="movement-diff-heading"><span>Campo</span><span>Antes</span><span>Después</span></div>
+        {movementAuditFields.map(({ field, label }) => {
+          const change = movement.changes[field];
+          if (!change) return null;
+          return <div className="movement-diff-row" key={field}>
+            <strong>{label}</strong>
+            <div><span>Antes</span><p>{movementAuditValueLabel(change.before)}</p></div>
+            <div><span>Después</span><p>{movementAuditValueLabel(change.after)}</p></div>
+          </div>;
+        })}
+      </div>
+    </div>;
+  }
+
+  if (movement.auditVersion === 1) {
+    const snapshot = movement.itemSnapshot;
+    return <div className="modal-form movement-detail-content">
+      <dl className="article-detail-grid movement-audit-fields">
+        <div><dt>Código</dt><dd>{snapshot.code}</dd></div>
+        <div><dt>Nombre</dt><dd>{snapshot.name}</dd></div>
+        <div><dt>Categoría</dt><dd>{snapshot.categoryName}</dd></div>
+        <div><dt>N.º de serie</dt><dd>{movementAuditValueLabel(snapshot.serialNumber)}</dd></div>
+        <div><dt>Ubicación</dt><dd>{movementAuditValueLabel(snapshot.location)}</dd></div>
+        <div><dt>Costo</dt><dd>{costLabel(snapshot.cost)}</dd></div>
+        <div><dt>Marca</dt><dd>{movementAuditValueLabel(snapshot.brand)}</dd></div>
+        <div><dt>Modelo</dt><dd>{movementAuditValueLabel(snapshot.model)}</dd></div>
+        <div className="detail-span"><dt>Notas</dt><dd>{movementAuditValueLabel(snapshot.notes)}</dd></div>
+      </dl>
+    </div>;
+  }
+
+  return <div className="modal-form movement-detail-content">
+    <p>{movement.itemSnapshot?.name ?? "Artículo sin datos asociados"}</p>
+    <p>{movement.itemSnapshot ? `Código: ${movement.itemSnapshot.code}` : "Este movimiento no conserva los datos del artículo."}</p>
+  </div>;
+}
+
 function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
   const [filter, setFilter] = useState<MovementFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -429,16 +488,11 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
       </div>
     </section>
     {selectedMovement && <ModalFrame
-      title="Detalle de movimiento"
-      subtitle={movementActionLabel(selectedMovement.type)}
+      title={selectedMovement.itemSnapshot?.name ?? "Artículo sin datos asociados"}
+      subtitle={`${selectedMovement.itemSnapshot?.code ?? "Código no disponible"} · ${dateLabel(selectedMovement.occurredAt)}`}
+      badge={<span className={`movement-action action-${selectedMovement.type}`}><Icon name={movementActionIcon(selectedMovement.type)} size={14} />{movementActionLabel(selectedMovement.type)}</span>}
       onClose={() => setSelectedMovement(null)}
-    >
-      <div className="modal-form">
-        <p>{selectedMovement.itemSnapshot?.name ?? "Artículo sin datos asociados"}</p>
-        <p>{selectedMovement.itemSnapshot ? `Código: ${selectedMovement.itemSnapshot.code}` : "Este movimiento no conserva los datos del artículo."}</p>
-        <p>Fecha y hora: {dateLabel(selectedMovement.occurredAt)}</p>
-      </div>
-    </ModalFrame>}
+    ><MovementDetailContent movement={selectedMovement} /></ModalFrame>}
   </section>;
 }
 
@@ -685,7 +739,7 @@ function CategoryModal({ category, error, saving, onClose, onSave }: { category:
   </ModalFrame>;
 }
 
-function ModalFrame({ title, subtitle, onClose, children, className = "" }: { title: string; subtitle: string; onClose: () => void; children: ReactNode; className?: string }) {
+function ModalFrame({ title, subtitle, onClose, children, className = "", badge }: { title: string; subtitle: string; onClose: () => void; children: ReactNode; className?: string; badge?: ReactNode }) {
   useEffect(() => {
     function dismissOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -695,7 +749,7 @@ function ModalFrame({ title, subtitle, onClose, children, className = "" }: { ti
   }, [onClose]);
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className={`modal-card ${className}`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <header className="modal-heading"><div><span className="modal-mark"><Icon name="box" size={18} /></span><div><h2 id="modal-title">{title}</h2><p>{subtitle}</p></div></div><button className="quiet-icon" onClick={onClose} aria-label="Cerrar"><Icon name="close" size={19} /></button></header>
+      <header className="modal-heading"><div>{badge ?? <span className="modal-mark"><Icon name="box" size={18} /></span>}<div><h2 id="modal-title">{title}</h2><p>{subtitle}</p></div></div><button className="quiet-icon" onClick={onClose} aria-label="Cerrar"><Icon name="close" size={19} /></button></header>
       {children}
     </section>
   </div>;
