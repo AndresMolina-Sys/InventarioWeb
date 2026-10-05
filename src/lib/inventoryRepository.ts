@@ -121,6 +121,26 @@ function normalizeAuditChanges(value: unknown): NonEmptyInventoryMovementChanges
   return value as NonEmptyInventoryMovementChanges;
 }
 
+function normalizeHistoricalAuditSnapshot(value: unknown): Partial<InventoryMovementAuditSnapshot> | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+  const snapshot = value as Partial<Record<keyof InventoryMovementAuditSnapshot, unknown>>;
+  const isOptionalText = (field: unknown): field is string | null => field === null || typeof field === "string";
+
+  return {
+    ...(typeof snapshot.code === "string" ? { code: snapshot.code } : {}),
+    ...(typeof snapshot.name === "string" ? { name: snapshot.name } : {}),
+    ...(typeof snapshot.categoryName === "string" ? { categoryName: snapshot.categoryName } : {}),
+    ...(isOptionalText(snapshot.serialNumber) ? { serialNumber: snapshot.serialNumber } : {}),
+    ...(isOptionalText(snapshot.location) ? { location: snapshot.location } : {}),
+    ...(snapshot.cost === null || (typeof snapshot.cost === "number" && Number.isFinite(snapshot.cost))
+      ? { cost: snapshot.cost }
+      : {}),
+    ...(isOptionalText(snapshot.brand) ? { brand: snapshot.brand } : {}),
+    ...(isOptionalText(snapshot.model) ? { model: snapshot.model } : {}),
+    ...(isOptionalText(snapshot.notes) ? { notes: snapshot.notes } : {}),
+  };
+}
+
 function normalizeMovement(value: unknown): InventoryMovement | null {
   if (typeof value !== "object" || value === null) return null;
   const movement = value as Partial<InventoryMovement>;
@@ -130,7 +150,7 @@ function normalizeMovement(value: unknown): InventoryMovement | null {
     || !Number.isFinite(Date.parse(movement.occurredAt))) return null;
 
   const itemSnapshot = movement.itemSnapshot;
-  const hasValidItemSnapshot = typeof itemSnapshot === "object"
+  const hasCompleteItemSummary = typeof itemSnapshot === "object"
     && itemSnapshot !== null
     && typeof itemSnapshot.code === "string"
     && typeof itemSnapshot.name === "string"
@@ -151,7 +171,7 @@ function normalizeMovement(value: unknown): InventoryMovement | null {
   const changes = movement.auditVersion === 1 && movement.type === "updated"
     ? normalizeAuditChanges(movement.changes)
     : null;
-  if (movement.auditVersion === 1 && movement.type === "updated" && hasValidItemSnapshot && changes) {
+  if (movement.auditVersion === 1 && movement.type === "updated" && hasCompleteItemSummary && changes) {
     return {
       id: movement.id,
       type: "updated",
@@ -162,11 +182,12 @@ function normalizeMovement(value: unknown): InventoryMovement | null {
     };
   }
 
+  const historicalItemSnapshot = normalizeHistoricalAuditSnapshot(itemSnapshot);
   return {
     id: movement.id,
     type: movement.type,
     occurredAt: movement.occurredAt,
-    ...(hasValidItemSnapshot ? { itemSnapshot: itemSnapshot as MovementItemSnapshot } : {}),
+    ...(historicalItemSnapshot ? { itemSnapshot: historicalItemSnapshot } : {}),
   };
 }
 

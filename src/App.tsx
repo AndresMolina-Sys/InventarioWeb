@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
 import type { UpdateItemResult } from "./lib/inventoryRepository";
-import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventorySnapshot, ItemDraft } from "./types";
+import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditSnapshot, InventorySnapshot, ItemDraft } from "./types";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
@@ -385,6 +385,38 @@ function movementAuditValueLabel(value: string | number | null): string {
   return value?.trim() || "Sin especificar";
 }
 
+function historicalMovementValueLabel(
+  snapshot: Partial<InventoryMovementAuditSnapshot> | undefined,
+  field: InventoryMovementAuditField,
+): string {
+  if (!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, field) || snapshot[field] === undefined) {
+    return "Dato no registrado";
+  }
+
+  const value = snapshot[field];
+  if (value === null) return "Sin especificar";
+  if (typeof value === "number") return costLabel(value);
+
+  const trimmedValue = value.trim();
+  if (trimmedValue) return trimmedValue;
+  return field === "code" || field === "name" || field === "categoryName"
+    ? "Dato no registrado"
+    : "Sin especificar";
+}
+
+function movementItemNameLabel(movement: InventoryMovement): string {
+  if (movement.auditVersion === 1) return movement.itemSnapshot.name;
+  return historicalMovementValueLabel(movement.itemSnapshot, "name");
+}
+
+function movementItemSummaryLabel(movement: InventoryMovement): string {
+  if (movement.auditVersion === 1) {
+    return `${movement.itemSnapshot.code} · ${movement.itemSnapshot.categoryName}`;
+  }
+  if (!movement.itemSnapshot) return "Este movimiento no conserva los datos del artículo.";
+  return `${historicalMovementValueLabel(movement.itemSnapshot, "code")} · ${historicalMovementValueLabel(movement.itemSnapshot, "categoryName")}`;
+}
+
 function MovementDetailContent({ movement }: { movement: InventoryMovement }) {
   if (movement.auditVersion === 1 && movement.type === "updated") {
     return <div className="modal-form movement-detail-content">
@@ -421,9 +453,15 @@ function MovementDetailContent({ movement }: { movement: InventoryMovement }) {
     </div>;
   }
 
+  const snapshot = movement.itemSnapshot;
   return <div className="modal-form movement-detail-content">
-    <p>{movement.itemSnapshot?.name ?? "Artículo sin datos asociados"}</p>
-    <p>{movement.itemSnapshot ? `Código: ${movement.itemSnapshot.code}` : "Este movimiento no conserva los datos del artículo."}</p>
+    <p>Este movimiento no conserva el detalle histórico completo.</p>
+    <dl className="article-detail-grid movement-audit-fields">
+      {movementAuditFields.map(({ field, label }) => <div className={field === "notes" ? "detail-span" : undefined} key={field}>
+        <dt>{label}</dt>
+        <dd>{historicalMovementValueLabel(snapshot, field)}</dd>
+      </div>)}
+    </dl>
   </div>;
 }
 
@@ -470,7 +508,7 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
         <thead><tr><th scope="col">Acción</th><th scope="col">Artículo</th><th scope="col">Fecha y hora</th><th scope="col">Acciones</th></tr></thead>
         <tbody>{visibleMovements.map((movement) => <tr key={movement.id}>
           <td><span className={`movement-action action-${movement.type}`}><Icon name={movementActionIcon(movement.type)} size={14} />{movementActionLabel(movement.type)}</span></td>
-          <td><div className="movement-article"><strong>{movement.itemSnapshot?.name ?? "Artículo sin datos asociados"}</strong><small>{movement.itemSnapshot ? `${movement.itemSnapshot.code} · ${movement.itemSnapshot.categoryName}` : "Este movimiento no conserva los datos del artículo."}</small></div></td>
+          <td><div className="movement-article"><strong>{movement.itemSnapshot ? movementItemNameLabel(movement) : "Artículo sin datos asociados"}</strong><small>{movementItemSummaryLabel(movement)}</small></div></td>
           <td className="date-cell"><time dateTime={movement.occurredAt}>{dateLabel(movement.occurredAt)}</time></td>
           <td><button className="button button-outline movement-detail-button" type="button" onClick={() => setSelectedMovement(movement)}><Icon name="view" size={15} />Ver detalle</button></td>
         </tr>)}</tbody>
@@ -488,8 +526,8 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
       </div>
     </section>
     {selectedMovement && <ModalFrame
-      title={selectedMovement.itemSnapshot?.name ?? "Artículo sin datos asociados"}
-      subtitle={`${selectedMovement.itemSnapshot?.code ?? "Código no disponible"} · ${dateLabel(selectedMovement.occurredAt)}`}
+      title={movementItemNameLabel(selectedMovement)}
+      subtitle={`${selectedMovement.auditVersion === 1 ? selectedMovement.itemSnapshot.code : historicalMovementValueLabel(selectedMovement.itemSnapshot, "code")} · ${dateLabel(selectedMovement.occurredAt)}`}
       badge={<span className={`movement-action action-${selectedMovement.type}`}><Icon name={movementActionIcon(selectedMovement.type)} size={14} />{movementActionLabel(selectedMovement.type)}</span>}
       onClose={() => setSelectedMovement(null)}
     ><MovementDetailContent movement={selectedMovement} /></ModalFrame>}

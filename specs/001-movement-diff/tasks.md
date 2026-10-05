@@ -43,7 +43,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Mostrar acción, nombre, código y fecha/hora en la cabecera; presentar la ficha completa en altas/bajas y solo campos modificados en ediciones. Incluir los campos auditables acordados y el formato monetario existente.
   - Hecho cuando: Altas muestran el estado nuevo, bajas el estado previo y ediciones únicamente sus diferencias; opcionales vacíos muestran «Sin especificar», y ningún detalle ofrece editar, borrar o restaurar.
 
-- [ ] **T08 — Compatibilidad histórica y datos temporales (`src/App.tsx`, `src/lib/inventoryRepository.ts`)** — 25 min
+- [x] **T08 — Compatibilidad histórica y datos temporales (`src/App.tsx`, `src/lib/inventoryRepository.ts`)** — 25 min
   - RF: RF-2, RF-7, RF-9–RF-10. Constitución: P3 (lectura normalizada), P5 (preservación no destructiva), P6 (mensajes en español).
   - Cambio: Tratar eventos sin versión o diff como históricos incompletos; distinguir campos ausentes de valores opcionales vacíos y usar exclusivamente valores guardados en el evento.
   - Hecho cuando: Un movimiento antiguo parcial y uno huérfano muestran «Dato no registrado» donde faltan datos, conservan los datos disponibles y nunca completan valores con el artículo actual; editar/borrar después el artículo o renombrar la categoría no cambia el detalle anterior.
