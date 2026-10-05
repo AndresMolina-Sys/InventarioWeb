@@ -92,7 +92,7 @@ Las tareas están ordenadas por dependencia y estimadas para completarse en un m
   - Cambio: Revisar escritorio y viewports de 375 y 360 px: teclado, foco, scroll, textos largos, aviso de datos locales, tiempo de apertura y solicitudes del favicon.
   - Hecho cuando: Tab/Mayús+Tab, Escape y restauración de foco funcionan; no hay overflow horizontal; las tres aperturas medidas tardan menos de 100 ms cada una; la interfaz identifica los datos como locales sin prometer sincronización ni inviolabilidad; no hay errores ni advertencias y `/favicon.svg` responde sin 404 de `/favicon.ico`.
 
-- [ ] **T17 — Documentación de diseño y reglas (`docs/figma-brief.md`, `AGENTS.md`, `MEMORY.md`)** — 20 min
+- [x] **T17 — Documentación de diseño y reglas (`docs/figma-brief.md`, `AGENTS.md`, `MEMORY.md`)** — 20 min
   - RF: RF-1–RF-12 y requisitos de documentación/privacidad. Constitución: P2 (spec/código sincronizados), P4 (verificación documentada), P5 (reglas de datos), P6 (idioma).
   - Cambio: Documentar en Figma brief el acceso, estados del modal, diff, textos históricos y móvil; actualizar las reglas locales de persistencia/cambios netos/compatibilidad y resumir las decisiones en memoria sin superar 50 líneas.
   - Hecho cuando: Los tres documentos describen los mismos campos, estados «Sin especificar»/«Dato no registrado», comportamiento accesible, límite de 12 px y compatibilidad antigua; `MEMORY.md` tiene como máximo 50 líneas.

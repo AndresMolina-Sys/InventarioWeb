@@ -48,9 +48,17 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - La cabecera usa el mismo título de 16 px/700 y contador que las barras de Artículos y Categorías; en escritorio la etiqueta «Tipo de acción» comparte una fila con el selector y en móvil queda encima de un selector de ancho completo.
 - La tabla muestra acción, artículo (nombre, código y categoría) y fecha/hora local; pagina 25 registros.
 - Cada movimiento tiene un botón «Ver detalle» en la columna Acciones; abre el evento seleccionado y al cerrar conserva filtro, página y posición. El encabezado del detalle muestra la acción, artículo, código y fecha/hora.
-- Las altas muestran la ficha completa del estado nuevo, las bajas el estado previo y las ediciones solo los campos cambiados en columnas Campo/Antes/Después. Opcionales vacíos muestran «Sin especificar»; el detalle es de solo lectura.
+- La cabecera del modal contiene el badge de acción (Alta, Edición o Baja), nombre, código y fecha/hora local legible. El detalle es de solo lectura.
+- Altas muestran la ficha completa del estado nuevo y bajas la ficha completa del estado previo. Las ediciones muestran solo diferencias netas en columnas Campo/Antes/Después.
+- Se auditan Código, Nombre y Categoría como obligatorios; N.º de serie, Ubicación, Costo, Marca, Modelo y Notas son opcionales. SKU, identificadores y fechas técnicas quedan fuera.
+- Textos se comparan tras quitar espacios externos; costo se compara numéricamente y vacío/nulo equivale a cero. Una edición sin cambios netos no se guarda, no cambia `updatedAt` ni crea movimiento.
+- Un opcional vacío se presenta como «Sin especificar»; un campo que no fue conservado en un evento histórico se presenta como «Dato no registrado». Los eventos antiguos usan solo los datos guardados y nunca se completan desde el artículo actual.
+- Los nuevos movimientos conservan ficha completa en altas/bajas y los valores anterior/nuevo de campos modificados en ediciones. La categoría mostrada es la vigente al ocurrir el evento.
+- El diálogo usa `role="dialog"`, `aria-modal` y `aria-labelledby`; recibe foco inicial en el botón con `aria-label="Cerrar detalle de movimiento"`, contiene el foco con Tab/Mayús+Tab, cierra con Escape y devuelve el foco al botón de origen.
+- El detalle se abre desde los datos locales en menos de 100 ms; se presenta como historial local, no inviolable ni sincronizado.
+- El encabezado y el cierre permanecen disponibles durante el scroll interno. La altura máxima se ajusta al viewport, notas largas se envuelven y a 360–375 px las comparaciones se apilan sin desbordamiento.
+- Ningún texto visible del detalle baja de 12 px. El estilo usa los tokens existentes y mantiene contraste, foco visible y movimiento reducido.
 - En pantallas estrechas, el filtro ocupa el ancho disponible y la tabla conserva desplazamiento horizontal.
-- Cada evento nuevo guarda una instantánea identificadora del artículo; los eventos antiguos sin ella muestran que no conservan esos datos.
 
 ## Sistema visual
 
@@ -83,9 +91,10 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - La fecha de ingreso y la última modificación usan la hora del navegador.
 - El número de serie es único cuando se proporciona; el costo acepta importes no negativos.
 - La app guarda en IndexedDB y migra datos de la demo anterior desde `localStorage`.
-- Cada alta, edición o baja de artículo se registra localmente junto con el cambio; las categorías no generan movimientos.
-- Cada movimiento conserva el código, nombre y categoría vigentes al momento de la operación, incluso al borrar; no guarda diferencias de campos anteriores y nuevos.
-- Los snapshots anteriores se migran con el historial vacío; no se reconstruyen eventos pasados. El historial completo se conserva localmente.
+- Las altas y bajas exitosas y las ediciones con cambios netos auditables se registran junto con su operación; las categorías no generan movimientos. Una edición sin cambios no persiste ni modifica su fecha.
+- Las altas guardan la ficha completa nueva, las bajas la ficha completa previa y las ediciones solo los pares anterior/nuevo que cambiaron entre Código, Nombre, Categoría, N.º de serie, Ubicación, Costo, Marca, Modelo y Notas.
+- La comparación recorta espacios externos en textos y compara costo numéricamente; vacío/nulo y cero son equivalentes. El nombre de categoría y los valores del detalle son los guardados al ocurrir el movimiento.
+- La evolución del historial es aditiva: conserva artículos, categorías y movimientos existentes, no modifica eventos antiguos y no inventa diffs. Los eventos históricos parciales muestran solo los datos conservados; nunca se infieren valores desde el artículo actual.
 - No hay login, perfil de usuario ni sincronización entre dispositivos en Portfolio.
 
 ## Accesibilidad y fuente de verdad
