@@ -873,13 +873,14 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
         <div><dt>Categoría</dt><dd>{categoryName}</dd></div>
         <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
         <div><dt>Código</dt><dd>{item.code}</dd></div>
+        <div><dt>Última modificación</dt><dd>{dateLabel(item.updatedAt)}</dd></div>
         <div><dt>N.º de serie</dt><dd>{item.serialNumber || "Sin especificar"}</dd></div>
         <div><dt>Ubicación</dt><dd>{item.location || "Sin especificar"}</dd></div>
         <div><dt>Costo</dt><dd>{costLabel(item.cost)}</dd></div>
         <div><dt>Marca y modelo</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || "Sin especificar"}</dd></div>
         <div className="detail-span"><dt>Notas</dt><dd>{item.notes || "Sin notas"}</dd></div>
       </dl>
-      <div className="modal-footer"><span className="modal-hint">Última modificación: {dateLabel(item.updatedAt)}</span><button className="button button-primary" onClick={onClose}>Cerrar</button></div>
+      <div className="modal-footer"><button className="button button-primary" onClick={onClose}>Cerrar</button></div>
     </div>
   </ModalFrame>;
 }

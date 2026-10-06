@@ -334,7 +334,6 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .article-detail-grid dt { margin-bottom: 5px; color: var(--muted); font-size: var(--type-meta-size); font-weight: 500; line-height: 1.25; }
 .article-detail-grid dd { margin: 0; color: var(--ink); font-size: 12px; line-height: 1.25; overflow-wrap: anywhere; }
 .article-detail-grid .detail-span { grid-column: 1 / -1; }
-.article-detail .modal-footer { justify-content: space-between; }
 @media (max-width: 1200px) {
   .stats-grid-internal { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
