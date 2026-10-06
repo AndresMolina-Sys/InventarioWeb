@@ -31,6 +31,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - La tabla presenta solo Nombre, Categoría, Fecha de ingreso y Acciones (Ver, Editar, Borrar).
 - La fecha incluye día, mes, año y hora local de ingreso.
 - El detalle del artículo incluye «Última modificación» en la ficha, después de Código y antes de N.º de serie, con el estilo legible de los demás valores. El pie muestra solo el botón «Cerrar»; se conserva el cierre de la cabecera.
+- El detalle incluye «Imprimir etiqueta» solo dentro de este diálogo. Al pulsarlo, el mismo diálogo muestra una vista previa con Código, Nombre, Categoría, Fecha de ingreso y el barcode local Code 128-B, o un aviso si el código no es imprimible. «Imprimir» invoca el diálogo del navegador únicamente si el barcode cabe; «Volver al detalle» y el cierre del encabezado regresan al artículo seleccionado.
 - El formulario recoge Código, nombre, categoría, Ubicación opcional, N.º de serie opcional, Costo opcional, marca, modelo y notas. Una ubicación vacía aparece como «Sin especificar».
 
 ### 03 · Categorías — escritorio (1440 × 1024)

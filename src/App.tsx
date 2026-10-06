@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
+import { CODE128_MODULE_WIDTH_MM, encodeCode128B } from "./lib/code128";
+import type { Code128BBlockedReason } from "./lib/code128";
 import type { UpdateItemResult } from "./lib/inventoryRepository";
 import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditSnapshot, InventorySnapshot, ItemDraft } from "./types";
 
@@ -50,6 +52,12 @@ function compactRegisteredValueLabel(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 2,
   }).format(value);
+}
+
+function code128BlockMessage(reason: Code128BBlockedReason): string {
+  if (reason === "unsupported-character") return "El código contiene caracteres que no se pueden representar en Code 128-B.";
+  if (reason === "width-exceeded") return "El código de barras completo no cabe en una etiqueta de 70 × 35 mm.";
+  return "La altura del código de barras no cabe en una etiqueta de 70 × 35 mm.";
 }
 
 const categoryPercentageFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
@@ -866,7 +874,44 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
 }
 
 function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem; categoryName: string; onClose: () => void }) {
-  return <ModalFrame title="Detalle del artículo" subtitle="Información del registro interno." onClose={onClose}>
+  const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
+  const barcode = useMemo(() => encodeCode128B(item.code), [item.code]);
+  const closeCurrentView = () => {
+    if (labelPreviewOpen) {
+      setLabelPreviewOpen(false);
+      return;
+    }
+    onClose();
+  };
+
+  if (labelPreviewOpen) {
+    return <ModalFrame title="Vista previa de etiqueta" subtitle="Revisa los datos antes de imprimir." onClose={closeCurrentView}>
+      <div className="modal-form label-preview-content">
+        <div className="print-label">
+          <dl className="article-detail-grid print-label-fields">
+            <div><dt>Código</dt><dd className="print-label-code">{item.code}</dd></div>
+            <div><dt>Nombre</dt><dd>{item.name}</dd></div>
+            <div><dt>Categoría</dt><dd>{categoryName}</dd></div>
+            <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
+          </dl>
+          {barcode.status === "blocked" ? <p className="form-error print-label-warning">{code128BlockMessage(barcode.reason)}</p> : <svg
+            className="print-label-barcode"
+            viewBox={`0 0 ${barcode.totalModules} ${barcode.barHeightMm / CODE128_MODULE_WIDTH_MM}`}
+            width={barcode.totalModules}
+            height={barcode.barHeightMm / CODE128_MODULE_WIDTH_MM}
+          >
+            {barcode.bars.map((bar) => <rect key={bar.x} x={bar.x} y="0" width={bar.width} height={barcode.barHeightMm / CODE128_MODULE_WIDTH_MM} />)}
+          </svg>}
+        </div>
+        <div className="modal-footer">
+          <button className="button button-outline" type="button" onClick={() => setLabelPreviewOpen(false)}>Volver al detalle</button>
+          <button className="button button-primary" type="button" disabled={barcode.status !== "printable"} onClick={() => window.print()}>Imprimir</button>
+        </div>
+      </div>
+    </ModalFrame>;
+  }
+
+  return <ModalFrame title="Detalle del artículo" subtitle="Información del registro interno." onClose={closeCurrentView}>
     <div className="modal-form article-detail">
       <div className="article-detail-title"><span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span><div><strong>{item.name}</strong><small>{item.code}</small></div></div>
       <dl className="article-detail-grid">
@@ -880,7 +925,10 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
         <div><dt>Marca y modelo</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || "Sin especificar"}</dd></div>
         <div className="detail-span"><dt>Notas</dt><dd>{item.notes || "Sin notas"}</dd></div>
       </dl>
-      <div className="modal-footer"><button className="button button-primary" onClick={onClose}>Cerrar</button></div>
+      <div className="modal-footer">
+        <button className="button button-outline" type="button" onClick={() => setLabelPreviewOpen(true)}>Imprimir etiqueta</button>
+        <button className="button button-primary" type="button" onClick={onClose}>Cerrar</button>
+      </div>
     </div>
   </ModalFrame>;
 }

@@ -10,7 +10,7 @@ Implementar en orden. Cada tarea se estima en 20–30 minutos; no añadir depend
   - Rechazar caracteres fuera de ASCII imprimible sin alterar el artículo. Calcular anchura con módulo de 0,25 mm y zonas libres de 10 módulos por lado; usar barras de 10 mm; devolver un resultado imprimible o una razón de bloqueo sin truncar el código.
   - **Hecho cuando:** 20 caracteres imprimibles dan 68,75 mm y resultan elegibles; 21 dan 71,5 mm y se bloquean; un salto de línea se bloquea; el ancho incluye ambas zonas libres y `npm run build` pasa.
 
-- [ ] **T03. `src/App.tsx` — Acción y previsualización en el detalle** (25 min). RF-1, RF-2, RF-3, RF-5, RF-8, RF-11, RF-12 (Principios 2, 5, 6).
+- [x] **T03. `src/App.tsx` — Acción y previsualización en el detalle** (25 min). RF-1, RF-2, RF-3, RF-5, RF-8, RF-11, RF-12 (Principios 2, 5, 6).
   - Integrar «Imprimir etiqueta» exclusivamente en `ItemDetailModal`. Alternar dentro del mismo `ModalFrame` al preview con Código visible, Nombre, Categoría, fecha `dateLabel(item.createdAt)`, SVG o aviso bloqueado; usar el Código original completo para codificar. Añadir acciones «Imprimir» y «Volver al detalle»; el botón «Imprimir» invoca `window.print()`.
   - **Hecho cuando:** desde el detalle de un artículo la acción abre primero el preview de ese mismo registro, las fechas y categoría coinciden, el botón no aparece en tablas, «Imprimir» invoca la impresión y volver/cerrar el preview retorna al detalle; `npm run build` pasa.
 
