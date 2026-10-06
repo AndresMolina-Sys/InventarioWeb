@@ -18,7 +18,7 @@ Implementar en orden. Cada tarea se estima en 20–30 minutos; no añadir depend
   - Reutilizar `ModalFrame` con gestión de foco: foco inicial en cerrar, ciclo Tab/Mayús+Tab, Escape y restauración al cambiar vistas o cerrar. Anunciar incompatibilidad con `role="alert"`, asociar el aviso con el control deshabilitado y exponer el SVG con nombre accesible. Mantener el preview abierto ante excepciones síncronas al invocar `window.print()`; no intentar detectar fallos físicos de impresora.
   - **Hecho cuando:** con teclado se puede recorrer el diálogo sin perder el foco; Escape en preview regresa al mismo detalle; el estado incompatible se anuncia y no permite imprimir; una excepción de `window.print()` conserva el preview y muestra un aviso; `npm run build` pasa.
 
-- [ ] **T05. `src/styles.css` — Etiqueta y preview adaptable** (25 min). RF-3, RF-4, RF-5, RF-7 y NFR de consistencia, legibilidad y adaptación (Principios 1, 2, 4, 6).
+- [x] **T05. `src/styles.css` — Etiqueta y preview adaptable** (25 min). RF-3, RF-4, RF-5, RF-7 y NFR de consistencia, legibilidad y adaptación (Principios 1, 2, 4, 6).
   - Estilizar la etiqueta a proporción 2:1, 70 × 35 mm y padding interno de 0,5 mm por lado. Reservar 25 mm para la zona superior de datos incluyendo su padding vertical y el espacio entre bloques; dentro de esta quedan 23,5 mm para filas y rótulos. Reservar los 10 mm restantes para barras con quiet zones incluidas. Aplicar filas y límites de dos líneas del plan; conservar 12 px mínimo, 13 px en controles y tokens del proyecto.
   - **Hecho cuando:** la etiqueta mide 70 × 35 mm en CSS, los valores extensos se limitan a dos líneas con puntos suspensivos y el preview no causa overflow horizontal a 360 ni 375 px; `npm run build` pasa.
 

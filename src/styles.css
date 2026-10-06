@@ -416,3 +416,106 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   .movement-diff-row > div + div { border-top: 1px solid var(--line); border-left: 0; }
   .movement-diff-row > div > span { display: block; color: #626a78; font-size: 12px; font-weight: 600; line-height: 1.4; }
 }
+
+/* Label preview — fixed physical proportions with screen-safe sizing. */
+.label-preview-content {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+}
+
+.print-label {
+  width: min(100%, 70mm);
+  aspect-ratio: 2 / 1;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 0.5mm;
+  display: flex;
+  flex-direction: column;
+  gap: 0.48mm;
+  overflow: hidden;
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.print-label-fields {
+  width: 100%;
+  height: 23.5mm;
+  flex: 0 0 23.5mm;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 2fr)) minmax(0, 1fr);
+  gap: 0.25mm;
+  margin: 0;
+  overflow: hidden;
+}
+
+.print-label-fields > div {
+  min-height: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 12px;
+  overflow-wrap: anywhere;
+}
+
+.print-label-fields > div:last-child {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.print-label-fields dt,
+.print-label-fields dd {
+  display: inline;
+  font-size: 12px;
+  line-height: 12px;
+}
+
+.print-label-fields dt {
+  color: #626a78;
+  font-weight: 600;
+}
+
+.print-label-fields dt::after { content: ": "; }
+
+.print-label-fields dd {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.print-label-barcode {
+  width: auto;
+  max-width: 100%;
+  /* Slightly over 10 mm to offset subpixel rounding in browser SVG layout. */
+  height: calc(10mm + 0.02mm);
+  flex: 0 0 calc(10mm + 0.02mm);
+  display: block;
+  margin: 0 auto;
+}
+
+.print-label-warning {
+  min-height: 0;
+  flex: 0 0 calc(10mm + 0.02mm);
+  margin: 0;
+  padding: 1mm;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.label-preview-content .modal-footer {
+  width: 100%;
+  margin-top: 0;
+}
