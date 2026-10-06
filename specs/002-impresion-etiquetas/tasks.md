@@ -6,7 +6,7 @@ Implementar en orden. Cada tarea se estima en 20–30 minutos; no añadir depend
   - Crear la función pura y los patrones Code 128 requeridos para ASCII 32–126. Construir Start B, codewords de datos, checksum ponderado y Stop; derivar los segmentos de barras y dejar los identificadores internos en inglés.
   - **Hecho cuando:** la función conserva los caracteres de entrada y para `A` y `AB` devuelve codewords `[104, 33, 34, 106]` y `[104, 33, 34, 102, 106]`, respectivamente; `npm run build` termina correctamente.
 
-- [ ] **T02. `src/lib/code128.ts` — Compatibilidad y medidas geométricas** (25 min). RF-6, RF-7 (Principios 1, 5, 6).
+- [x] **T02. `src/lib/code128.ts` — Compatibilidad y medidas geométricas** (25 min). RF-6, RF-7 (Principios 1, 5, 6).
   - Rechazar caracteres fuera de ASCII imprimible sin alterar el artículo. Calcular anchura con módulo de 0,25 mm y zonas libres de 10 módulos por lado; usar barras de 10 mm; devolver un resultado imprimible o una razón de bloqueo sin truncar el código.
   - **Hecho cuando:** 20 caracteres imprimibles dan 68,75 mm y resultan elegibles; 21 dan 71,5 mm y se bloquean; un salto de línea se bloquea; el ancho incluye ambas zonas libres y `npm run build` pasa.
 

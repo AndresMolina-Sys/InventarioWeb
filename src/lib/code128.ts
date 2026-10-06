@@ -4,11 +4,32 @@ export type Code128BarSegment = {
 };
 
 export type Code128BEncoding = {
+  status: "printable";
   value: string;
   codewords: number[];
   bars: Code128BarSegment[];
   symbolModules: number;
+  totalModules: number;
+  widthMm: number;
+  barHeightMm: number;
+  quietZoneModules: number;
 };
+
+export type Code128BBlockedReason =
+  | "unsupported-character"
+  | "width-exceeded"
+  | "height-exceeded";
+
+export type Code128BBlocked = {
+  status: "blocked";
+  reason: Code128BBlockedReason;
+  value: string;
+  symbolModules?: number;
+  totalModules?: number;
+  widthMm?: number;
+};
+
+export type Code128BResult = Code128BEncoding | Code128BBlocked;
 
 const CODE128_PATTERNS = [
   "212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312",
@@ -29,6 +50,11 @@ const CODE128_PATTERNS = [
 
 const START_CODE_B = 104;
 const STOP_CODE = 106;
+export const CODE128_MODULE_WIDTH_MM = 0.25;
+export const CODE128_QUIET_ZONE_MODULES = 10;
+export const CODE128_BAR_HEIGHT_MM = 10;
+export const CODE128_LABEL_WIDTH_MM = 70;
+export const CODE128_LABEL_HEIGHT_MM = 35;
 
 function getDataCodewords(value: string): number[] {
   return Array.from(value, (character) => (character.codePointAt(0) ?? 0) - 32);
@@ -71,7 +97,13 @@ function getBarSegments(codewords: readonly number[]): {
   return { bars, symbolModules };
 }
 
-export function encodeCode128B(value: string): Code128BEncoding {
+export function encodeCode128B(value: string): Code128BResult {
+  const codePoints = Array.from(value, (character) => character.codePointAt(0) ?? 0);
+
+  if (codePoints.some((codePoint) => codePoint < 32 || codePoint > 126)) {
+    return { status: "blocked", reason: "unsupported-character", value };
+  }
+
   const dataCodewords = getDataCodewords(value);
   const codewords = [
     START_CODE_B,
@@ -80,6 +112,43 @@ export function encodeCode128B(value: string): Code128BEncoding {
     STOP_CODE,
   ];
   const { bars, symbolModules } = getBarSegments(codewords);
+  const totalModules = symbolModules + CODE128_QUIET_ZONE_MODULES * 2;
+  const widthMm = totalModules * CODE128_MODULE_WIDTH_MM;
 
-  return { value, codewords, bars, symbolModules };
+  if (CODE128_BAR_HEIGHT_MM > CODE128_LABEL_HEIGHT_MM) {
+    return {
+      status: "blocked",
+      reason: "height-exceeded",
+      value,
+      symbolModules,
+      totalModules,
+      widthMm,
+    };
+  }
+
+  if (widthMm > CODE128_LABEL_WIDTH_MM) {
+    return {
+      status: "blocked",
+      reason: "width-exceeded",
+      value,
+      symbolModules,
+      totalModules,
+      widthMm,
+    };
+  }
+
+  return {
+    status: "printable",
+    value,
+    codewords,
+    bars: bars.map((bar) => ({
+      ...bar,
+      x: bar.x + CODE128_QUIET_ZONE_MODULES,
+    })),
+    symbolModules,
+    totalModules,
+    widthMm,
+    barHeightMm: CODE128_BAR_HEIGHT_MM,
+    quietZoneModules: CODE128_QUIET_ZONE_MODULES,
+  };
 }
