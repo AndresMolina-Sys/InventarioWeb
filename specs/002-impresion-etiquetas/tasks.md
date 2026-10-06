@@ -2,7 +2,7 @@
 
 Implementar en orden. Cada tarea se estima en 20–30 minutos; no añadir dependencias ni pruebas externas.
 
-- [ ] **T01. `src/lib/code128.ts` — Patrones y codificación Code 128-B** (25 min). RF-6 (Principios 1, 5, 6).
+- [x] **T01. `src/lib/code128.ts` — Patrones y codificación Code 128-B** (25 min). RF-6 (Principios 1, 5, 6).
   - Crear la función pura y los patrones Code 128 requeridos para ASCII 32–126. Construir Start B, codewords de datos, checksum ponderado y Stop; derivar los segmentos de barras y dejar los identificadores internos en inglés.
   - **Hecho cuando:** la función conserva los caracteres de entrada y para `A` y `AB` devuelve codewords `[104, 33, 34, 106]` y `[104, 33, 34, 102, 106]`, respectivamente; `npm run build` termina correctamente.
 
