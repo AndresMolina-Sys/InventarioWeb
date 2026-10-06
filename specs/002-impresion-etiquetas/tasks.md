@@ -14,7 +14,7 @@ Implementar en orden. Cada tarea se estima en 20–30 minutos; no añadir depend
   - Integrar «Imprimir etiqueta» exclusivamente en `ItemDetailModal`. Alternar dentro del mismo `ModalFrame` al preview con Código visible, Nombre, Categoría, fecha `dateLabel(item.createdAt)`, SVG o aviso bloqueado; usar el Código original completo para codificar. Añadir acciones «Imprimir» y «Volver al detalle»; el botón «Imprimir» invoca `window.print()`.
   - **Hecho cuando:** desde el detalle de un artículo la acción abre primero el preview de ese mismo registro, las fechas y categoría coinciden, el botón no aparece en tablas, «Imprimir» invoca la impresión y volver/cerrar el preview retorna al detalle; `npm run build` pasa.
 
-- [ ] **T04. `src/App.tsx` — Teclado, foco y estados de impresión** (25 min). RF-2, RF-7, RF-8, RF-10, RF-11 (Principios 2, 4, 6).
+- [x] **T04. `src/App.tsx` — Teclado, foco y estados de impresión** (25 min). RF-2, RF-7, RF-8, RF-10, RF-11 (Principios 2, 4, 6).
   - Reutilizar `ModalFrame` con gestión de foco: foco inicial en cerrar, ciclo Tab/Mayús+Tab, Escape y restauración al cambiar vistas o cerrar. Anunciar incompatibilidad con `role="alert"`, asociar el aviso con el control deshabilitado y exponer el SVG con nombre accesible. Mantener el preview abierto ante excepciones síncronas al invocar `window.print()`; no intentar detectar fallos físicos de impresora.
   - **Hecho cuando:** con teclado se puede recorrer el diálogo sin perder el foco; Escape en preview regresa al mismo detalle; el estado incompatible se anuncia y no permite imprimir; una excepción de `window.print()` conserva el preview y muestra un aviso; `npm run build` pasa.
 

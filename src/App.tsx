@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
 import { CODE128_MODULE_WIDTH_MM, encodeCode128B } from "./lib/code128";
@@ -875,17 +875,33 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
 
 function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem; categoryName: string; onClose: () => void }) {
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
+  const [printError, setPrintError] = useState("");
+  const blockedMessageId = useId();
+  const printErrorMessageId = useId();
   const barcode = useMemo(() => encodeCode128B(item.code), [item.code]);
+  const printButtonDescription = barcode.status === "blocked"
+    ? blockedMessageId
+    : printError ? printErrorMessageId : undefined;
   const closeCurrentView = () => {
     if (labelPreviewOpen) {
       setLabelPreviewOpen(false);
+      setPrintError("");
       return;
     }
     onClose();
   };
+  const startPrint = () => {
+    if (barcode.status !== "printable") return;
+    setPrintError("");
+    try {
+      window.print();
+    } catch {
+      setPrintError("No se pudo iniciar el diálogo de impresión. Inténtalo de nuevo.");
+    }
+  };
 
   if (labelPreviewOpen) {
-    return <ModalFrame title="Vista previa de etiqueta" subtitle="Revisa los datos antes de imprimir." onClose={closeCurrentView}>
+    return <ModalFrame key="label-preview" title="Vista previa de etiqueta" subtitle="Revisa los datos antes de imprimir." onClose={closeCurrentView} manageFocus>
       <div className="modal-form label-preview-content">
         <div className="print-label">
           <dl className="article-detail-grid print-label-fields">
@@ -894,24 +910,27 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
             <div><dt>Categoría</dt><dd>{categoryName}</dd></div>
             <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
           </dl>
-          {barcode.status === "blocked" ? <p className="form-error print-label-warning">{code128BlockMessage(barcode.reason)}</p> : <svg
+          {barcode.status === "blocked" ? <p className="form-error print-label-warning" id={blockedMessageId} role="alert">{code128BlockMessage(barcode.reason)}</p> : <svg
             className="print-label-barcode"
             viewBox={`0 0 ${barcode.totalModules} ${barcode.barHeightMm / CODE128_MODULE_WIDTH_MM}`}
             width={barcode.totalModules}
             height={barcode.barHeightMm / CODE128_MODULE_WIDTH_MM}
+            role="img"
+            aria-label={`Código de barras Code 128-B para el código ${item.code}`}
           >
             {barcode.bars.map((bar) => <rect key={bar.x} x={bar.x} y="0" width={bar.width} height={barcode.barHeightMm / CODE128_MODULE_WIDTH_MM} />)}
           </svg>}
         </div>
+        {printError && <p className="form-error print-label-warning" id={printErrorMessageId} role="alert">{printError}</p>}
         <div className="modal-footer">
-          <button className="button button-outline" type="button" onClick={() => setLabelPreviewOpen(false)}>Volver al detalle</button>
-          <button className="button button-primary" type="button" disabled={barcode.status !== "printable"} onClick={() => window.print()}>Imprimir</button>
+          <button className="button button-outline" type="button" onClick={() => { setLabelPreviewOpen(false); setPrintError(""); }}>Volver al detalle</button>
+          <button className="button button-primary" type="button" disabled={barcode.status !== "printable"} aria-describedby={printButtonDescription} onClick={startPrint}>Imprimir</button>
         </div>
       </div>
     </ModalFrame>;
   }
 
-  return <ModalFrame title="Detalle del artículo" subtitle="Información del registro interno." onClose={closeCurrentView}>
+  return <ModalFrame key="article-detail" title="Detalle del artículo" subtitle="Información del registro interno." onClose={closeCurrentView} manageFocus>
     <div className="modal-form article-detail">
       <div className="article-detail-title"><span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span><div><strong>{item.name}</strong><small>{item.code}</small></div></div>
       <dl className="article-detail-grid">
