@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
-import { CODE128_MODULE_WIDTH_MM, encodeCode128B } from "./lib/code128";
-import type { Code128BBlockedReason } from "./lib/code128";
+import { CODE128_MODULE_WIDTH_MM, CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM, encodeCode128B } from "./lib/code128";
+import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemResult } from "./lib/inventoryRepository";
 import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditSnapshot, InventorySnapshot, ItemDraft } from "./types";
 
@@ -52,6 +52,103 @@ function compactRegisteredValueLabel(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 2,
   }).format(value);
+}
+
+type TechnicalSheetRequiredField = "code" | "name" | "category";
+
+export type TechnicalSheetSnapshot = Readonly<{
+  code: string | undefined;
+  name: string | undefined;
+  categoryName: string | undefined;
+  brand: string | undefined;
+  model: string | undefined;
+  serialNumber: string | undefined;
+  location: string | undefined;
+  cost: number | null | string | undefined;
+  createdAt: string | undefined;
+  notes: string | undefined;
+}>;
+
+export type TechnicalSheetPreviewState = Readonly<{
+  snapshot: TechnicalSheetSnapshot;
+  display: Readonly<{
+    code: string;
+    name: string;
+    categoryName: string;
+    brand: string;
+    model: string;
+    serialNumber: string;
+    location: string;
+    cost: string;
+    createdAt: string;
+    notes: string;
+  }>;
+  missingRequiredFields: readonly TechnicalSheetRequiredField[];
+  barcode: Code128BResult | null;
+  canPrint: boolean;
+}>;
+
+function hasNonBlankText(value: string | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function optionalTextLabel(value: string | undefined, emptyLabel: string): string {
+  return hasNonBlankText(value) ? value : emptyLabel;
+}
+
+function technicalSheetCostLabel(value: number | null | string | undefined): string {
+  return typeof value === "number" && Number.isFinite(value)
+    ? registeredValueLabel(value)
+    : "Sin especificar";
+}
+
+export function prepareTechnicalSheetPreview(
+  item: InventoryItem,
+  categoryName: string | undefined,
+): TechnicalSheetPreviewState {
+  const itemRecord = item as Partial<InventoryItem>;
+  const snapshot = Object.freeze({
+    code: itemRecord.code,
+    name: itemRecord.name,
+    categoryName,
+    brand: itemRecord.brand,
+    model: itemRecord.model,
+    serialNumber: itemRecord.serialNumber,
+    location: itemRecord.location,
+    cost: itemRecord.cost as number | null | string | undefined,
+    createdAt: itemRecord.createdAt,
+    notes: itemRecord.notes,
+  });
+  const hasCode = hasNonBlankText(snapshot.code);
+  const hasName = hasNonBlankText(snapshot.name);
+  const hasCategory = hasNonBlankText(snapshot.categoryName);
+  const missingRequiredFields: TechnicalSheetRequiredField[] = [
+    ...(!hasCode ? ["code" as const] : []),
+    ...(!hasName ? ["name" as const] : []),
+    ...(!hasCategory ? ["category" as const] : []),
+  ];
+  const barcode = hasCode
+    ? encodeCode128B(snapshot.code, { maxWidthMm: CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM })
+    : null;
+
+  return Object.freeze({
+    snapshot,
+    display: Object.freeze({
+      code: optionalTextLabel(snapshot.code, "[No disponible]"),
+      name: optionalTextLabel(snapshot.name, "[No disponible]"),
+      categoryName: optionalTextLabel(snapshot.categoryName, "[No disponible]"),
+      brand: optionalTextLabel(snapshot.brand, "Sin especificar"),
+      model: optionalTextLabel(snapshot.model, "Sin especificar"),
+      serialNumber: optionalTextLabel(snapshot.serialNumber, "Sin especificar"),
+      location: optionalTextLabel(snapshot.location, "Sin especificar"),
+      cost: technicalSheetCostLabel(snapshot.cost),
+      createdAt: snapshot.createdAt ?? "[No disponible]",
+      notes: optionalTextLabel(snapshot.notes, "Sin observaciones"),
+    }),
+    missingRequiredFields,
+    barcode,
+    canPrint: missingRequiredFields.length === 0 && barcode?.status === "printable",
+  });
 }
 
 function code128BlockMessage(reason: Code128BBlockedReason): string {

@@ -4,7 +4,7 @@
   Extender el uso local de Code 128-B para calcular el ancho natural `(11N + 55) × 0,25 mm`, validar ASCII imprimible 32–126, zonas libres y altura mínima. Preservar el resultado y el límite de la etiqueta 70 × 35 mm.
   **Hecho cuando:** el cálculo confirma anchos conocidos (38 caracteres = 118,25 mm; 39 = 121 mm; 60 = 178,75 mm; 61 = 181,5 mm), rechaza caracteres no compatibles y no altera la salida de etiqueta existente.
 
-- [ ] **T02. `src/App.tsx`: preparar snapshot y estado de validación del preview** RF-3, RF-4, RF-5, RF-6, RF-12, (Principios 2, 3, 5, 6)
+- [x] **T02. `src/App.tsx`: preparar snapshot y estado de validación del preview** RF-3, RF-4, RF-5, RF-6, RF-12, (Principios 2, 3, 5, 6)
   Al solicitar la ficha, capturar los campos actuales del artículo y el nombre de categoría; preparar sus valores visibles y estados de disponibilidad sin leer cambios posteriores mientras el preview siga abierto. Tratar espacios en campos obligatorios/opcionales según la spec, distinguir costo cero de ausente y calcular si el barcode permite imprimir.
   **Hecho cuando:** una captura conserva artículo y categoría del instante de apertura; al reabrir usa el nombre actualizado; Código/Nombre/Categoría vacíos o solo espacios, códigos no ASCII o ancho >180 mm producen estado bloqueado, y costo cero se presenta como `$0.00`.
 
