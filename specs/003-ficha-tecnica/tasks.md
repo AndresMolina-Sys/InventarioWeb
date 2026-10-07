@@ -28,7 +28,7 @@
   Registrar el disparador, la vista previa, campos, firmas, formatos y límites de impresión; incluir las reglas de datos locales, solo lectura, barcode, foco, textos y salida Carta. Mantener la memoria en el límite de longitud del proyecto.
   **Hecho cuando:** los tres documentos reflejan los mismos límites y comportamientos aprobados; `MEMORY.md` tiene como máximo 50 líneas y las reglas dejan claro que la ficha no cambia ni transmite datos.
 
-- [ ] **T08. QA del flujo y la interfaz en Chrome DevTools** RF-1–RF-6, RF-11–RF-12, criterios de rendimiento y accesibilidad, (Principios 1, 2, 4, 6)
+- [x] **T08. QA del flujo y la interfaz en Chrome DevTools** RF-1–RF-6, RF-11–RF-12, criterios de rendimiento y accesibilidad, (Principios 1, 2, 4, 6)
   Ejecutar el build y revisar el disparador, el contenido del preview, los estados bloqueados, el foco, el cierre y la presentación responsive en escritorio y móvil.
   **Hecho cuando:** `npm run build` pasa; Chrome DevTools confirma que el preview queda completamente visible en menos de 100 ms, los campos y avisos coinciden con sus estados, la navegación por teclado cumple la spec, la consola queda sin errores ni advertencias y a 360/375 px no hay desbordamiento horizontal.
 

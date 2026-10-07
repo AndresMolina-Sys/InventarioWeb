@@ -968,6 +968,12 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
         return;
       }
 
+      if (focusableElements.length === 1) {
+        event.preventDefault();
+        focusableElements[0].focus();
+        return;
+      }
+
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
       const activeElement = document.activeElement;
