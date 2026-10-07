@@ -22,7 +22,7 @@ Implementar en orden. Cada tarea se estima en 20–30 minutos; no añadir depend
   - Estilizar la etiqueta a proporción 2:1, 70 × 35 mm y padding interno de 0,5 mm por lado. Reservar 25 mm para la zona superior de datos incluyendo su padding vertical y el espacio entre bloques; dentro de esta quedan 23,5 mm para filas y rótulos. Reservar los 10 mm restantes para barras con quiet zones incluidas. Aplicar filas y límites de dos líneas del plan; conservar 12 px mínimo, 13 px en controles y tokens del proyecto.
   - **Hecho cuando:** la etiqueta mide 70 × 35 mm en CSS, los valores extensos se limitan a dos líneas con puntos suspensivos y el preview no causa overflow horizontal a 360 ni 375 px; `npm run build` pasa.
 
-- [ ] **T06. `src/styles.css` — Salida de impresión aislada** (25 min). RF-4, RF-8, RF-9, RF-10, RF-12 (Principios 1, 2, 4, 5).
+- [x] **T06. `src/styles.css` — Salida de impresión aislada** (25 min). RF-4, RF-8, RF-9, RF-10, RF-12 (Principios 1, 2, 4, 5).
   - Añadir `@page` de 70 × 35 mm sin márgenes y `@media print` que deje visible solo la etiqueta actual, sin modal de fondo, controles, overlays ni sombras. Conservar el llamado explícito a `window.print()` y el estado del preview al retornar.
   - **Hecho cuando:** Chrome Print Preview muestra solo una etiqueta horizontal de 70 × 35 mm al 100 %; cancelar/cerrar mantiene la vista previa; la llamada no guarda datos ni movimientos; `npm run build` pasa.
 
