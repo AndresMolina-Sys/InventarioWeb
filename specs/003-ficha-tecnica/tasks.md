@@ -24,7 +24,7 @@
   Aislar el documento al imprimir, ocultar aplicación y controles, y presentar una hoja Carta vertical a escala 100 %, con márgenes de 15 mm, grises legibles y reglas para mantener contenido y firmas juntos en una página.
   **Hecho cuando:** Chrome imprime una sola página de 215,9 × 279,4 mm en escala de grises, con márgenes de 15 mm, sin controles ni contenido de fondo, y las dos áreas de firma permanecen completas y juntas.
 
-- [ ] **T07. `docs/figma-brief.md`, `AGENTS.md` y `MEMORY.md`: documentar la ficha** RF-1–RF-13, criterios de finalización, (Principios 2, 5, 6)
+- [x] **T07. `docs/figma-brief.md`, `AGENTS.md` y `MEMORY.md`: documentar la ficha** RF-1–RF-13, criterios de finalización, (Principios 2, 5, 6)
   Registrar el disparador, la vista previa, campos, firmas, formatos y límites de impresión; incluir las reglas de datos locales, solo lectura, barcode, foco, textos y salida Carta. Mantener la memoria en el límite de longitud del proyecto.
   **Hecho cuando:** los tres documentos reflejan los mismos límites y comportamientos aprobados; `MEMORY.md` tiene como máximo 50 líneas y las reglas dejan claro que la ficha no cambia ni transmite datos.
 
