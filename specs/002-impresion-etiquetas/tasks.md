@@ -26,7 +26,7 @@ Implementar en orden. Cada tarea se estima en 20–30 minutos; no añadir depend
   - Añadir `@page` de 70 × 35 mm sin márgenes y `@media print` que deje visible solo la etiqueta actual, sin modal de fondo, controles, overlays ni sombras. Conservar el llamado explícito a `window.print()` y el estado del preview al retornar.
   - **Hecho cuando:** Chrome Print Preview muestra solo una etiqueta horizontal de 70 × 35 mm al 100 %; cancelar/cerrar mantiene la vista previa; la llamada no guarda datos ni movimientos; `npm run build` pasa.
 
-- [ ] **T07. Codificador — Verificación funcional y build** (25 min). RF-3, RF-6, RF-7 (Principios 1, 4, 5, 6).
+- [x] **T07. Codificador — Verificación funcional y build** (25 min). RF-3, RF-6, RF-7 (Principios 1, 4, 5, 6).
   - En Chrome DevTools, importar localmente el módulo y verificar muestras conocidas, checksum, límites de anchura, quiet zones, altura y caracteres inválidos. No añadir runner ni dependencias de prueba.
   - **Hecho cuando:** las salidas de `A` y `AB` coinciden con T01; los casos 20/21 caracteres y salto de línea coinciden con T02; cada barra mide 10 mm y los márgenes vacíos equivalen a 10 módulos por lado; `npm run build` pasa.
 
