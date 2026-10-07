@@ -20,7 +20,7 @@
   Dar estilo al diálogo y su hoja para revisión en pantalla, con foco visible, mensajes claros, texto mínimo de 12 px, contención de contenido y adaptación a móvil. Aplicar los límites visuales de tres líneas para campos, 35 mm para Notas y al menos 30 mm para cada firma en la hoja.
   **Hecho cuando:** en 360 y 375 px se puede revisar la hoja completa sin desbordamiento horizontal; todos los textos visibles miden al menos 12 px; Notas no exceden 35 mm y cada firma conserva 30 mm o más.
 
-- [ ] **T06. `src/styles.css`: salida física Carta en una página** RF-7, RF-8, RF-9, RF-10, (Principios 1, 2, 4, 6)
+- [x] **T06. `src/styles.css`: salida física Carta en una página** RF-7, RF-8, RF-9, RF-10, (Principios 1, 2, 4, 6)
   Aislar el documento al imprimir, ocultar aplicación y controles, y presentar una hoja Carta vertical a escala 100 %, con márgenes de 15 mm, grises legibles y reglas para mantener contenido y firmas juntos en una página.
   **Hecho cuando:** Chrome imprime una sola página de 215,9 × 279,4 mm en escala de grises, con márgenes de 15 mm, sin controles ni contenido de fondo, y las dos áreas de firma permanecen completas y juntas.
 
