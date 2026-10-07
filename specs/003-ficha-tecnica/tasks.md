@@ -12,7 +12,7 @@
   Añadir el disparador solo al detalle y un diálogo con acciones «Imprimir»/«Cerrar», avisos, bloqueo, reintento y los estados de error. Gestionar foco inicial, ciclo de teclado, Escape, retorno de foco al cancelar y restauración al cerrar.
   **Hecho cuando:** solo «Imprimir» solicita la impresión; preview se abre aunque falte información o el barcode sea incompatible; «Imprimir» queda deshabilitado en esos casos; Tab/Mayús+Tab, Escape, cancelación nativa, cierre y error siguen exactamente la política de foco y reintento de la spec.
 
-- [ ] **T04. `src/App.tsx`: contenido de ficha y áreas de firma** RF-3, RF-4, RF-5, RF-8, RF-9, RF-12, (Principios 2, 3, 5, 6)
+- [x] **T04. `src/App.tsx`: contenido de ficha y áreas de firma** RF-3, RF-4, RF-5, RF-8, RF-9, RF-12, (Principios 2, 3, 5, 6)
   Presentar encabezado, Código legible y código de barras cuando proceda, especificaciones y los dos recuadros vacíos de firmas con sus campos rotulados. Mostrar marcadores y formatos convenidos; limitar texto largo según sus reglas.
   **Hecho cuando:** aparecen todos los campos acordados excepto SKU; datos opcionales vacíos muestran sus marcadores correctos, costo cero conserva `$0.00`, campos largos respetan tres líneas, Código legible permanece completo y ambos recuadros incluyen todos los campos de firma.
 

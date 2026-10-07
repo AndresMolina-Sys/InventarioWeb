@@ -174,6 +174,11 @@ function technicalSheetBlockMessage(preview: TechnicalSheetPreviewState): string
   return "El código de barras no cumple la altura mínima requerida.";
 }
 
+function technicalSheetDateLabel(value: string | undefined): string {
+  if (!value || Number.isNaN(Date.parse(value))) return "[No disponible]";
+  return dateLabel(value);
+}
+
 const categoryPercentageFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 
 function getGreeting(): string {
@@ -1062,6 +1067,9 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
   };
   if (technicalSheetPreview) {
     const blockingMessage = technicalSheetBlockMessage(technicalSheetPreview);
+    const printableBarcode = technicalSheetPreview.barcode?.status === "printable"
+      ? technicalSheetPreview.barcode
+      : null;
     const printDescription = blockingMessage
       ? technicalSheetWarningId
       : technicalSheetPrintError ? technicalSheetPrintErrorId : undefined;
@@ -1081,6 +1089,64 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
         <p className="sr-only" role="status">Vista previa de la ficha técnica de {technicalSheetPreview.display.name}.</p>
         {blockingMessage && <p className="form-error" id={technicalSheetWarningId} role="alert">{blockingMessage}</p>}
         {technicalSheetPrintError && <p className="form-error" id={technicalSheetPrintErrorId} role="alert">{technicalSheetPrintError}</p>}
+        <article className="technical-sheet-page" aria-label="Ficha técnica y acta de resguardo">
+          <header className="technical-sheet-document-header">
+            <p>Control interno · InventarioWeb</p>
+            <h2>Ficha técnica y acta de resguardo</h2>
+          </header>
+
+          <section className="technical-sheet-identification" aria-label="Identificación del artículo">
+            <div>
+              <span className="technical-sheet-label">Código</span>
+              <strong className="technical-sheet-code-value">{technicalSheetPreview.display.code}</strong>
+            </div>
+            <div className="technical-sheet-barcode-area">
+              {printableBarcode ? <svg
+                className="technical-sheet-barcode"
+                viewBox={`0 0 ${printableBarcode.totalModules} ${printableBarcode.barHeightMm / CODE128_MODULE_WIDTH_MM}`}
+                width={`${printableBarcode.widthMm}mm`}
+                height={`${printableBarcode.barHeightMm}mm`}
+                role="img"
+                aria-label={`Código de barras Code 128-B para el Código ${technicalSheetPreview.display.code}`}
+              >
+                <title>Código de barras Code 128-B</title>
+                {printableBarcode.bars.map((bar) => <rect key={bar.x} x={bar.x} y="0" width={bar.width} height={printableBarcode.barHeightMm / CODE128_MODULE_WIDTH_MM} />)}
+              </svg> : <p className="technical-sheet-barcode-placeholder">
+                {technicalSheetPreview.missingRequiredFields.includes("code") ? "Código no disponible" : "Código de barras no disponible"}
+              </p>}
+            </div>
+          </section>
+
+          <dl className="technical-sheet-specifications">
+            <div><dt>Código</dt><dd className="technical-sheet-code-value">{technicalSheetPreview.display.code}</dd></div>
+            <div><dt>Nombre</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.name}</dd></div>
+            <div><dt>Categoría</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.categoryName}</dd></div>
+            <div><dt>Marca</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.brand}</dd></div>
+            <div><dt>Modelo</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.model}</dd></div>
+            <div><dt>Número de serie</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.serialNumber}</dd></div>
+            <div><dt>Ubicación</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.location}</dd></div>
+            <div><dt>Costo registrado</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.cost}</dd></div>
+            <div><dt>Fecha de ingreso</dt><dd className="technical-sheet-value">{technicalSheetDateLabel(technicalSheetPreview.snapshot.createdAt)}</dd></div>
+            <div className="technical-sheet-notes-field"><dt>Observaciones / Notas</dt><dd className="technical-sheet-notes-value">{technicalSheetPreview.display.notes}</dd></div>
+          </dl>
+
+          <div className="technical-sheet-signatures">
+            <section className="technical-sheet-signature-box" aria-labelledby="technical-sheet-delivered-title">
+              <h3 id="technical-sheet-delivered-title">Entregado por</h3>
+              <div className="technical-sheet-signature-line"><span>Firma</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>Nombre</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>Cargo</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>Fecha</span><span aria-hidden="true" /></div>
+            </section>
+            <section className="technical-sheet-signature-box" aria-labelledby="technical-sheet-received-title">
+              <h3 id="technical-sheet-received-title">Recibido por / Asignado a</h3>
+              <div className="technical-sheet-signature-line"><span>Firma</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>Nombre</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>Documento de identidad</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>Fecha</span><span aria-hidden="true" /></div>
+            </section>
+          </div>
+        </article>
         <div className="modal-footer">
           <button ref={technicalSheetCloseButtonRef} className="button button-outline" type="button" aria-label="Cerrar vista previa de ficha técnica" onClick={closeTechnicalSheetPreview}>Cerrar</button>
           <button ref={technicalSheetPrintButtonRef} className="button button-primary" type="button" disabled={!technicalSheetPreview.canPrint} aria-describedby={printDescription} onClick={startTechnicalSheetPrint}>Imprimir</button>
