@@ -8,7 +8,7 @@
   Al solicitar la ficha, capturar los campos actuales del artículo y el nombre de categoría; preparar sus valores visibles y estados de disponibilidad sin leer cambios posteriores mientras el preview siga abierto. Tratar espacios en campos obligatorios/opcionales según la spec, distinguir costo cero de ausente y calcular si el barcode permite imprimir.
   **Hecho cuando:** una captura conserva artículo y categoría del instante de apertura; al reabrir usa el nombre actualizado; Código/Nombre/Categoría vacíos o solo espacios, códigos no ASCII o ancho >180 mm producen estado bloqueado, y costo cero se presenta como `$0.00`.
 
-- [ ] **T03. `src/App.tsx`: acción, diálogo accesible y estados de impresión** RF-1, RF-2, RF-5, RF-6, RF-11, (Principios 2, 4, 6)
+- [x] **T03. `src/App.tsx`: acción, diálogo accesible y estados de impresión** RF-1, RF-2, RF-5, RF-6, RF-11, (Principios 2, 4, 6)
   Añadir el disparador solo al detalle y un diálogo con acciones «Imprimir»/«Cerrar», avisos, bloqueo, reintento y los estados de error. Gestionar foco inicial, ciclo de teclado, Escape, retorno de foco al cancelar y restauración al cerrar.
   **Hecho cuando:** solo «Imprimir» solicita la impresión; preview se abre aunque falte información o el barcode sea incompatible; «Imprimir» queda deshabilitado en esos casos; Tab/Mayús+Tab, Escape, cancelación nativa, cierre y error siguen exactamente la política de foco y reintento de la spec.
 

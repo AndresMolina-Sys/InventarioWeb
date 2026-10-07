@@ -157,6 +157,23 @@ function code128BlockMessage(reason: Code128BBlockedReason): string {
   return "La altura del código de barras no cabe en una etiqueta de 70 × 35 mm.";
 }
 
+function technicalSheetBlockMessage(preview: TechnicalSheetPreviewState): string {
+  if (preview.missingRequiredFields.length > 0) {
+    const labels: Record<TechnicalSheetRequiredField, string> = {
+      code: "Código",
+      name: "Nombre",
+      category: "Categoría",
+    };
+    const missing = preview.missingRequiredFields.map((field) => labels[field]).join(", ");
+    return `Faltan datos obligatorios (${missing}). Completa el registro del artículo antes de imprimir la ficha.`;
+  }
+
+  if (preview.barcode?.status !== "blocked") return "";
+  if (preview.barcode.reason === "unsupported-character") return "El Código contiene caracteres que no se pueden representar en Code 128-B.";
+  if (preview.barcode.reason === "width-exceeded") return "El código de barras completo supera el ancho máximo de 180 mm.";
+  return "El código de barras no cumple la altura mínima requerida.";
+}
+
 const categoryPercentageFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
 
 function getGreeting(): string {
@@ -352,7 +369,7 @@ function App() {
       onClose={() => setItemModal(null)}
       onSave={saveItem}
     />}
-    {viewedItem && <ItemDetailModal item={viewedItem} categoryName={categoryName.get(viewedItem.categoryId) ?? "Sin categoría"} onClose={() => setViewedItem(null)} />}
+    {viewedItem && <ItemDetailModal item={viewedItem} categoryName={categoryName.get(viewedItem.categoryId)} onClose={() => setViewedItem(null)} />}
     {categoryModal && <CategoryModal
       category={categoryModal === "new" ? null : categoryModal}
       error={error}
@@ -893,7 +910,7 @@ function CategoryModal({ category, error, saving, onClose, onSave }: { category:
   </ModalFrame>;
 }
 
-function ModalFrame({ title, subtitle, onClose, children, className = "", badge, closeLabel = "Cerrar", manageFocus = false }: {
+function ModalFrame({ title, subtitle, onClose, children, className = "", badge, closeLabel = "Cerrar", manageFocus = false, hideHeaderClose = false, dismissOnBackdrop = true, initialFocusRef }: {
   title: string;
   subtitle: string;
   onClose: () => void;
@@ -902,6 +919,9 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
   badge?: ReactNode;
   closeLabel?: string;
   manageFocus?: boolean;
+  hideHeaderClose?: boolean;
+  dismissOnBackdrop?: boolean;
+  initialFocusRef?: { current: HTMLElement | null };
 }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -924,7 +944,7 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
     const previouslyFocusedElement = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
-    closeButtonRef.current?.focus();
+    (initialFocusRef?.current ?? closeButtonRef.current)?.focus();
 
     function containKeyboardNavigation(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -960,26 +980,79 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
       document.removeEventListener("keydown", containKeyboardNavigation);
       if (previouslyFocusedElement?.isConnected) previouslyFocusedElement.focus();
     };
-  }, [manageFocus]);
+  }, [initialFocusRef, manageFocus]);
 
-  return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return <div className="modal-backdrop" onMouseDown={(event) => { if (dismissOnBackdrop && event.target === event.currentTarget) onClose(); }}>
     <section ref={dialogRef} className={`modal-card ${className}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1}>
-      <header className="modal-heading"><div>{badge ?? <span className="modal-mark"><Icon name="box" size={18} /></span>}<div><h2 id="modal-title">{title}</h2><p>{subtitle}</p></div></div><button ref={closeButtonRef} className="quiet-icon" onClick={onClose} aria-label={closeLabel}><Icon name="close" size={19} /></button></header>
+      <header className="modal-heading"><div>{badge ?? <span className="modal-mark"><Icon name="box" size={18} /></span>}<div><h2 id="modal-title">{title}</h2><p>{subtitle}</p></div></div>{!hideHeaderClose && <button ref={closeButtonRef} className="quiet-icon" onClick={onClose} aria-label={closeLabel}><Icon name="close" size={19} /></button>}</header>
       {children}
     </section>
   </div>;
 }
 
-function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem; categoryName: string; onClose: () => void }) {
+function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem; categoryName: string | undefined; onClose: () => void }) {
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
+  const [technicalSheetPreview, setTechnicalSheetPreview] = useState<TechnicalSheetPreviewState | null>(null);
   const [printError, setPrintError] = useState("");
+  const [technicalSheetPrintError, setTechnicalSheetPrintError] = useState("");
   const blockedMessageId = useId();
   const printErrorMessageId = useId();
+  const technicalSheetWarningId = useId();
+  const technicalSheetPrintErrorId = useId();
+  const technicalSheetTriggerRef = useRef<HTMLButtonElement>(null);
+  const technicalSheetCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const technicalSheetPrintButtonRef = useRef<HTMLButtonElement>(null);
+  const afterPrintHandlerRef = useRef<(() => void) | null>(null);
   const barcode = useMemo(() => encodeCode128B(item.code), [item.code]);
   const printButtonDescription = barcode.status === "blocked"
     ? blockedMessageId
     : printError ? printErrorMessageId : undefined;
+  useEffect(() => () => {
+    if (afterPrintHandlerRef.current) window.removeEventListener("afterprint", afterPrintHandlerRef.current);
+  }, []);
+
+  function closeTechnicalSheetPreview() {
+    if (afterPrintHandlerRef.current) window.removeEventListener("afterprint", afterPrintHandlerRef.current);
+    afterPrintHandlerRef.current = null;
+    setTechnicalSheetPreview(null);
+    setTechnicalSheetPrintError("");
+    window.requestAnimationFrame(() => technicalSheetTriggerRef.current?.focus());
+  }
+
+  function openTechnicalSheetPreview() {
+    setTechnicalSheetPrintError("");
+    setTechnicalSheetPreview(prepareTechnicalSheetPreview(item, categoryName));
+  }
+
+  function startTechnicalSheetPrint() {
+    if (!technicalSheetPreview?.canPrint) return;
+    setTechnicalSheetPrintError("");
+
+    const restorePrintFocus = () => window.requestAnimationFrame(() => technicalSheetPrintButtonRef.current?.focus());
+    if (afterPrintHandlerRef.current) window.removeEventListener("afterprint", afterPrintHandlerRef.current);
+    const handleAfterPrint = () => {
+      afterPrintHandlerRef.current = null;
+      restorePrintFocus();
+    };
+    afterPrintHandlerRef.current = handleAfterPrint;
+    window.addEventListener("afterprint", handleAfterPrint, { once: true });
+
+    try {
+      window.print();
+      restorePrintFocus();
+    } catch {
+      window.removeEventListener("afterprint", handleAfterPrint);
+      afterPrintHandlerRef.current = null;
+      setTechnicalSheetPrintError("No fue posible abrir el diálogo de impresión del navegador. Puedes reintentar o cerrar esta vista previa.");
+      restorePrintFocus();
+    }
+  }
+
   const closeCurrentView = () => {
+    if (technicalSheetPreview) {
+      closeTechnicalSheetPreview();
+      return;
+    }
     if (labelPreviewOpen) {
       setLabelPreviewOpen(false);
       setPrintError("");
@@ -987,6 +1060,35 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
     }
     onClose();
   };
+  if (technicalSheetPreview) {
+    const blockingMessage = technicalSheetBlockMessage(technicalSheetPreview);
+    const printDescription = blockingMessage
+      ? technicalSheetWarningId
+      : technicalSheetPrintError ? technicalSheetPrintErrorId : undefined;
+
+    return <ModalFrame
+      key="technical-sheet-preview"
+      title="Vista previa de ficha técnica"
+      subtitle="Revisa la ficha antes de solicitar la impresión."
+      onClose={closeTechnicalSheetPreview}
+      className="technical-sheet-preview-modal"
+      hideHeaderClose
+      dismissOnBackdrop={false}
+      initialFocusRef={technicalSheetCloseButtonRef}
+      manageFocus
+    >
+      <div className="modal-form">
+        <p className="sr-only" role="status">Vista previa de la ficha técnica de {technicalSheetPreview.display.name}.</p>
+        {blockingMessage && <p className="form-error" id={technicalSheetWarningId} role="alert">{blockingMessage}</p>}
+        {technicalSheetPrintError && <p className="form-error" id={technicalSheetPrintErrorId} role="alert">{technicalSheetPrintError}</p>}
+        <div className="modal-footer">
+          <button ref={technicalSheetCloseButtonRef} className="button button-outline" type="button" aria-label="Cerrar vista previa de ficha técnica" onClick={closeTechnicalSheetPreview}>Cerrar</button>
+          <button ref={technicalSheetPrintButtonRef} className="button button-primary" type="button" disabled={!technicalSheetPreview.canPrint} aria-describedby={printDescription} onClick={startTechnicalSheetPrint}>Imprimir</button>
+        </div>
+      </div>
+    </ModalFrame>;
+  }
+
   const startPrint = () => {
     if (barcode.status !== "printable") return;
     setPrintError("");
@@ -1004,7 +1106,7 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
           <dl className="article-detail-grid print-label-fields">
             <div><dt>Código</dt><dd className="print-label-code">{item.code}</dd></div>
             <div><dt>Nombre</dt><dd>{item.name}</dd></div>
-            <div><dt>Categoría</dt><dd>{categoryName}</dd></div>
+            <div><dt>Categoría</dt><dd>{categoryName ?? "Sin categoría"}</dd></div>
             <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
           </dl>
           {barcode.status === "blocked" ? <p className="form-error print-label-warning" id={blockedMessageId} role="alert">{code128BlockMessage(barcode.reason)}</p> : <svg
@@ -1031,7 +1133,7 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
     <div className="modal-form article-detail">
       <div className="article-detail-title"><span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span><div><strong>{item.name}</strong><small>{item.code}</small></div></div>
       <dl className="article-detail-grid">
-        <div><dt>Categoría</dt><dd>{categoryName}</dd></div>
+        <div><dt>Categoría</dt><dd>{categoryName ?? "Sin categoría"}</dd></div>
         <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
         <div><dt>Código</dt><dd>{item.code}</dd></div>
         <div><dt>Última modificación</dt><dd>{dateLabel(item.updatedAt)}</dd></div>
@@ -1042,6 +1144,7 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
         <div className="detail-span"><dt>Notas</dt><dd>{item.notes || "Sin notas"}</dd></div>
       </dl>
       <div className="modal-footer">
+        <button ref={technicalSheetTriggerRef} className="button button-outline" type="button" onClick={openTechnicalSheetPreview}>Imprimir ficha técnica</button>
         <button className="button button-outline" type="button" onClick={() => setLabelPreviewOpen(true)}>Imprimir etiqueta</button>
         <button className="button button-primary" type="button" onClick={onClose}>Cerrar</button>
       </div>
