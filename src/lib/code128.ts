@@ -31,6 +31,10 @@ export type Code128BBlocked = {
 
 export type Code128BResult = Code128BEncoding | Code128BBlocked;
 
+export type Code128BOptions = {
+  maxWidthMm?: number;
+};
+
 const CODE128_PATTERNS = [
   "212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312",
   "132212", "221213", "221312", "231212", "112232", "122132", "122231", "113222",
@@ -55,6 +59,7 @@ export const CODE128_QUIET_ZONE_MODULES = 10;
 export const CODE128_BAR_HEIGHT_MM = 10;
 export const CODE128_LABEL_WIDTH_MM = 70;
 export const CODE128_LABEL_HEIGHT_MM = 35;
+export const CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM = 180;
 
 function getDataCodewords(value: string): number[] {
   return Array.from(value, (character) => (character.codePointAt(0) ?? 0) - 32);
@@ -97,7 +102,10 @@ function getBarSegments(codewords: readonly number[]): {
   return { bars, symbolModules };
 }
 
-export function encodeCode128B(value: string): Code128BResult {
+export function encodeCode128B(
+  value: string,
+  options: Code128BOptions = {},
+): Code128BResult {
   const codePoints = Array.from(value, (character) => character.codePointAt(0) ?? 0);
 
   if (codePoints.some((codePoint) => codePoint < 32 || codePoint > 126)) {
@@ -114,6 +122,7 @@ export function encodeCode128B(value: string): Code128BResult {
   const { bars, symbolModules } = getBarSegments(codewords);
   const totalModules = symbolModules + CODE128_QUIET_ZONE_MODULES * 2;
   const widthMm = totalModules * CODE128_MODULE_WIDTH_MM;
+  const maxWidthMm = options.maxWidthMm ?? CODE128_LABEL_WIDTH_MM;
 
   if (CODE128_BAR_HEIGHT_MM > CODE128_LABEL_HEIGHT_MM) {
     return {
@@ -126,7 +135,7 @@ export function encodeCode128B(value: string): Code128BResult {
     };
   }
 
-  if (widthMm > CODE128_LABEL_WIDTH_MM) {
+  if (widthMm > maxWidthMm) {
     return {
       status: "blocked",
       reason: "width-exceeded",
