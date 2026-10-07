@@ -601,3 +601,318 @@ button:disabled { cursor: not-allowed; opacity: .58; }
     display: none !important;
   }
 }
+
+/* Technical sheet preview — formal document, fitted inside the responsive dialog. */
+.technical-sheet-preview-modal {
+  width: min(980px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.technical-sheet-preview-modal .modal-heading h2 {
+  color: #303746;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.technical-sheet-preview-modal .modal-heading p {
+  color: #626a78;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.technical-sheet-preview-modal > .modal-form {
+  min-width: 0;
+  padding: 17px 20px 20px;
+}
+
+.technical-sheet-preview-modal .modal-form > .form-error {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #f0d1d2;
+  border-radius: 8px;
+  color: #9e3439;
+  background: #fff5f5;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.technical-sheet-page {
+  width: min(100%, 180mm);
+  min-width: 0;
+  min-height: 249.4mm;
+  margin: 0 auto;
+  padding: 8mm;
+  border: 1px solid #d8dce3;
+  display: flex;
+  flex-direction: column;
+  gap: 5mm;
+  color: #202632;
+  background: #fff;
+  box-shadow: 0 8px 28px #19223514;
+}
+
+.technical-sheet-document-header {
+  min-width: 0;
+  padding-bottom: 4mm;
+  border-bottom: 2px solid #303746;
+}
+
+.technical-sheet-document-header p {
+  margin: 0 0 2mm;
+  color: #626a78;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.technical-sheet-document-header h2 {
+  margin: 0;
+  color: #202632;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.technical-sheet-identification {
+  min-width: 0;
+  padding: 2mm 0 4mm;
+  border-bottom: 1px solid #cfd4dc;
+  display: grid;
+  grid-template-columns: minmax(0, .65fr) minmax(0, 1.35fr);
+  align-items: center;
+  gap: 6mm;
+}
+
+.technical-sheet-identification > div {
+  min-width: 0;
+}
+
+.technical-sheet-label,
+.technical-sheet-specifications dt {
+  display: block;
+  margin: 0 0 1.5mm;
+  color: #626a78;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.technical-sheet-code-value {
+  display: block;
+  color: #202632;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.technical-sheet-barcode-area {
+  min-width: 0;
+  min-height: 12mm;
+  display: grid;
+  place-items: center;
+}
+
+.technical-sheet-barcode {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  color: #000;
+  fill: #000;
+}
+
+.technical-sheet-barcode-placeholder {
+  margin: 0;
+  color: #626a78;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.technical-sheet-specifications {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4mm 8mm;
+}
+
+.technical-sheet-specifications > div {
+  min-width: 0;
+}
+
+.technical-sheet-specifications dt {
+  margin-bottom: 1mm;
+}
+
+.technical-sheet-specifications dd {
+  min-width: 0;
+  margin: 0;
+  color: #202632;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.technical-sheet-value {
+  display: -webkit-box;
+  max-height: calc(3 * 1.35em);
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.technical-sheet-notes-field {
+  grid-column: 1 / -1;
+}
+
+.technical-sheet-specifications dd.technical-sheet-notes-value {
+  max-height: 35mm;
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+}
+
+.technical-sheet-signatures {
+  min-width: 0;
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 6mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.technical-sheet-signature-box {
+  min-width: 0;
+  min-height: 30mm;
+  padding: 4mm;
+  border: 1px solid #aeb5bf;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+  background: #fff;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.technical-sheet-signature-box h3 {
+  margin: 0;
+  color: #303746;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.technical-sheet-signature-line {
+  display: flex;
+  flex-direction: column;
+  gap: 1mm;
+  color: #626a78;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.technical-sheet-signature-line > span:last-child {
+  min-height: 8mm;
+  border-bottom: 1px solid #757d88;
+}
+
+.technical-sheet-signature-field {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(12mm, 1fr);
+  align-items: end;
+  gap: 3mm;
+  color: #626a78;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.technical-sheet-signature-field > span:first-child {
+  overflow-wrap: anywhere;
+}
+
+.technical-sheet-signature-field > span:last-child {
+  min-width: 0;
+  min-height: 4mm;
+  border-bottom: 1px solid #aeb5bf;
+}
+
+.technical-sheet-preview-modal .modal-footer {
+  margin-top: 14px;
+  gap: 8px;
+}
+
+.technical-sheet-preview-modal .modal-footer .button {
+  min-height: 38px;
+  font-size: 13px;
+}
+
+.technical-sheet-preview-modal .modal-footer .button:focus-visible {
+  outline: 3px solid #8177de;
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .technical-sheet-preview-modal {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+  }
+
+  .technical-sheet-preview-modal > .modal-form {
+    padding: 12px;
+  }
+
+  .technical-sheet-page {
+    width: 100%;
+    padding: 6mm;
+    gap: 4mm;
+  }
+
+  .technical-sheet-identification {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3mm;
+  }
+
+  .technical-sheet-specifications {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3mm;
+  }
+
+  .technical-sheet-notes-field {
+    grid-column: auto;
+  }
+
+  .technical-sheet-signatures {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4mm;
+  }
+
+  .technical-sheet-preview-modal .modal-footer {
+    flex-wrap: nowrap;
+  }
+}

@@ -16,7 +16,7 @@
   Presentar encabezado, Código legible y código de barras cuando proceda, especificaciones y los dos recuadros vacíos de firmas con sus campos rotulados. Mostrar marcadores y formatos convenidos; limitar texto largo según sus reglas.
   **Hecho cuando:** aparecen todos los campos acordados excepto SKU; datos opcionales vacíos muestran sus marcadores correctos, costo cero conserva `$0.00`, campos largos respetan tres líneas, Código legible permanece completo y ambos recuadros incluyen todos los campos de firma.
 
-- [ ] **T05. `src/styles.css`: preview, legibilidad y adaptación a móvil** RF-2, RF-5, RF-8, RF-9, RF-11, RNF de accesibilidad y adaptación, (Principios 2, 4, 6)
+- [x] **T05. `src/styles.css`: preview, legibilidad y adaptación a móvil** RF-2, RF-5, RF-8, RF-9, RF-11, RNF de accesibilidad y adaptación, (Principios 2, 4, 6)
   Dar estilo al diálogo y su hoja para revisión en pantalla, con foco visible, mensajes claros, texto mínimo de 12 px, contención de contenido y adaptación a móvil. Aplicar los límites visuales de tres líneas para campos, 35 mm para Notas y al menos 30 mm para cada firma en la hoja.
   **Hecho cuando:** en 360 y 375 px se puede revisar la hoja completa sin desbordamiento horizontal; todos los textos visibles miden al menos 12 px; Notas no exceden 35 mm y cada firma conserva 30 mm o más.
 
