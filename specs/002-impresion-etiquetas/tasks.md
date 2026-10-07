@@ -30,7 +30,7 @@ Implementar en orden. Cada tarea se estima en 20–30 minutos; no añadir depend
   - En Chrome DevTools, importar localmente el módulo y verificar muestras conocidas, checksum, límites de anchura, quiet zones, altura y caracteres inválidos. No añadir runner ni dependencias de prueba.
   - **Hecho cuando:** las salidas de `A` y `AB` coinciden con T01; los casos 20/21 caracteres y salto de línea coinciden con T02; cada barra mide 10 mm y los márgenes vacíos equivalen a 10 módulos por lado; `npm run build` pasa.
 
-- [ ] **T08. Chrome DevTools — QA integral escritorio y móvil** (30 min). RF-1–RF-12 y NFR de accesibilidad, legibilidad, rendimiento, adaptación y privacidad (Principios 2, 4, 5, 6).
+- [x] **T08. Chrome DevTools — QA integral escritorio y móvil** (30 min). RF-1–RF-12 y NFR de accesibilidad, legibilidad, rendimiento, adaptación y privacidad (Principios 2, 4, 5, 6).
   - Probar detalle, preview, valores largos, aviso/bloqueo, impresión, cancelación, Escape, Tab/Mayús+Tab y retorno de foco en escritorio, 375 px y 360 px, incluida ventana de poca altura. Medir disponibilidad local del preview bajo 100 ms y revisar consola y red. Usar un perfil QA descartable para confirmar que un Código no ASCII puede seguir guardándose pero bloquea solo la impresión, y comparar IndexedDB antes/después de los flujos de impresión.
   - **Hecho cuando:** no hay overflow horizontal ni errores/advertencias de consola o solicitudes remotas del barcode; el flujo de impresión contiene solo la etiqueta, la cancelación conserva preview, el foco cumple T04 y las colecciones de artículos/categorías/movimientos no cambian durante los flujos de preview/impresión/cancelación.
 
