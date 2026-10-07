@@ -682,7 +682,7 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
       <div className="inventory-toolbar">
         <div><h2>Registro de artículos</h2><p className="inventory-count">{items.length} de {allItems.length} artículos</p></div>
         <div className="toolbar-actions">
-          <select aria-label="Filtrar por categoría" value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">Todas las categorías</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
+          <select id="category-filter" name="categoryFilter" aria-label="Filtrar por categoría" value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">Todas las categorías</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
           <button className="button button-outline" onClick={onExport} disabled={items.length === 0}><Icon name="download" size={16} />Exportar</button>
         </div>
       </div>
