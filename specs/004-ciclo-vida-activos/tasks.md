@@ -36,8 +36,8 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 ## T06 — Estado en creación, tabla y detalle (`src/App.tsx`) — 25–30 min
 
 - [x] **Cubre:** RF-2, RF-3, RF-4, RF-12, RF-13; principios P2, P3, P5, P6.
-- Añadir selector de creación (sin De baja), insignias en tabla/detalle y filtro combinado con búsqueda/categoría. Hacer que los estados desconocidos aparezcan solo en Todos. Agregar o conectar Editar desde detalle; deshabilitar Editar y Borrar para De baja, también en el detalle de categoría, con explicación accesible.
-- **Hecho cuando:** la creación solo ofrece los tres estados iniciales permitidos; cada estado tiene etiqueta visible y accesible; filtros combinados producen los registros correctos; De baja permanece visible y no permite editar ni borrar desde ninguna tabla o detalle.
+- Añadir selector de creación (sin De baja), insignias en tabla/detalle y filtro combinado con búsqueda/categoría. Hacer que los estados desconocidos aparezcan solo en Todos. Conservar Editar/Borrar en las tablas existentes según RF-13 y aplicar allí la protección de De baja. El modal de detalle no ofrece ninguna de esas acciones; conserva datos, estado, impresión y Cerrar.
+- **Hecho cuando:** la creación solo ofrece los tres estados iniciales permitidos; cada estado tiene etiqueta visible y accesible; filtros combinados producen los registros correctos; el modal no muestra Editar/Borrar; las tablas conservan sus acciones y bloquean edición/borrado para De baja.
 
 ## T07 — Transiciones ordinarias y motivos opcionales (`src/App.tsx`) — 25–30 min
 
@@ -48,8 +48,8 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 ## T08 — Confirmación irreversible y recuperación de foco (`src/App.tsx`) — 25–30 min
 
 - [x] **Cubre:** RF-4, RF-5, RF-6, RF-7, RF-8, RF-9, RF-13, RF-14; principios P2, P3, P5, P6.
-- Implementar el diálogo de baja: confirmación explícita, motivo obligatorio, guardado inmediato de todos los cambios, cancelación/Escape que revierte solo el estado/motivo, y error `role="alert"` con reintento conservando los borradores. Restaurar foco a Ver de la fila o Cerrar del detalle tras éxito.
-- **Hecho cuando:** confirmar con motivo válido cierra los diálogos y guarda una única edición; cancelar/Escape no persiste nada y devuelve foco al selector; si IndexedDB falla, ambos diálogos y todos los valores siguen disponibles, el mensaje accesible aparece y reintentar funciona sin escrituras parciales.
+- Implementar el diálogo de baja: confirmación explícita, motivo obligatorio, guardado inmediato de todos los cambios, cancelación/Escape que revierte solo el estado/motivo, y error `role="alert"` con reintento conservando los borradores. Tras éxito, restaurar el foco solo al botón «Ver» de la fila de origen.
+- **Hecho cuando:** confirmar con motivo válido cierra los diálogos y guarda una única edición; cancelar/Escape no persiste nada y devuelve foco al selector; si IndexedDB falla, ambos diálogos y todos los valores siguen disponibles, el mensaje accesible aparece y reintentar funciona sin escrituras parciales; tras éxito, el foco queda en «Ver» de la fila de origen.
 
 ## T09 — Estilos, accesibilidad y responsive (`src/styles.css`) — 25–30 min
 
@@ -57,11 +57,11 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 - Estilizar insignias por estado, filtros, avisos, controles bloqueados, formulario y diálogo irreversible con tokens existentes; conservar foco visible, contraste, tipografía mínima 12 px y estructura adaptable.
 - **Hecho cuando:** Chrome DevTools a 360 px y 375 px muestra filtros, tabla, formulario y diálogo sin desbordamiento horizontal; estados se distinguen además del color y ningún texto visible mide menos de 12 px.
 
-## T10 — Verificación final y documentación (`docs/figma-brief.md`, `AGENTS.md`, `MEMORY.md`) — 25–30 min
+## T10 — Verificación final y documentación (`docs/figma-brief.md`, `MEMORY.md`) — 25–30 min
 
-- [x] **Cubre:** RF-1–RF-14; principios P1–P6.
-- Actualizar las reglas y el brief con estados, auditoría, terminalidad y protección local; ejecutar `npm run build` y verificar en Chrome DevTools escritorio y móvil con datos de QA aislados. Revisar teclado, foco, filtros, fallos/reintento, consola y preservación de datos legacy.
-- **Hecho cuando:** `npm run build` termina correctamente; DevTools confirma flujos de alta/transición/baja, historial y vista móvil a 360/375 px sin errores/advertencias de consola; el diff documental refleja Estado como auditado y De baja como inmutable, sin reescribir ni borrar datos del perfil del usuario.
+- [ ] **Cubre:** RF-1–RF-14; principios P1–P6.
+- Actualizar el brief y la memoria local con el comportamiento final de estados, auditoría y protección terminal; no actualizar AGENTS porque este ajuste no cambia reglas de dominio. Ejecutar `npm run build` y verificar en Chrome DevTools escritorio (1440 px) y móvil (360 y 375 px) con datos de QA aislados. Revisar teclado, foco, filtros, fallos/reintento, consola, overflow horizontal, ausencia de Editar/Borrar en el modal de detalle y permanencia de las acciones en las tablas.
+- **Hecho cuando:** `npm run build` termina correctamente; DevTools confirma el flujo de baja, el historial y la vista a 1440/360/375 px sin errores/advertencias de consola ni desbordamiento horizontal; el modal de detalle no muestra Editar/Borrar para ningún estado, las tablas conservan sus acciones y protegen De baja, y Figma brief/MEMORY documentan el resultado sin reescribir ni borrar datos del perfil del usuario.
 
 ## Comprobaciones compartidas
 

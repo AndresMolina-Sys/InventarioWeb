@@ -5,7 +5,7 @@
 - **`src/types.ts`**: definir los cuatro estados canónicos, el campo de estado compatible con datos ausentes o desconocidos, el borrador de artículo y los tipos versionados de auditoría. Mantener en inglés los nombres internos.
 - **`src/lib/inventoryRepository.ts`**: concentrar la normalización de lectura, la matriz de transiciones, la validación del motivo, la comparación de cambios netos y las escrituras atómicas de artículo y movimiento. Proteger también las operaciones directas contra edición o borrado de un artículo dado de baja.
 - **`src/data/demo.ts`**: inicializar los artículos de ejemplo nuevos como disponibles. Las importaciones históricas de `localStorage` conservarán intactos los artículos y el estado ausente; no inferirán ni escribirán una migración de ciclo de vida.
-- **`src/App.tsx`**: integrar el estado en creación, tabla, detalle, filtro, edición, confirmación de baja y detalle de movimientos. Asegurar que un evento de estado sea una edición ordinaria con diff de Estado y motivo contextual; la actividad reciente ya cuenta todos los movimientos.
+- **`src/App.tsx`**: integrar el estado en creación, tabla, modal de detalle (solo datos/estado e impresión, sin acciones Editar/Borrar), filtro, edición desde las tablas, confirmación de baja y detalle de movimientos. Las tablas mantienen sus acciones conforme a RF-13. Asegurar que un evento de estado sea una edición ordinaria con diff de Estado y motivo contextual; la actividad reciente ya cuenta todos los movimientos.
 - **`src/styles.css`**: dar estilo a insignias, selector y filtro, avisos, controles de protección y confirmación; conservar tokens existentes, foco visible, piso tipográfico de 12 px y ajuste sin desbordamiento a 360–375 px.
 - **`docs/figma-brief.md`**: documentar las insignias, filtro, selección en edición y diálogo irreversible de baja.
 - **`AGENTS.md` y `MEMORY.md`**: consolidar estados, transiciones, incompatibilidades legacy, auditoría, motivo, protección del estado terminal y verificación una vez implementado el cambio.
@@ -112,12 +112,12 @@ Las reglas de dominio se mantendrán en el repositorio existente, separadas de R
 ## 4. Interfaz, interacción y accesibilidad
 
 - **Tabla de artículos**: agregar insignia de Estado y filtro «Todos» más los cuatro estados canónicos. Los filtros se combinan con búsqueda y categoría. Un estado desconocido solo aparece en «Todos» y la insignia muestra «Desconocido» con el valor original disponible como texto accesible; no se agrega un filtro desconocido.
-- **Detalle**: mostrar la insignia. Mantener consulta, movimientos, etiqueta y ficha técnica para todos los estados. El flujo de edición desde el detalle debe devolver el foco a «Cerrar» del detalle al terminar una baja; desde la tabla lo devuelve al botón «Ver» de la fila.
+- **Detalle**: mostrar la insignia y conservar consulta, movimientos, etiqueta, ficha técnica y «Cerrar» para todos los estados. El modal no ofrece Editar ni Borrar para ningún estado. La edición y sus cambios de estado se inician desde las tablas; al completar una baja el foco vuelve al botón «Ver» de la fila de origen.
 - **Creación**: ofrecer Disponible, Asignado y En mantenimiento; no ofrecer De baja. Un artículo nuevo con selección inicial explícita genera un alta cuyo snapshot refleja ese estado.
 - **Edición**: selector solo en «Editar artículo». Muestra el valor actual y los destinos permitidos. Los motivos opcionales aparecen solo cuando el estado seleccionado difiere del original. Un artículo legacy ausente o vacío se muestra como Disponible sin escribirlo por leer; un valor desconocido se ofrece como valor de origen restaurable y permite escoger explícitamente un canónico. Cancelar el formulario descarta todos los borradores.
 - **Baja**: seleccionar De baja o guardar con De baja seleccionado abre confirmación irreversible. El motivo se escribe en ese diálogo; Confirmar baja permanece deshabilitado mientras el texto recortado no tenga 1–200 caracteres. Cancelar/Escape descarta solo el intento de baja, restaura el estado original exacto y devuelve foco al selector; los demás campos siguen como borrador. Confirmar persiste inmediatamente todos los cambios y cierra ambos diálogos. Tras éxito, devuelve el foco según el origen definido arriba.
 - **Fallo local**: si IndexedDB rechaza la operación, confirmación y edición quedan abiertas con todos los borradores y motivo intactos. El diálogo muestra un `role="alert"` que indica que no se pudo guardar en la base local; permite reintentar o cancelar, sin escritura parcial.
-- **Protección terminal**: para un artículo De baja, Editar y Borrar quedan nativos `disabled` y `aria-disabled="true"`, con explicación accesible de la protección de auditoría. Accesos directos al editor dejan campos deshabilitados y Guardar bloqueado.
+- **Protección terminal**: para un artículo De baja, las acciones Editar y Borrar de las tablas quedan nativas `disabled` y `aria-disabled="true"`, con explicación accesible de la protección de auditoría. El modal de detalle no muestra esas acciones para ningún estado. Accesos directos al editor dejan campos deshabilitados y Guardar bloqueado.
 - **Movimientos**: los eventos de estado siguen siendo «Edición». El detalle presenta la fila «Estado» Antes/Después y el motivo como contexto separado. Un valor previo no canónico se presenta como «Desconocido — [valor original]»; si falta en un evento histórico, muestra «Dato no registrado», nunca un valor inferido. Al ser un movimiento ordinario, se suma una vez a Actividad reciente.
 - **Visual y adaptable**: badges no dependen solo del color; controles y avisos operan por teclado, con foco visible y texto mínimo de 12 px. Revisar el filtro, la tabla y los dos diálogos a 360 y 375 px sin desbordamiento horizontal. La baja y su confirmación deben conservar Escape, foco y mensajes accesibles.
 
@@ -143,7 +143,7 @@ No hay pruebas automatizadas ni lint configurados y la constitución prohíbe a�
 4. Recorrer la matriz completa de transiciones y confirmar cada destino inválido, terminal y protección de editar/borrar De baja.
 5. Revisar baja: motivo en blanco/espacios deshabilita Confirmar; motivo válido persiste todos los cambios y un solo movimiento; cancelación/Escape no persiste nada, restaura estado y foco, conserva los otros borradores; error transaccional conserva ambos diálogos y permite reintentar, sin escritura parcial.
 6. Verificar creación, edición y baja en Movimientos: snapshots con estado pertinente, diff Estado antes/después, motivo separado, compatibilidad con versiones 1 e históricos sin snapshot, y conteo único de actividad reciente.
-7. Verificar que el registro de artículo De baja siga visible y sus consultas/impresión sigan disponibles; una baja no permite edición ni borrado directo.
+7. Verificar que el modal de detalle no muestre Editar/Borrar para ningún estado; que las tablas conserven sus acciones y bloqueen Editar/Borrar en De baja; que consulta e impresión sigan disponibles y que la operación directa de repositorio tampoco permita editar ni borrar una baja.
 8. Revisar los cambios documentales de `docs/figma-brief.md`, `AGENTS.md` y `MEMORY.md`, sin cambiar la regla previa de normalización de otros campos auditados.
 
 ## 7. Matriz de trazabilidad
@@ -155,7 +155,7 @@ No hay pruebas automatizadas ni lint configurados y la constitución prohíbe a�
 | Selección de alta y ejemplos | RF-2, RF-9, RF-10 | P2, P3, P5 |
 | Matriz, normalización y reglas de motivo | RF-5, RF-6, RF-7, RF-8, RF-9 | P2, P3, P5, P6 |
 | Transacciones y protección de baja/borrado | RF-6, RF-7, RF-9, RF-13, RF-14 | P2, P3, P5 |
-| Tabla, detalle, edición y filtro | RF-3, RF-4, RF-5, RF-8, RF-12, RF-13 | P2, P3, P5, P6 |
+| Tabla, detalle solo de consulta, edición desde tablas y filtro | RF-3, RF-4, RF-5, RF-8, RF-12, RF-13 | P2, P3, P5, P6 |
 | Detalle de movimientos y actividad | RF-9, RF-10, RF-11, RF-13 | P2, P3, P5, P6 |
 | Accesibilidad, estilos y responsive | RF-3, RF-4, RF-6, RF-7, RF-8, RF-12 | P2, P4, P6 |
 | Build, Chrome y documentación final | RF-1–RF-14 | P2, P4, P5, P6 |

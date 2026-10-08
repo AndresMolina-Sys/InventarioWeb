@@ -220,7 +220,7 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<AssetStatusFilter>("all");
   const [itemModal, setItemModal] = useState<InventoryItem | "new" | null>(null);
-  const itemEditOriginRef = useRef<"inventory" | "category-detail" | "detail" | null>(null);
+  const itemEditOriginRef = useRef<"inventory" | "category-detail" | null>(null);
   const [pendingItemViewFocusId, setPendingItemViewFocusId] = useState<string | null>(null);
   const [viewedItem, setViewedItem] = useState<InventoryItem | null>(null);
   const [categoryModal, setCategoryModal] = useState<Category | "new" | null>(null);
@@ -311,16 +311,13 @@ function App() {
     const isDecommissioning = existing !== null
       && resolveAssetStatus(draft.status).value === "decommissioned"
       && !isDecommissioned(existing);
-    const returnToDetail = isDecommissioning && itemEditOriginRef.current === "detail";
     const saved = await mutate(
       () => existing ? updateItem(existing.id, draft) : createItem(draft),
       existing ? "Artículo actualizado." : "Artículo agregado al registro.",
     );
     if (saved) {
       setItemModal(null);
-      if (isDecommissioning && existing && returnToDetail) {
-        setViewedItem(snapshotRef.current.items.find((item) => item.id === existing.id) ?? existing);
-      } else if (isDecommissioning && existing) {
+      if (isDecommissioning && existing) {
         setViewedItem(null);
         setSearch("");
         setCategoryFilter("all");
@@ -448,8 +445,6 @@ function App() {
       item={viewedItem}
       categoryName={categoryName.get(viewedItem.categoryId)}
       onClose={() => setViewedItem(null)}
-      onEdit={() => { itemEditOriginRef.current = "detail"; setViewedItem(null); setError(""); setItemModal(viewedItem); }}
-      onDelete={async (item) => { if (await removeItem(item)) setViewedItem(null); }}
     />}
     {categoryModal && <CategoryModal
       category={categoryModal === "new" ? null : categoryModal}
@@ -1158,12 +1153,10 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
   </div>;
 }
 
-function ItemDetailModal({ item, categoryName, onClose, onEdit, onDelete }: {
+function ItemDetailModal({ item, categoryName, onClose }: {
   item: InventoryItem;
   categoryName: string | undefined;
   onClose: () => void;
-  onEdit: () => void;
-  onDelete: (item: InventoryItem) => void | Promise<void>;
 }) {
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
   const [technicalSheetPreview, setTechnicalSheetPreview] = useState<TechnicalSheetPreviewState | null>(null);
@@ -1173,14 +1166,11 @@ function ItemDetailModal({ item, categoryName, onClose, onEdit, onDelete }: {
   const printErrorMessageId = useId();
   const technicalSheetWarningId = useId();
   const technicalSheetPrintErrorId = useId();
-  const statusProtectionDescriptionId = useId();
   const technicalSheetTriggerRef = useRef<HTMLButtonElement>(null);
   const technicalSheetCloseButtonRef = useRef<HTMLButtonElement>(null);
   const technicalSheetPrintButtonRef = useRef<HTMLButtonElement>(null);
   const afterPrintHandlerRef = useRef<(() => void) | null>(null);
   const barcode = useMemo(() => encodeCode128B(item.code), [item.code]);
-  const protectedItem = isDecommissioned(item);
-  const protectionMessage = DECOMMISSIONED_PROTECTION_MESSAGE;
   const printButtonDescription = barcode.status === "blocked"
     ? blockedMessageId
     : printError ? printErrorMessageId : undefined;
@@ -1382,12 +1372,9 @@ function ItemDetailModal({ item, categoryName, onClose, onEdit, onDelete }: {
         <div><dt>Marca y modelo</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || "Sin especificar"}</dd></div>
         <div className="detail-span"><dt>Notas</dt><dd>{item.notes || "Sin notas"}</dd></div>
       </dl>
-      {protectedItem && <p className="modal-hint" id={statusProtectionDescriptionId}>{protectionMessage}</p>}
       <div className="modal-footer">
         <button ref={technicalSheetTriggerRef} className="button button-outline" type="button" onClick={openTechnicalSheetPreview}>Imprimir ficha técnica</button>
         <button className="button button-outline" type="button" onClick={() => setLabelPreviewOpen(true)}>Imprimir etiqueta</button>
-        <button className="button button-outline" type="button" onClick={onEdit} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? statusProtectionDescriptionId : undefined}>Editar</button>
-        <button className="button button-outline danger-icon" type="button" onClick={() => { void onDelete(item); }} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? statusProtectionDescriptionId : undefined}>Borrar</button>
         <button className="button button-primary" type="button" onClick={onClose}>Cerrar</button>
       </div>
     </div>
