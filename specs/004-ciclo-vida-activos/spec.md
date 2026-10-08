@@ -1,6 +1,6 @@
 # Especificación: ciclo de vida de activos
 
-**Estado: borrador**
+**Estado: aprobada**
 
 ## Contexto y objetivo
 
