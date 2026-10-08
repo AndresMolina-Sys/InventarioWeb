@@ -1692,3 +1692,392 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   .app-shell[data-theme="dark"] .inventory-toolbar .button-filter,
   .app-shell[data-theme="dark"] .movement-history-table .button-outline { color: var(--theme-text-body); border-color: var(--theme-line); background: var(--theme-surface-subtle); }
 }
+
+/* Contraste de controles y diálogos por tema; la impresión conserva su paleta propia. */
+@media screen {
+  :root {
+    --theme-control-surface: #fff;
+    --theme-control-surface-disabled: #f2f3f5;
+    --theme-control-text: #343b4a;
+    --theme-control-text-muted: #626a78;
+    --theme-control-placeholder: #626a78;
+    --theme-control-border: #8c929d;
+    --theme-modal-border: #eceef3;
+    --theme-modal-heading: #323949;
+    --theme-modal-subtitle: #626a78;
+    --theme-focus-ring: #4f45c6;
+    --theme-button-primary: #6055d9;
+    --theme-button-primary-hover: #4f45c6;
+    --theme-button-primary-text: #fff;
+    --theme-button-outline: #606777;
+    --theme-button-outline-border: #8c929d;
+    --theme-button-outline-hover: #4f45c6;
+    --theme-button-outline-hover-border: #4f45c6;
+    --theme-error-text: #96363c;
+    --theme-error-surface: #fff5f5;
+    --theme-error-border: #96363c;
+    --theme-success-text: #28785f;
+    --theme-success-surface: #f1fbf6;
+    --theme-success-border: #28785f;
+    --theme-warning-text: #805915;
+    --theme-warning-surface: #fff8e9;
+    --theme-disabled-text: #535b69;
+  }
+
+  :root:has(.app-shell[data-theme="dark"]) {
+    --theme-control-surface: #202733;
+    --theme-control-surface-disabled: #303946;
+    --theme-control-text: #edf0f6;
+    --theme-control-text-muted: #c6cdd8;
+    --theme-control-placeholder: #aeb7c4;
+    --theme-control-border: #7f8a99;
+    --theme-modal-border: #7f8a99;
+    --theme-modal-heading: #e6eaf1;
+    --theme-modal-subtitle: #c6cdd8;
+    --theme-focus-ring: #bdb3ff;
+    --theme-button-primary: #6d62dc;
+    --theme-button-primary-hover: #6258d4;
+    --theme-button-primary-text: #fff;
+    --theme-button-outline: #d9dfe8;
+    --theme-button-outline-border: #7f8a99;
+    --theme-button-outline-hover: #c6bdff;
+    --theme-button-outline-hover-border: #bdb3ff;
+    --theme-error-text: #ffb4b8;
+    --theme-error-surface: #46272c;
+    --theme-error-border: #f09a9f;
+    --theme-success-text: #8bd4b5;
+    --theme-success-surface: #1d3b32;
+    --theme-success-border: #8bd4b5;
+    --theme-warning-text: #f0c66d;
+    --theme-warning-surface: #46371f;
+    --theme-disabled-text: #c6cdd8;
+  }
+
+  .app-shell :is(button, input, select, textarea, a):focus-visible {
+    outline: 3px solid var(--theme-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .app-shell .global-search {
+    color: var(--theme-control-text-muted);
+    border-color: var(--theme-control-border);
+    background: var(--theme-control-surface);
+  }
+
+  .app-shell .global-search input {
+    color: var(--theme-control-text);
+    background: transparent;
+  }
+
+  .app-shell .global-search input::placeholder,
+  .app-shell .modal-form input::placeholder,
+  .app-shell .modal-form textarea::placeholder {
+    color: var(--theme-control-placeholder);
+    opacity: 1;
+  }
+
+  .app-shell .button-primary {
+    color: var(--theme-button-primary-text);
+    background: var(--theme-button-primary);
+  }
+
+  .app-shell .button-primary:hover:not(:disabled) {
+    background: var(--theme-button-primary-hover);
+  }
+
+  .app-shell .button-outline,
+  .app-shell .button-filter,
+  .app-shell .movement-page-button,
+  .app-shell .recent-page-button {
+    color: var(--theme-button-outline);
+    border-color: var(--theme-button-outline-border);
+    background: var(--theme-control-surface);
+  }
+
+  .app-shell .button-outline:hover:not(:disabled),
+  .app-shell .movement-page-button:hover:not(:disabled),
+  .app-shell .recent-page-button:hover:not(:disabled) {
+    color: var(--theme-button-outline-hover);
+    border-color: var(--theme-button-outline-hover-border);
+    background: var(--theme-surface-hover);
+  }
+
+  .app-shell .button-filter.selected {
+    color: var(--theme-warning-text);
+    border-color: var(--theme-warning-text);
+    background: var(--theme-warning-surface);
+  }
+
+  .app-shell :is(.toolbar-actions select, .movement-filter select, .modal-form select),
+  .app-shell .modal-form input,
+  .app-shell .modal-form textarea {
+    color: var(--theme-control-text);
+    border-color: var(--theme-control-border);
+    background-color: var(--theme-control-surface);
+    accent-color: var(--theme-focus-ring);
+  }
+
+  .app-shell select option,
+  .app-shell [role="menu"],
+  .app-shell [role="listbox"] {
+    color: var(--theme-control-text);
+    background-color: var(--theme-control-surface);
+  }
+
+  .app-shell .modal-card {
+    color: var(--theme-text);
+    border-color: var(--theme-modal-border);
+    background: var(--theme-surface);
+  }
+
+  .app-shell .modal-heading {
+    border-bottom-color: var(--theme-line);
+  }
+
+  .app-shell .modal-heading h2 {
+    color: var(--theme-modal-heading);
+  }
+
+  .app-shell .modal-heading p,
+  .app-shell .modal-form label,
+  .app-shell .modal-hint,
+  .app-shell .movement-detail-content .movement-audit-fields dt,
+  .app-shell .article-detail-grid dt,
+  .app-shell .movement-diff-heading {
+    color: var(--theme-control-text-muted);
+  }
+
+  .app-shell .modal-mark {
+    color: var(--theme-accent);
+    background: var(--theme-surface-tint);
+  }
+
+  .app-shell .modal-footer {
+    border-top-color: var(--theme-line);
+  }
+
+  .app-shell .modal-form :is(input, select, textarea)[aria-invalid="true"] {
+    border-color: var(--theme-error-text);
+  }
+
+  .app-shell .modal-form :is(input, select, textarea):disabled {
+    color: var(--theme-disabled-text);
+    border-color: var(--theme-control-border);
+    background-color: var(--theme-control-surface-disabled);
+    opacity: 1;
+  }
+
+  .app-shell :is(button, input, select, textarea):disabled {
+    color: var(--theme-disabled-text);
+    opacity: 1;
+  }
+
+  .app-shell button:disabled {
+    border-color: var(--theme-control-border);
+    background-color: var(--theme-control-surface-disabled);
+  }
+
+  .app-shell .button-primary:disabled,
+  .app-shell .decommission-confirmation .button-primary:disabled {
+    color: var(--theme-disabled-text);
+    border-color: var(--theme-control-border);
+    background: var(--theme-control-surface-disabled);
+    box-shadow: none;
+  }
+
+  .app-shell .form-error,
+  .app-shell .inline-error,
+  .app-shell .toast-error {
+    color: var(--theme-error-text);
+    border-color: var(--theme-error-border);
+    background: var(--theme-error-surface);
+  }
+
+  .app-shell .inline-success,
+  .app-shell .toast-success {
+    color: var(--theme-success-text);
+    border-color: var(--theme-success-border);
+    background: var(--theme-success-surface);
+  }
+
+  .app-shell .decommission-confirmation .modal-heading {
+    border-bottom-color: var(--theme-error-border);
+    background: var(--theme-error-surface);
+  }
+
+  .app-shell .decommission-confirmation .modal-mark {
+    color: var(--theme-error-text);
+    background: var(--theme-control-surface-disabled);
+  }
+
+  .app-shell .decommission-confirmation-content > p:first-child,
+  .app-shell .decommission-confirmation-content label {
+    color: var(--theme-control-text-muted);
+  }
+
+  .app-shell .decommission-confirmation-content .form-error {
+    color: var(--theme-error-text);
+    border-color: var(--theme-error-border);
+    background: var(--theme-error-surface);
+  }
+
+  .app-shell .decommission-confirmation .modal-footer {
+    border-top-color: var(--theme-line);
+  }
+
+  .app-shell .asset-status-badge.is-available {
+    color: var(--theme-status-available);
+    border-color: var(--theme-status-available-border);
+    background: var(--theme-status-available-surface);
+  }
+
+  .app-shell .asset-status-badge.is-assigned {
+    color: var(--theme-status-assigned);
+    border-color: var(--theme-status-assigned-border);
+    background: var(--theme-status-assigned-surface);
+  }
+
+  .app-shell .asset-status-badge.is-maintenance {
+    color: var(--theme-status-maintenance);
+    border-color: var(--theme-status-maintenance-border);
+    background: var(--theme-status-maintenance-surface);
+  }
+
+  .app-shell .asset-status-badge.is-decommissioned {
+    color: var(--theme-status-decommissioned);
+    border-color: var(--theme-status-decommissioned-border);
+    background: var(--theme-status-decommissioned-surface);
+  }
+
+  .app-shell .asset-status-badge.is-unknown {
+    color: var(--theme-status-unknown);
+    border-color: var(--theme-status-unknown-border);
+    background: var(--theme-status-unknown-surface);
+  }
+
+  .app-shell .status-ok,
+  .app-shell .action-created,
+  .app-shell .movement-action.action-created {
+    color: var(--theme-positive);
+    background: var(--theme-positive-surface);
+  }
+
+  .app-shell .status-low,
+  .app-shell .action-deleted,
+  .app-shell .movement-action.action-deleted {
+    color: var(--theme-negative);
+    background: var(--theme-negative-surface);
+  }
+
+  .app-shell .action-updated,
+  .app-shell .movement-action.action-updated {
+    color: var(--theme-violet);
+    background: var(--theme-violet-surface);
+  }
+
+  .app-shell .segmented-control button.selected-in {
+    color: var(--theme-positive);
+    background: var(--theme-control-surface);
+  }
+
+  .app-shell .segmented-control button.selected-out {
+    color: var(--theme-negative);
+    background: var(--theme-control-surface);
+  }
+
+  .app-shell .input-with-icon {
+    color: var(--theme-control-text-muted);
+    border-color: var(--theme-control-border);
+    background: var(--theme-control-surface);
+  }
+
+  .app-shell .input-with-icon:focus-within {
+    border-color: var(--theme-focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-focus-ring) 24%, transparent);
+  }
+
+  .app-shell .input-with-icon input {
+    color: var(--theme-control-text);
+  }
+
+  .app-shell[data-theme="dark"] .modal-backdrop {
+    background: rgb(7 11 18 / 82%);
+  }
+
+  .app-shell[data-theme="dark"] .movement-detail-content > p {
+    color: var(--theme-warning-text);
+    background: var(--theme-warning-surface);
+  }
+
+  .app-shell[data-theme="dark"] .movement-audit-fields > div,
+  .app-shell[data-theme="dark"] .movement-diff-list {
+    border-color: var(--theme-control-border);
+    background: var(--theme-surface-subtle);
+  }
+
+  .app-shell[data-theme="dark"] .movement-diff-heading {
+    color: var(--theme-control-text-muted);
+    background: var(--theme-surface-muted);
+  }
+
+  .app-shell[data-theme="dark"] .movement-diff-row > strong,
+  .app-shell[data-theme="dark"] .movement-diff-row p,
+  .app-shell[data-theme="dark"] .article-detail-grid dd {
+    color: var(--theme-text-body);
+  }
+
+  .app-shell[data-theme="dark"] .movement-diff-row,
+  .app-shell[data-theme="dark"] .movement-diff-row > div + div {
+    border-color: var(--theme-line);
+  }
+
+  .app-shell[data-theme="dark"] .technical-sheet-preview-modal .modal-heading h2,
+  .app-shell[data-theme="dark"] .technical-sheet-preview-modal .modal-heading p {
+    color: var(--theme-modal-heading);
+  }
+
+  .app-shell .technical-sheet-preview-modal .modal-heading p {
+    color: var(--theme-modal-subtitle);
+  }
+
+  .app-shell .technical-sheet-preview-modal .modal-footer .button:focus-visible {
+    outline: 3px solid var(--theme-focus-ring);
+    outline-offset: 3px;
+  }
+
+  .app-shell[data-theme="dark"] .technical-sheet-preview-modal .modal-footer .button-outline {
+    color: var(--theme-button-outline);
+    border-color: var(--theme-button-outline-border);
+    background: var(--theme-surface-subtle);
+  }
+
+  .app-shell[data-theme="dark"] .technical-sheet-preview-modal .modal-footer .button-primary {
+    color: var(--theme-button-primary-text);
+    background: var(--theme-button-primary);
+  }
+
+  .app-shell[data-theme="dark"] .technical-sheet-preview-modal .modal-footer .button-primary:disabled {
+    color: var(--theme-disabled-text);
+    border-color: var(--theme-control-border);
+    background: var(--theme-control-surface-disabled);
+  }
+
+  .app-shell[data-theme="dark"] .article-detail-title strong,
+  .app-shell[data-theme="dark"] .modal-card:has(.movement-detail-content) .modal-heading h2,
+  .app-shell[data-theme="dark"] .movement-detail-content > h3,
+  .app-shell[data-theme="dark"] .movement-audit-fields dd {
+    color: var(--theme-text-strong);
+  }
+
+  .app-shell[data-theme="dark"] .article-detail-title small,
+  .app-shell[data-theme="dark"] .modal-card:has(.movement-detail-content) .modal-heading p {
+    color: var(--theme-text-body);
+  }
+
+  .app-shell[data-theme="dark"] .technical-sheet-preview-modal .modal-form > .form-error,
+  .app-shell[data-theme="dark"] .label-preview-content .print-label-warning {
+    color: var(--theme-error-text);
+    border-color: var(--theme-error-border);
+    background: var(--theme-error-surface);
+  }
+}

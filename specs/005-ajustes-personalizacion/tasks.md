@@ -26,7 +26,7 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Convertir colores codificados de la estructura principal, navegación, fondos, tarjetas, métricas, gráficos, tablas y estados a tokens semánticos; definir paletas clara y oscura sin alterar la presentación clara existente.
   - Hecho cuando: Con tema Claro se conserva la apariencia actual y con Oscuro shell, navegación, resumen, categorías y tablas usan superficies/textos/bordes oscuros y legibles; no se cambia la impresión y `npm run build` pasa.
 
-- [ ] **T07. Temas de formularios, diálogos y estados accesibles (`src/styles.css`) — 25–30 min.** RF-4, RF-7 (Principios P1, P2, P4, P6)
+- [x] **T07. Temas de formularios, diálogos y estados accesibles (`src/styles.css`) — 25–30 min.** RF-4, RF-7 (Principios P1, P2, P4, P6)
   - Aplicar tokens de ambos temas a formularios, campos, validaciones, menús, diálogos, badges y controles; asegurar foco visible y contrastes WCAG AA fijados por la spec. Mantener las reglas de etiqueta y ficha técnica explícitamente monocromáticas en impresión.
   - Hecho cuando: En Claro y Oscuro los formularios y diálogos son legibles y operables; textos normales alcanzan 4.5:1, textos grandes y elementos UI/foco 3:1, el foco no depende del color de selección, los estilos de impresión siguen monocromáticos y `npm run build` pasa.
 
