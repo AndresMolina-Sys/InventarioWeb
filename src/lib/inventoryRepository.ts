@@ -4,6 +4,7 @@ import type {
   Category,
   CategoryDraft,
   CreatedMovementV2,
+  DeletedMovementV2,
   InventoryItem,
   InventoryMovement,
   InventoryMovementAuditField,
@@ -306,6 +307,18 @@ function normalizeMovement(value: unknown): InventoryMovement | null {
     };
   }
 
+  if (movement.auditVersion === 2
+    && movement.type === "deleted"
+    && isCompleteAuditSnapshotV2(itemSnapshot)) {
+    return {
+      id: movement.id,
+      type: "deleted",
+      occurredAt: movement.occurredAt,
+      auditVersion: 2,
+      itemSnapshot,
+    };
+  }
+
   if (movement.auditVersion === 1
     && (movement.type === "created" || movement.type === "deleted")
     && isCompleteAuditSnapshot(itemSnapshot)) {
@@ -561,27 +574,6 @@ function movementItemSnapshot(item: InventoryItem, categories: Category[]): Move
   };
 }
 
-function createVersionedMovement(
-  type: "created" | "deleted",
-  occurredAt: string,
-  item: InventoryItem,
-  categories: Category[],
-): Extract<InventoryMovement, { type: "created" | "deleted" }> {
-  const movement = {
-    id: crypto.randomUUID(),
-    occurredAt,
-    auditVersion: 1 as const,
-    itemSnapshot: createInventoryMovementAuditSnapshot(
-      item,
-      movementItemSnapshot(item, categories).categoryName,
-    ),
-  };
-
-  return type === "created"
-    ? { ...movement, type: "created" }
-    : { ...movement, type: "deleted" };
-}
-
 function createCreatedMovementV2(
   occurredAt: string,
   item: NewInventoryItem,
@@ -597,6 +589,27 @@ function createCreatedMovementV2(
     occurredAt,
     auditVersion: 2,
     itemSnapshot: { ...itemSnapshot, status: item.status },
+  };
+}
+
+function createDeletedMovementV2(
+  occurredAt: string,
+  item: InventoryItem,
+  categories: Category[],
+): DeletedMovementV2 {
+  const itemSnapshot = createInventoryMovementAuditSnapshot(
+    item,
+    movementItemSnapshot(item, categories).categoryName,
+  );
+  return {
+    id: crypto.randomUUID(),
+    type: "deleted",
+    occurredAt,
+    auditVersion: 2,
+    itemSnapshot: {
+      ...itemSnapshot,
+      status: resolveAssetStatus(item.status).value,
+    },
   };
 }
 
@@ -673,6 +686,9 @@ export function updateItem(id: string, draft: UpdateItemDraft): Promise<UpdateIt
   return transactSnapshot((snapshot) => {
     const currentItem = snapshot.items.find((item) => item.id === id);
     if (!currentItem) throw new Error("El artículo ya no existe.");
+    if (resolveAssetStatus(currentItem.status).value === "decommissioned") {
+      throw new Error("No se puede editar un artículo dado de baja.");
+    }
     const { reason, ...itemDraft } = draft;
     validateItemDraft(itemDraft, snapshot.items, id);
     const candidateItem: InventoryItem = {
@@ -757,12 +773,15 @@ export function deleteItem(id: string): Promise<void> {
     if (!deletedItem) {
       return { snapshot, result: undefined };
     }
+    if (resolveAssetStatus(deletedItem.status).value === "decommissioned") {
+      throw new Error("No se puede borrar un artículo dado de baja.");
+    }
     const now = new Date().toISOString();
     return {
       snapshot: {
         ...snapshot,
         items: snapshot.items.filter((item) => item.id !== id),
-        movements: [...snapshot.movements, createVersionedMovement("deleted", now, deletedItem, snapshot.categories)],
+        movements: [...snapshot.movements, createDeletedMovementV2(now, deletedItem, snapshot.categories)],
       },
       result: undefined,
     };

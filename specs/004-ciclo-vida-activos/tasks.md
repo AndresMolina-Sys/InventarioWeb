@@ -29,7 +29,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T05 — Protección de artículos dados de baja (`src/lib/inventoryRepository.ts`) — 20–25 min
 
-- [ ] **Cubre:** RF-5, RF-13, RF-14; principios P2, P3, P5.
+- [x] **Cubre:** RF-5, RF-13, RF-14; principios P2, P3, P5.
 - Rechazar desde la operación de repositorio cualquier edición o borrado de estado De baja. Para otros estados, los snapshots de baja versión 2 incluyen el estado previo y se conservan las validaciones de borrado actuales.
 - **Hecho cuando:** las llamadas directas de edición y borrado para un artículo De baja fallan sin cambiar artículo ni movimientos; el borrado permitido conserva el estado previo en su snapshot.
 
