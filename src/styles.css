@@ -1040,8 +1040,9 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   }
 
   .technical-sheet-specifications dd.technical-sheet-notes-value {
-    max-height: 18mm !important;
-    -webkit-line-clamp: 4 !important;
+    max-height: 35mm !important;
+    line-height: 1.2 !important;
+    -webkit-line-clamp: 9 !important;
   }
 
   .technical-sheet-signatures,
