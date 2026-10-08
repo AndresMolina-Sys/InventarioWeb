@@ -38,6 +38,6 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Usar un contexto de navegador aislado para verificar defaults, cambios independientes, recarga, valores parciales/inválidos, errores controlados de lectura/escritura, reintento posterior, pestañas sin sincronización viva, reset y datos de IndexedDB.
   - Hecho cuando: Todas las preferencias sobreviven recarga cuando el guardado funciona; los fallos muestran aviso y no bloquean el uso; reset cancelar/confirmar cumple RF-7; se demuestra que IndexedDB mantiene exactamente los artículos, categorías y movimientos de inicio; consola sin errores/advertencias.
 
-- [ ] **T10. Verificación visual y documentación (`docs/figma-brief.md`, `AGENTS.md`, `MEMORY.md`) — 25–30 min.** RF-1–RF-8 (Principios P2, P4, P5, P6)
+- [x] **T10. Verificación visual y documentación (`docs/figma-brief.md`, `AGENTS.md`, `MEMORY.md`) — 25–30 min.** RF-1–RF-8 (Principios P2, P4, P5, P6)
   - Documentar en el brief y en las notas locales el tema, cuatro preferencias, persistencia local, reglas de densidad, navegación, errores y límites; completar revisión final con Chrome en escritorio y móvil.
   - Hecho cuando: En Chrome DevTools se validan Claro/Oscuro/Sistema, impresión monocromática, los gráficos, densidad, teclado/foco y contraste a 1440, 375 y 360 px; cada cambio visible se refleja en menos de 100 ms, no hay desbordamiento ni mensajes de consola; `docs/figma-brief.md`, `AGENTS.md` y `MEMORY.md` reflejan solo el alcance 005, y `npm run build` pasa.

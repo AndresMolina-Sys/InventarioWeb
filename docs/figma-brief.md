@@ -77,6 +77,17 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - Ningún texto visible del detalle baja de 12 px. El estilo usa los tokens existentes y mantiene contraste, foco visible y movimiento reducido.
 - En pantallas estrechas, el filtro ocupa el ancho disponible y la tabla conserva desplazamiento horizontal.
 
+### 06 · Ajustes — escritorio y móvil
+
+- «Ajustes» aparece como destino de la navegación lateral en escritorio y de la navegación inferior en móvil. La pantalla reúne Tema, Actividad reciente, Artículos por categoría y Densidad de tablas, con controles independientes y accesibles por teclado.
+- Valores iniciales: Sistema, ambos gráficos visibles y densidad Cómoda. «Restablecer preferencias» confirma que solo cambiará estos cuatro valores; cancelar o pulsar Escape conserva la selección.
+- Las preferencias se guardan juntas en `localStorage` bajo `inventarioweb:preferences:v1`, separado de IndexedDB. Al leer registros parciales o inválidos, cada preferencia toma su propio valor inicial. Si el almacenamiento falla, los cambios se mantienen durante la sesión y aparece un aviso accesible; una acción posterior vuelve a intentar guardar el conjunto vigente. Las pestañas ya abiertas no sincronizan cambios en vivo.
+- Claro conserva la paleta visual actual y Oscuro aplica superficies, textos, controles, formularios y diálogos de la misma escala semántica. Sistema sigue `prefers-color-scheme` mientras la aplicación está abierta. Los controles y el foco mantienen contraste perceptible; el texto normal cumple al menos 4.5:1 y las señales visuales de controles/foco al menos 3:1.
+- Actividad reciente y Artículos por categoría se pueden ocultar por separado. Los paneles restantes se reordenan sin reservar espacios, y ocultar gráficos no altera artículos, categorías ni el registro de movimientos.
+- Cómoda usa una altura base de fila de 68 px y Compacta de 56 px en Artículos, Categorías, Movimientos y detalle de categoría. Las filas crecen con su contenido sin recortarlo; el mínimo tipográfico sigue siendo 12 px.
+- La pantalla y las tablas funcionan a 360–375 px sin desbordamiento horizontal. El inventario y las preferencias permanecen locales a este navegador. La interfaz de esta fase sigue en español; la localización bilingüe está definida por separado en la spec 006 y todavía no se implementa.
+- Imprimir etiqueta y ficha técnica conserva sus salidas monocromáticas, independientemente del tema de pantalla.
+
 ## Sistema visual
 
 | Token | Valor | Uso |
@@ -84,11 +95,14 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 | Fondo | `#F7F8FA` | Lienzo de la aplicación |
 | Superficie | `#FFFFFF` | Paneles y navegación |
 | Texto | `#1D2433` | Contenido principal |
+| Texto de apoyo | `#626A78` | Descripciones y pies legibles |
 | Secundario | `#838A98` | Etiquetas y metadatos |
 | Borde | `#ECEEF2` | Separadores |
 | Primario | `#6055D9` | Acciones y navegación activa |
 | Éxito | `#23896B` | Confirmaciones |
 | Peligro | `#C45155` | Acción de borrar |
+
+El tema oscuro usa lienzo `#141922`, superficie `#1D2430`, texto principal `#EDF0F6` y texto de apoyo `#C6CDD8`. El acento del foco es `#4F45C6` en claro y `#BDB3FF` en oscuro. La impresión fija tinta negra sobre fondo blanco.
 
 - Tipografía Inter con fallback sans-serif de sistema. Tarjetas con radio de 13 px y sombra sutil.
 - Los rótulos KPI usan 13 px/600/1.3 y color `#626a78`; en móvil conservan ese tamaño y pueden ocupar dos líneas, con el icono protegido a la derecha. Los títulos de panel y tarjetas de registro usan 16 px/700/1.25 y color `#303746`; los conteos de registros usan 13 px/400/1.4.
