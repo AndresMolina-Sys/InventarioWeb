@@ -30,7 +30,7 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Aplicar tokens de ambos temas a formularios, campos, validaciones, menús, diálogos, badges y controles; asegurar foco visible y contrastes WCAG AA fijados por la spec. Mantener las reglas de etiqueta y ficha técnica explícitamente monocromáticas en impresión.
   - Hecho cuando: En Claro y Oscuro los formularios y diálogos son legibles y operables; textos normales alcanzan 4.5:1, textos grandes y elementos UI/foco 3:1, el foco no depende del color de selección, los estilos de impresión siguen monocromáticos y `npm run build` pasa.
 
-- [ ] **T08. Densidad de tablas y ajuste adaptable (`src/styles.css`) — 20–25 min.** RF-6 (Principios P2, P4, P6)
+- [x] **T08. Densidad de tablas y ajuste adaptable (`src/styles.css`) — 20–25 min.** RF-6 (Principios P2, P4, P6)
   - Aplicar altura base de 68 px para Cómoda y 56 px para Compacta a Artículos, Categorías, Movimientos y detalle de categoría. Permitir crecimiento de filas por contenido; preservar fuente mínima de 12 px, botones y áreas operables.
   - Hecho cuando: Las cuatro tablas cambian de densidad, una fila corta mide la altura base seleccionada y una fila con texto largo aumenta sin recorte; a 360 y 375 px no se genera overflow horizontal y `npm run build` pasa.
 
