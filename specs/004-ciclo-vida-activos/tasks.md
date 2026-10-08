@@ -23,7 +23,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T04 — Edición atómica y auditoría de Estado (`src/lib/inventoryRepository.ts`) — 25–30 min
 
-- [ ] **Cubre:** RF-5, RF-6, RF-8, RF-9, RF-10, RF-11, RF-14; principios P2, P3, P5.
+- [x] **Cubre:** RF-5, RF-6, RF-8, RF-9, RF-10, RF-11, RF-14; principios P2, P3, P5.
 - Guardar en una transacción el artículo, `updatedAt` y un movimiento v2 cuando haya cambios netos. Incluir el Estado Antes/Después y el valor raw desconocido previo. Toda transición debe incluir `reason` fuera del diff; si el motivo opcional está vacío, persistir `reason: ""`. Una edición sin cambio de Estado no incluye motivo y el motivo por sí solo no produce evento. Mantener `unchanged` sin escritura ni evento.
 - **Hecho cuando:** un cambio de estado con o sin otros cambios escribe exactamente un movimiento y el artículo en una sola transacción; motivo-only o edición sin cambios no escribe; rechazo de la transacción no deja artículo ni movimiento parcialmente actualizados.
 

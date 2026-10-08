@@ -8,12 +8,17 @@ import type {
   InventoryMovement,
   InventoryMovementAuditField,
   InventoryMovementAuditSnapshot,
+  InventoryMovementAuditSnapshotV2,
+  InventoryMovementAuditSummary,
+  InventoryMovementAuditFieldV2,
   InventoryMovementChanges,
+  InventoryMovementChangesV2,
   InventoryMovementFieldChange,
   InventorySnapshot,
   ItemDraft,
   MovementItemSnapshot,
   NonEmptyInventoryMovementChanges,
+  UpdatedMovementV2,
 } from "../types";
 
 const DATABASE_NAME = "inventario-web-portfolio";
@@ -32,7 +37,21 @@ type SnapshotChange<T> = {
   persist?: boolean;
 };
 
+type SnapshotSource = "indexeddb" | "legacy" | "samples";
+
+type NonEmptyInventoryMovementChangesV2 = {
+  [Field in InventoryMovementAuditFieldV2]: Required<Pick<InventoryMovementChangesV2, Field>>
+    & Partial<Omit<InventoryMovementChangesV2, Field>>;
+}[InventoryMovementAuditFieldV2];
+
+type UpdatedMovementV2WithStatus = Extract<UpdatedMovementV2, { reason: string }>;
+type UpdatedMovementV2WithoutStatus = Extract<UpdatedMovementV2, { reason?: never }>;
+
 export type UpdateItemResult = "updated" | "unchanged";
+
+export type UpdateItemDraft = ItemDraft & {
+  reason?: string | null;
+};
 
 export type ResolvedAssetStatus =
   | { kind: "canonical"; value: AssetLifecycleStatus }
@@ -161,6 +180,11 @@ function isCompleteAuditSnapshot(value: unknown): value is InventoryMovementAudi
     && isOptionalText(snapshot.notes);
 }
 
+function isCompleteAuditSnapshotV2(value: unknown): value is InventoryMovementAuditSnapshotV2 {
+  return isCompleteAuditSnapshot(value)
+    && typeof (value as Partial<InventoryMovementAuditSnapshotV2>).status === "string";
+}
+
 function normalizeAuditChanges(value: unknown): NonEmptyInventoryMovementChanges | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
 
@@ -195,6 +219,44 @@ function normalizeAuditChanges(value: unknown): NonEmptyInventoryMovementChanges
   }
 
   return value as NonEmptyInventoryMovementChanges;
+}
+
+function normalizeAuditChangesV2(value: unknown): NonEmptyInventoryMovementChangesV2 | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+
+  const allowedFields: InventoryMovementAuditFieldV2[] = [
+    "code",
+    "name",
+    "categoryName",
+    "serialNumber",
+    "location",
+    "cost",
+    "brand",
+    "model",
+    "notes",
+    "status",
+  ];
+  const entries = Object.entries(value);
+  if (entries.length === 0 || entries.some(([field]) => !allowedFields.includes(field as InventoryMovementAuditFieldV2))) {
+    return null;
+  }
+
+  for (const [field, change] of entries) {
+    if (typeof change !== "object" || change === null || Array.isArray(change)) return null;
+    const pair = change as { before?: unknown; after?: unknown };
+    if (!("before" in change) || !("after" in change)) return null;
+
+    const isCost = field === "cost";
+    const isRequiredText = field === "code" || field === "name" || field === "categoryName" || field === "status";
+    const validValue = (item: unknown) => isCost
+      ? item === null || (typeof item === "number" && Number.isFinite(item))
+      : isRequiredText
+        ? typeof item === "string"
+        : item === null || typeof item === "string";
+    if (!validValue(pair.before) || !validValue(pair.after)) return null;
+  }
+
+  return value as NonEmptyInventoryMovementChangesV2;
 }
 
 function normalizeHistoricalAuditSnapshot(value: unknown): Partial<InventoryMovementAuditSnapshot> | undefined {
@@ -232,6 +294,18 @@ function normalizeMovement(value: unknown): InventoryMovement | null {
     && typeof itemSnapshot.name === "string"
     && typeof itemSnapshot.categoryName === "string";
 
+  if (movement.auditVersion === 2
+    && movement.type === "created"
+    && isCompleteAuditSnapshotV2(itemSnapshot)) {
+    return {
+      id: movement.id,
+      type: "created",
+      occurredAt: movement.occurredAt,
+      auditVersion: 2,
+      itemSnapshot,
+    };
+  }
+
   if (movement.auditVersion === 1
     && (movement.type === "created" || movement.type === "deleted")
     && isCompleteAuditSnapshot(itemSnapshot)) {
@@ -258,6 +332,35 @@ function normalizeMovement(value: unknown): InventoryMovement | null {
     };
   }
 
+  const changesV2 = movement.auditVersion === 2 && movement.type === "updated"
+    ? normalizeAuditChangesV2(movement.changes)
+    : null;
+  const hasStatusChange = changesV2 !== null
+    && Object.prototype.hasOwnProperty.call(changesV2, "status");
+  if (movement.auditVersion === 2
+    && movement.type === "updated"
+    && hasCompleteItemSummary
+    && changesV2
+    && (hasStatusChange ? typeof movement.reason === "string" : movement.reason === undefined)) {
+    const base = {
+      id: movement.id,
+      type: "updated" as const,
+      occurredAt: movement.occurredAt,
+      auditVersion: 2 as const,
+      itemSnapshot: itemSnapshot as InventoryMovementAuditSummary,
+    };
+    return hasStatusChange
+      ? {
+          ...base,
+          changes: changesV2 as UpdatedMovementV2WithStatus["changes"],
+          reason: movement.reason as string,
+        }
+      : {
+          ...base,
+          changes: changesV2 as UpdatedMovementV2WithoutStatus["changes"],
+        };
+  }
+
   const historicalItemSnapshot = normalizeHistoricalAuditSnapshot(itemSnapshot);
   return {
     id: movement.id,
@@ -280,7 +383,9 @@ function normalizeSnapshot(value: unknown): InventorySnapshot | null {
   };
 }
 
-function transactSnapshot<T>(change: (snapshot: InventorySnapshot) => SnapshotChange<T>): Promise<T> {
+function transactSnapshot<T>(
+  change: (snapshot: InventorySnapshot, source: SnapshotSource) => SnapshotChange<T>,
+): Promise<T> {
   return openDatabase().then((database) => new Promise<T>((resolve, reject) => {
     const transaction = database.transaction(SNAPSHOT_STORE, "readwrite");
     const store = transaction.objectStore(SNAPSHOT_STORE);
@@ -290,11 +395,16 @@ function transactSnapshot<T>(change: (snapshot: InventorySnapshot) => SnapshotCh
 
     request.onsuccess = () => {
       const stored = request.result as SnapshotRecord | undefined;
-      const snapshot = (stored && normalizeSnapshot(stored.value))
-        || readLegacySnapshot()
-        || createSampleSnapshot();
+      const storedSnapshot = stored ? normalizeSnapshot(stored.value) : null;
+      const legacySnapshot = storedSnapshot ? null : readLegacySnapshot();
+      const source: SnapshotSource = stored
+        ? "indexeddb"
+        : legacySnapshot
+          ? "legacy"
+          : "samples";
+      const snapshot = storedSnapshot || legacySnapshot || createSampleSnapshot();
       try {
-        const update = change(snapshot);
+        const update = change(snapshot, source);
         result = update.result;
         if (update.persist !== false) {
           store.put({ id: SNAPSHOT_ID, value: update.snapshot } satisfies SnapshotRecord);
@@ -416,6 +526,33 @@ export function calculateInventoryMovementChanges(
     : null;
 }
 
+function calculateInventoryMovementChangesV2(
+  beforeItem: InventoryItem,
+  beforeCategoryName: string,
+  afterItem: InventoryItem,
+  afterCategoryName: string,
+): NonEmptyInventoryMovementChangesV2 | null {
+  const changes: InventoryMovementChangesV2 = {
+    ...(calculateInventoryMovementChanges(
+      beforeItem,
+      beforeCategoryName,
+      afterItem,
+      afterCategoryName,
+    ) ?? {}),
+  };
+
+  if (!assetStatusesMatch(beforeItem.status, afterItem.status)) {
+    changes.status = {
+      before: resolveAssetStatus(beforeItem.status).value,
+      after: resolveAssetStatus(afterItem.status).value,
+    };
+  }
+
+  return Object.keys(changes).length > 0
+    ? changes as NonEmptyInventoryMovementChangesV2
+    : null;
+}
+
 function movementItemSnapshot(item: InventoryItem, categories: Category[]): MovementItemSnapshot {
   return {
     code: item.code,
@@ -491,7 +628,11 @@ function validateCategoryName(name: string, categories: Category[], currentId?: 
 }
 
 export function loadSnapshot(): Promise<InventorySnapshot> {
-  return transactSnapshot((snapshot) => ({ snapshot, result: snapshot }));
+  return transactSnapshot((snapshot, source) => ({
+    snapshot,
+    result: snapshot,
+    persist: source !== "indexeddb",
+  }));
 }
 
 export function createItem(draft: ItemDraft): Promise<void> {
@@ -528,27 +669,43 @@ export function createItem(draft: ItemDraft): Promise<void> {
   });
 }
 
-export function updateItem(id: string, draft: ItemDraft): Promise<UpdateItemResult> {
+export function updateItem(id: string, draft: UpdateItemDraft): Promise<UpdateItemResult> {
   return transactSnapshot((snapshot) => {
     const currentItem = snapshot.items.find((item) => item.id === id);
     if (!currentItem) throw new Error("El artículo ya no existe.");
-    validateItemDraft(draft, snapshot.items, id);
+    const { reason, ...itemDraft } = draft;
+    validateItemDraft(itemDraft, snapshot.items, id);
     const candidateItem: InventoryItem = {
       ...currentItem,
-      ...draft,
-      code: draft.code.trim(),
-      name: draft.name.trim(),
-      sku: draft.sku.trim(),
-      serialNumber: draft.serialNumber.trim(),
-      brand: draft.brand.trim(),
-      model: draft.model.trim(),
-      location: draft.location.trim(),
-      notes: draft.notes.trim(),
+      ...itemDraft,
+      status: itemDraft.status === undefined ? currentItem.status : itemDraft.status,
+      code: itemDraft.code.trim(),
+      name: itemDraft.name.trim(),
+      sku: itemDraft.sku.trim(),
+      serialNumber: itemDraft.serialNumber.trim(),
+      brand: itemDraft.brand.trim(),
+      model: itemDraft.model.trim(),
+      location: itemDraft.location.trim(),
+      notes: itemDraft.notes.trim(),
     };
+
+    const statusChanged = !assetStatusesMatch(currentItem.status, candidateItem.status);
+    let statusReason: string | undefined;
+    if (statusChanged) {
+      const nextStatus = resolveAssetStatus(candidateItem.status);
+      if (nextStatus.kind !== "canonical") {
+        throw new Error("Selecciona un estado válido para el artículo.");
+      }
+      if (!getAllowedTransitions(currentItem.status).includes(nextStatus.value)) {
+        throw new Error("La transición de estado no está permitida.");
+      }
+      candidateItem.status = nextStatus.value;
+      statusReason = normalizeAssetStatusReason(nextStatus.value, reason);
+    }
 
     const beforeCategoryName = movementItemSnapshot(currentItem, snapshot.categories).categoryName;
     const afterCategoryName = movementItemSnapshot(candidateItem, snapshot.categories).categoryName;
-    const changes = calculateInventoryMovementChanges(
+    const changes = calculateInventoryMovementChangesV2(
       currentItem,
       beforeCategoryName,
       candidateItem,
@@ -561,18 +718,27 @@ export function updateItem(id: string, draft: ItemDraft): Promise<UpdateItemResu
     const now = new Date().toISOString();
     const updatedItem = { ...candidateItem, updatedAt: now };
     const auditSnapshot = createInventoryMovementAuditSnapshot(updatedItem, afterCategoryName);
-    const movement: InventoryMovement = {
+    const movementBase = {
       id: crypto.randomUUID(),
-      type: "updated",
+      type: "updated" as const,
       occurredAt: now,
-      auditVersion: 1,
+      auditVersion: 2 as const,
       itemSnapshot: {
         code: auditSnapshot.code,
         name: auditSnapshot.name,
         categoryName: auditSnapshot.categoryName,
       },
-      changes,
     };
+    const movement: InventoryMovement = statusChanged
+      ? {
+          ...movementBase,
+          changes: changes as UpdatedMovementV2WithStatus["changes"],
+          reason: statusReason ?? "",
+        }
+      : {
+          ...movementBase,
+          changes: changes as UpdatedMovementV2WithoutStatus["changes"],
+        };
 
     return {
       snapshot: {
