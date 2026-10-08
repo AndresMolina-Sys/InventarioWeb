@@ -6,7 +6,7 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Definir tipos para tema (`system | light | dark`), densidad (`comfortable | compact`) y `AppPreferences` con exactamente `theme`, `showRecentActivityChart`, `showCategoryChart` y `tableDensity`. No agregar idioma.
   - Hecho cuando: TypeScript expone los cuatro campos con sus uniones y booleanos correctos, no hay campo `language`, y `npm run build` termina correctamente.
 
-- [ ] **T02. Repositorio de preferencias (`src/lib/preferencesRepository.ts`) — 25–30 min.** RF-2, RF-3, RF-7, RF-8 (Principios P1, P3, P5)
+- [x] **T02. Repositorio de preferencias (`src/lib/preferencesRepository.ts`) — 25–30 min.** RF-2, RF-3, RF-7, RF-8 (Principios P1, P3, P5)
   - Crear el repositorio local autorizado en el plan. Guardar y leer el objeto completo en `localStorage` con clave propia versionada; normalizar cada propiedad independientemente y reportar fallos de acceso, parseo o escritura sin lanzar excepciones al llamador. No leer ni escribir IndexedDB.
   - Hecho cuando: La comprobación manual confirma los cuatro defaults, la preservación de campos válidos ante campos ausentes/inválidos y resultados explícitos para errores de almacenamiento; `npm run build` pasa.
 
