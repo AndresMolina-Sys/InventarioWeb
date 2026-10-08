@@ -14,7 +14,7 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
 
 ## Fase 2: lógica pura de idioma y formato
 
-- [ ] **T03. `src/i18n.ts` — catálogos tipados y funciones puras (20–30 min).** RF-3, RF-4, RF-7 (Principios 1, 3, 5, 6)
+- [x] **T03. `src/i18n.ts` — catálogos tipados y funciones puras (20–30 min).** RF-3, RF-4, RF-7 (Principios 1, 3, 5, 6)
   - Crear el módulo aprobado con catálogos paralelos completos en español e inglés, selección tipada sin fallback silencioso entre idiomas, formato de fechas `es-CR`/`en-US` en zona local, formato de números y USD fijo `$1,234.56`, textos para datos opcionales vacíos y etiquetas de estados canónicos/desconocidos. Mantener los estados no canónicos como valor raw.
   - Hecho cuando: el build rechaza claves de catálogo faltantes; funciones puras con igual entrada producen los textos y formatos del idioma solicitado, preservan el instante de fecha y no modifican ningún valor recibido.
 
