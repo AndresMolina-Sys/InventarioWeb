@@ -1359,9 +1359,17 @@ function ItemDetailModal({ item, categoryName, onClose }: {
 
   return <ModalFrame key="article-detail" title="Detalle del artículo" subtitle="Información del registro interno." onClose={closeCurrentView} manageFocus>
     <div className="modal-form article-detail">
-      <div className="article-detail-title"><span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span><div><strong>{item.name}</strong><small>{item.code}</small></div></div>
+      <div className="article-detail-title">
+        <span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span>
+        <div className="article-detail-heading">
+          <div className="article-detail-name-row">
+            <strong>{item.name}</strong>
+            <span className="article-detail-status"><span>Estado</span><AssetStatusBadge status={item.status} /></span>
+          </div>
+          <small>{item.code}</small>
+        </div>
+      </div>
       <dl className="article-detail-grid">
-        <div><dt>Estado</dt><dd><AssetStatusBadge status={item.status} /></dd></div>
         <div><dt>Categoría</dt><dd>{categoryName ?? "Sin categoría"}</dd></div>
         <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
         <div><dt>Código</dt><dd>{item.code}</dd></div>

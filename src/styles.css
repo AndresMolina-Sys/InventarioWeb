@@ -327,8 +327,11 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .internal-dashboard-grid .category-item { width: 100%; min-width: 0; }
 .article-detail { display: block; }
 .article-detail-title { display: flex; align-items: center; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
-.article-detail-title > div { display: grid; gap: 5px; }
-.article-detail-title strong { color: var(--ink); font-size: 14px; }
+.article-detail-heading { display: grid; flex: 1 1 auto; gap: 5px; min-width: 0; }
+.article-detail-name-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.article-detail-title strong { flex: 1 1 150px; min-width: 0; color: var(--ink); font-size: 14px; overflow-wrap: anywhere; }
+.article-detail-status { display: inline-flex; align-items: center; flex: 0 1 auto; gap: 7px; min-width: 0; color: var(--muted); font-size: var(--type-meta-size); font-weight: 500; line-height: 1.25; }
+.article-detail-status .asset-status-badge { flex: 0 1 auto; }
 .article-detail-title small { color: var(--muted); font-size: var(--type-meta-size); font-weight: 400; line-height: 1.25; }
 .article-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; margin: 18px 0; }
 .article-detail-grid div { min-width: 0; }
