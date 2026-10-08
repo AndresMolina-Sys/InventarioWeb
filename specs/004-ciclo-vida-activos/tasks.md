@@ -53,7 +53,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T09 — Estilos, accesibilidad y responsive (`src/styles.css`) — 25–30 min
 
-- [ ] **Cubre:** RF-3, RF-4, RF-6, RF-7, RF-8, RF-12, RF-13; principios P2, P4, P6.
+- [x] **Cubre:** RF-3, RF-4, RF-6, RF-7, RF-8, RF-12, RF-13; principios P2, P4, P6.
 - Estilizar insignias por estado, filtros, avisos, controles bloqueados, formulario y diálogo irreversible con tokens existentes; conservar foco visible, contraste, tipografía mínima 12 px y estructura adaptable.
 - **Hecho cuando:** Chrome DevTools a 360 px y 375 px muestra filtros, tabla, formulario y diálogo sin desbordamiento horizontal; estados se distinguen además del color y ningún texto visible mide menos de 12 px.
 

@@ -607,6 +607,331 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   }
 }
 
+/* Lifecycle controls and bounded, scrollable dialogs. */
+@media screen {
+  .asset-status-badge {
+    min-width: 0;
+    min-height: 28px;
+    max-width: 100%;
+    padding: 5px 8px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #4f5665;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .asset-status-badge::before {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+    background: currentColor;
+    content: "";
+  }
+
+  .asset-status-badge.is-available {
+    color: #237653;
+    border-color: #c5e4d5;
+    background: #eff8f3;
+  }
+
+  .asset-status-badge.is-assigned {
+    color: #5147bd;
+    border-color: #d4cff7;
+    background: #f2f0ff;
+  }
+
+  .asset-status-badge.is-maintenance {
+    color: #805915;
+    border-color: #f0d9a8;
+    background: #fff8e9;
+  }
+
+  .asset-status-badge.is-decommissioned {
+    color: #9b3f45;
+    border-color: #ecc9cb;
+    background: #fff3f3;
+  }
+
+  .asset-status-badge.is-unknown {
+    color: #505866;
+    border-color: #d0d5dd;
+    background: #f2f4f6;
+  }
+
+  .inventory-toolbar .toolbar-actions {
+    min-width: 0;
+  }
+
+  .inventory-toolbar .toolbar-actions select {
+    min-width: 0;
+    color: #535b69;
+    border-color: #d9dde4;
+    background-color: #fff;
+  }
+
+  .inventory-toolbar .toolbar-actions select:focus-visible,
+  .modal-card :is(input, select, textarea, button):focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  button.quiet-icon:disabled[aria-disabled="true"] {
+    opacity: 1;
+    color: #737b89;
+    background: #f2f3f5;
+    cursor: not-allowed;
+  }
+
+  .modal-backdrop {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .modal-card {
+    min-width: 0;
+    max-width: min(100%, calc(100vw - 48px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-heading {
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  .modal-heading > div,
+  .modal-form,
+  .form-grid,
+  .modal-footer {
+    min-width: 0;
+  }
+
+  .modal-heading > div {
+    flex: 1 1 auto;
+  }
+
+  .modal-heading h2,
+  .modal-heading p {
+    overflow-wrap: anywhere;
+  }
+
+  .modal-heading p {
+    color: #626a78;
+  }
+
+  .modal-form {
+    min-height: 0;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-x: auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .form-grid > *,
+  .modal-form label,
+  .modal-form input,
+  .modal-form select,
+  .modal-form textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .modal-form select:disabled,
+  .modal-form input:disabled,
+  .modal-form textarea:disabled {
+    color: #535b69;
+    border-color: #d9dde4;
+    background: #f2f3f5;
+    cursor: not-allowed;
+  }
+
+  .modal-form input::placeholder,
+  .modal-form textarea::placeholder {
+    color: #737b89;
+    opacity: 1;
+  }
+
+  .modal-hint {
+    color: #626a78;
+    overflow-wrap: anywhere;
+  }
+
+  .form-error {
+    color: #96363c;
+    overflow-wrap: anywhere;
+  }
+
+  .decommission-confirmation {
+    width: min(470px, 100%);
+    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
+  }
+
+  .decommission-confirmation .modal-heading {
+    border-bottom-color: #f0d7d8;
+    background: #fff8f8;
+  }
+
+  .decommission-confirmation .modal-mark {
+    color: #9b3f45;
+    background: #fff0f0;
+  }
+
+  .decommission-confirmation-content {
+    width: 100%;
+    padding: 17px 19px 19px;
+  }
+
+  .decommission-confirmation-content > p:first-child {
+    margin: 0 0 15px;
+    color: #535b69;
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .decommission-confirmation-content label {
+    color: #454d5b;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .decommission-confirmation-content .modal-hint {
+    display: block;
+    margin: 7px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .decommission-confirmation-content .form-error {
+    padding: 10px 12px;
+    border: 1px solid #ecc9cb;
+    border-radius: 8px;
+    color: #8f3035;
+    background: #fff5f5;
+  }
+
+  .decommission-confirmation-content .modal-footer {
+    flex-wrap: nowrap;
+  }
+
+  .decommission-confirmation-content .modal-footer .button {
+    min-width: 0;
+    min-height: 42px;
+  }
+
+  .decommission-confirmation .button-primary:disabled {
+    opacity: 1;
+    color: #5c5875;
+    border-color: #d8d5ed;
+    background: #eeecf8;
+    box-shadow: none;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .inventory-toolbar .toolbar-actions {
+    align-items: stretch;
+  }
+
+  .inventory-toolbar .toolbar-actions select {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .inventory-toolbar .toolbar-actions .button {
+    flex: 1 1 100%;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modal-card {
+    width: min(590px, 100%);
+    max-width: min(100%, calc(100vw - 24px));
+    min-width: 0;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+
+  .modal-heading {
+    gap: 8px;
+    padding: 14px;
+    align-items: flex-start;
+  }
+
+  .modal-heading > div {
+    min-width: 0;
+    align-items: flex-start;
+  }
+
+  .modal-heading > button {
+    flex: 0 0 29px;
+  }
+
+  .modal-form {
+    padding: 14px;
+    overflow-x: auto;
+  }
+
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 11px;
+  }
+
+  .field-span-2 {
+    grid-column: 1;
+  }
+
+  .modal-footer {
+    align-items: stretch;
+  }
+
+  .modal-footer .modal-hint {
+    flex: 1 0 100%;
+    width: 100%;
+  }
+
+  .modal-footer .button {
+    min-width: 0;
+    min-height: 42px;
+    flex: 1 1 0;
+  }
+
+  .decommission-confirmation {
+    width: min(470px, 100%);
+    max-width: min(100%, calc(100vw - 24px));
+  }
+
+  .decommission-confirmation-content {
+    padding: 14px;
+  }
+
+  .decommission-confirmation-content .modal-footer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .decommission-confirmation-content .modal-footer .button {
+    width: 100%;
+    padding: 0 8px;
+    font-size: 13px;
+    white-space: normal;
+  }
+}
+
 /* Technical sheet preview — formal document, fitted inside the responsive dialog. */
 .technical-sheet-preview-modal {
   width: min(980px, 100%);
