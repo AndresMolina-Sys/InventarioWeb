@@ -20,7 +20,7 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
 
 ## Fase 3: interfaz y flujo de usuario
 
-- [ ] **T04. `src/App.tsx` — selector, navegación y Resumen (20–30 min).** RF-1, RF-2, RF-3, RF-8 (Principios 2, 5, 6)
+- [x] **T04. `src/App.tsx` — selector, navegación y Resumen (20–30 min).** RF-1, RF-2, RF-3, RF-8 (Principios 2, 5, 6)
   - Integrar el selector Español/English en Ajustes con etiquetas accesibles; aplicar inmediatamente la preferencia al árbol visible y al atributo semántico de idioma; localizar navegación, Ajustes y Resumen, incluidos KPI, gráficos, leyendas, ejes y vacíos.
   - Hecho cuando: seleccionar cualquiera de los idiomas actualiza en menos de 100 ms el selector, la navegación y todo texto generado del Resumen sin recarga; reiniciar preferencias confirmando/cancelando produce los resultados de RF-8.
 

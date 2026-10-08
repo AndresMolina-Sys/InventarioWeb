@@ -6,6 +6,8 @@ import { createDefaultAppPreferences, loadAppPreferences, saveAppPreferences } f
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemDraft, UpdateItemResult } from "./lib/inventoryRepository";
 import type { AppPreferences, AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot, ThemePreference } from "./types";
+import { formatDate, formatGreeting, formatNumber, formatUsd, getLocale, translate } from "./i18n";
+import type { TranslationKey, TranslationParameters } from "./i18n";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "settings" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
@@ -205,11 +207,8 @@ function technicalSheetDateLabel(value: string | undefined): string {
   return dateLabel(value);
 }
 
-const categoryPercentageFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
-
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  return hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+function translated(language: AppPreferences["language"], key: TranslationKey, parameters?: TranslationParameters): string {
+  return translate(language, key, parameters);
 }
 
 type EffectiveTheme = Exclude<ThemePreference, "system">;
@@ -278,6 +277,7 @@ function useAppPreferences() {
 function App() {
   const preferenceState = useAppPreferences();
   const { preferences, effectiveTheme, preferencesNotice } = preferenceState;
+  const language = preferences.language;
   const [page, setPage] = useState<Page>("dashboard");
   const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [], movements: [] });
   const snapshotRef = useRef(snapshot);
@@ -294,6 +294,11 @@ function App() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.title = `${translated(language, "appName")} — ${translated(language, "internalControl")}`;
+  }, [language]);
 
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
@@ -434,33 +439,35 @@ function App() {
     URL.revokeObjectURL(href);
   }
 
-  if (dataLoading) return <LoadingScreen />;
+  if (dataLoading) return <LoadingScreen language={language} />;
   const selectedCategory = snapshot.categories.find((category) => category.id === selectedCategoryId) ?? null;
-  const pageTitle = page === "dashboard" ? "Resumen" : page === "inventory" ? "Artículos" : page === "movements" ? "Movimientos" : page === "settings" ? "Ajustes" : page === "category-detail" ? selectedCategory?.name ?? "Categoría" : "Categorías";
+  const pageTitle = page === "category-detail"
+    ? selectedCategory?.name ?? translated(language, "categoryDetail")
+    : translated(language, page === "dashboard" ? "dashboard" : page === "inventory" ? "articles" : page === "movements" ? "movements" : page === "settings" ? "settings" : "categories");
   const preferencesNoticeMessage = preferencesNotice === "read"
-    ? "No se pudieron leer las preferencias locales; se usarán los valores iniciales."
+    ? translated(language, "preferencesReadError")
     : preferencesNotice === "write"
-      ? "No se pudieron guardar las preferencias; este cambio se conservará solo durante esta sesión."
+      ? translated(language, "preferencesWriteError")
       : null;
 
-  return <div className="app-shell" data-theme={effectiveTheme} data-table-density={preferences.tableDensity}>
-    <Sidebar page={page} onPage={setPage} itemCount={snapshot.items.length} categoryCount={snapshot.categories.length} />
+  return <div className="app-shell" lang={language} data-theme={effectiveTheme} data-table-density={preferences.tableDensity}>
+    <Sidebar page={page} onPage={setPage} itemCount={snapshot.items.length} categoryCount={snapshot.categories.length} language={language} />
     <main className="main-area">
       <div className="topbar">
-        <div className="breadcrumb"><span>Control interno</span><Icon name="chevron" size={14} /><strong>{pageTitle}</strong></div>
+        <div className="breadcrumb"><span>{translated(language, "internalControl")}</span><Icon name="chevron" size={14} /><strong>{pageTitle}</strong></div>
         <label className="global-search">
           <Icon name="search" size={17} />
-          <input id="global-search" name="search" aria-label="Buscar artículos" placeholder="Buscar artículo o código..." value={search} onChange={(event) => { setSearch(event.target.value); setPage("inventory"); }} />
+          <input id="global-search" name="search" aria-label={translated(language, "searchArticles")} placeholder={translated(language, "searchArticleOrCode")} value={search} onChange={(event) => { setSearch(event.target.value); setPage("inventory"); }} />
           <kbd>⌘ K</kbd>
         </label>
         <div className="topbar-right">
-          <span className="connection-pill is-demo"><span className="connection-dot" aria-hidden="true" /><span className="connection-label">Datos locales</span></span>
+          <span className="connection-pill is-demo"><span className="connection-dot" aria-hidden="true" /><span className="connection-label">{translated(language, "localData")}</span></span>
         </div>
       </div>
 
       {(error || preferencesNoticeMessage || notice) && <div className={`toast ${error || preferencesNoticeMessage ? "toast-error" : "toast-success"}`} role={error || preferencesNoticeMessage ? "alert" : "status"}>
         <Icon name={error || preferencesNoticeMessage ? "alert" : "check"} size={17} /><span>{error || preferencesNoticeMessage || notice}</span>
-        {error && <button className="toast-dismiss" onClick={() => setError("")} aria-label="Cerrar aviso"><Icon name="close" size={16} /></button>}
+        {error && <button className="toast-dismiss" onClick={() => setError("")} aria-label={translated(language, "closeNotice")}><Icon name="close" size={16} /></button>}
       </div>}
 
       {page === "dashboard" && <DashboardPage
@@ -468,6 +475,7 @@ function App() {
         categories={snapshot.categories}
         movements={snapshot.movements}
         categoryName={categoryName}
+        language={language}
         showRecentActivityChart={preferences.showRecentActivityChart}
         showCategoryChart={preferences.showCategoryChart}
         onViewInventory={() => setPage("inventory")}
@@ -536,28 +544,32 @@ function errorMessage(reason: unknown): string {
   return "Ocurrió un error inesperado. Intenta de nuevo.";
 }
 
-function Sidebar({ page, onPage, itemCount, categoryCount }: { page: Page; onPage: (page: Page) => void; itemCount: number; categoryCount: number }) {
+function Sidebar({ page, onPage, itemCount, categoryCount, language }: { page: Page; onPage: (page: Page) => void; itemCount: number; categoryCount: number; language: AppPreferences["language"] }) {
   const activePage = page === "category-detail" ? "categories" : page;
-  const links: Array<{ key: Exclude<Page, "category-detail">; label: string; icon: IconName }> = [
-    { key: "dashboard", label: "Resumen", icon: "dashboard" },
-    { key: "inventory", label: "Artículos", icon: "box" },
-    { key: "categories", label: "Categorías", icon: "layers" },
-    { key: "movements", label: "Movimientos", icon: "clock" },
-    { key: "settings", label: "Ajustes", icon: "settings" },
+  const links: Array<{ key: Exclude<Page, "category-detail">; labelKey: TranslationKey; icon: IconName }> = [
+    { key: "dashboard", labelKey: "dashboard", icon: "dashboard" },
+    { key: "inventory", labelKey: "articles", icon: "box" },
+    { key: "categories", labelKey: "categories", icon: "layers" },
+    { key: "movements", labelKey: "movements", icon: "clock" },
+    { key: "settings", labelKey: "settings", icon: "settings" },
   ];
+  const t = (key: TranslationKey) => translated(language, key);
   return <aside className="sidebar">
     <a className="brand" href="#inicio" onClick={(event) => { event.preventDefault(); onPage("dashboard"); }}>
-      <span className="brand-symbol"><Icon name="layers" size={19} /></span><span>Control<span> interno</span></span>
+      <span className="brand-symbol"><Icon name="layers" size={19} /></span><span>{t("internalControl")}</span>
     </a>
-    <div className="workspace-select"><span className="workspace-mark">I</span><span><strong>InventarioWeb</strong><small>Registro de artículos</small></span><Icon name="chevron" size={15} /></div>
-    <div className="nav-label">MENÚ</div>
-    <nav className="side-nav" aria-label="Navegación principal">
-      {links.map((link) => <button key={link.key} className={`nav-link ${activePage === link.key ? "active" : ""}`} aria-label={link.label} aria-current={activePage === link.key ? "page" : undefined} title={link.label} onClick={() => onPage(link.key)}>
-        <Icon name={link.icon} size={18} /><span>{link.label}</span>{link.key === "inventory" ? <span className="nav-count">{itemCount}</span> : link.key === "categories" ? <span className="nav-count">{categoryCount}</span> : null}
-      </button>)}
+    <div className="workspace-select"><span className="workspace-mark">I</span><span><strong>InventarioWeb</strong><small>{t("appDescription")}</small></span><Icon name="chevron" size={15} /></div>
+    <div className="nav-label">{t("menu")}</div>
+    <nav className="side-nav" aria-label={t("mainNavigation")}>
+      {links.map((link) => {
+        const label = t(link.labelKey);
+        return <button key={link.key} className={`nav-link ${activePage === link.key ? "active" : ""}`} aria-label={label} aria-current={activePage === link.key ? "page" : undefined} title={label} onClick={() => onPage(link.key)}>
+          <Icon name={link.icon} size={18} /><span>{label}</span>{link.key === "inventory" ? <span className="nav-count">{formatNumber(itemCount, language)}</span> : link.key === "categories" ? <span className="nav-count">{formatNumber(categoryCount, language)}</span> : null}
+        </button>;
+      })}
     </nav>
     <div className="sidebar-spacer" />
-    <div className="sidebar-note"><span className="note-icon"><Icon name="spark" size={16} /></span><strong>Control organizado</strong><p>Consulta los artículos y sus datos en un solo lugar.</p></div>
+    <div className="sidebar-note"><span className="note-icon"><Icon name="spark" size={16} /></span><strong>{t("controlOrganized")}</strong><p>{t("inventoryDescription")}</p></div>
   </aside>;
 }
 
@@ -568,64 +580,71 @@ function SettingsPage({ preferences, onChange, onReset }: {
 }) {
   const [resetOpen, setResetOpen] = useState(false);
   const cancelResetRef = useRef<HTMLButtonElement>(null);
+  const t = (key: TranslationKey) => translated(preferences.language, key);
 
   return <section className="page-content">
     <div className="page-heading">
-      <div><div className="eyebrow">CONTROL INTERNO</div><h1>Ajustes</h1><p>Personaliza la apariencia y la información visible.</p></div>
+      <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(preferences.language))}</div><h1>{t("settings")}</h1><p>{t("settingsDescription")}</p></div>
     </div>
     <section className="panel inventory-panel">
       <div className="inventory-toolbar">
-        <div><h2>Preferencias de visualización</h2><p>Los cambios se aplican a esta sesión y se guardan en este navegador.</p></div>
+        <div><h2>{t("settingsTitle")}</h2><p>{t("localSettingsNote")}</p></div>
       </div>
       <div className="modal-form">
         <div className="form-grid">
-          <label htmlFor="preference-theme">Tema
+          <label htmlFor="preference-language">{t("languagePreference")}
+            <select id="preference-language" name="language" value={preferences.language} onChange={(event) => onChange({ language: event.target.value as AppPreferences["language"] })}>
+              <option value="es">{t("languageSpanish")}</option>
+              <option value="en">{t("languageEnglish")}</option>
+            </select>
+          </label>
+          <label htmlFor="preference-theme">{t("theme")}
             <select id="preference-theme" name="theme" value={preferences.theme} onChange={(event) => onChange({ theme: event.target.value as ThemePreference })}>
-              <option value="system">Sistema</option>
-              <option value="light">Claro</option>
-              <option value="dark">Oscuro</option>
+              <option value="system">{t("themeSystem")}</option>
+              <option value="light">{t("themeLight")}</option>
+              <option value="dark">{t("themeDark")}</option>
             </select>
           </label>
-          <label htmlFor="preference-activity-chart">Actividad reciente
+          <label htmlFor="preference-activity-chart">{t("activityChartPreference")}
             <select id="preference-activity-chart" name="showRecentActivityChart" value={preferences.showRecentActivityChart ? "shown" : "hidden"} onChange={(event) => onChange({ showRecentActivityChart: event.target.value === "shown" })}>
-              <option value="shown">Visible</option>
-              <option value="hidden">Oculto</option>
+              <option value="shown">{t("visible")}</option>
+              <option value="hidden">{t("hidden")}</option>
             </select>
           </label>
-          <label htmlFor="preference-category-chart">Artículos por categoría
+          <label htmlFor="preference-category-chart">{t("categoryChartPreference")}
             <select id="preference-category-chart" name="showCategoryChart" value={preferences.showCategoryChart ? "shown" : "hidden"} onChange={(event) => onChange({ showCategoryChart: event.target.value === "shown" })}>
-              <option value="shown">Visible</option>
-              <option value="hidden">Oculto</option>
+              <option value="shown">{t("visible")}</option>
+              <option value="hidden">{t("hidden")}</option>
             </select>
           </label>
-          <label htmlFor="preference-table-density">Densidad de tablas
+          <label htmlFor="preference-table-density">{t("tableDensity")}
             <select id="preference-table-density" name="tableDensity" value={preferences.tableDensity} onChange={(event) => onChange({ tableDensity: event.target.value as AppPreferences["tableDensity"] })}>
-              <option value="comfortable">Cómoda</option>
-              <option value="compact">Compacta</option>
+              <option value="comfortable">{t("densityComfortable")}</option>
+              <option value="compact">{t("densityCompact")}</option>
             </select>
           </label>
         </div>
         <div className="modal-footer">
-          <span className="modal-hint">Las preferencias no modifican los registros del inventario.</span>
-          <button className="button button-outline" type="button" onClick={() => setResetOpen(true)}>Restablecer preferencias</button>
+          <span className="modal-hint">{t("inventoryDataUnaffected")}</span>
+          <button className="button button-outline" type="button" onClick={() => setResetOpen(true)}>{t("resetPreferences")}</button>
         </div>
       </div>
     </section>
     {resetOpen && <ModalFrame
-      title="Restablecer preferencias"
-      subtitle="Solo se restablecerán el tema, los gráficos y la densidad. Los artículos, categorías y movimientos no cambiarán."
+      title={t("confirmResetPreferences")}
+      subtitle={t("resetPreferencesWarning")}
       onClose={() => setResetOpen(false)}
       className="stock-modal"
       badge={<span className="modal-mark"><Icon name="settings" size={18} /></span>}
-      closeLabel="Cerrar confirmación"
+      closeLabel={t("closeConfirmation")}
       manageFocus
       initialFocusRef={cancelResetRef}
     >
       <div className="modal-form">
-        <p>Se aplicarán los valores iniciales: tema del sistema, ambos gráficos visibles y densidad cómoda.</p>
+        <p>{t("resetPreferencesSummary")}</p>
         <div className="modal-footer">
-          <button ref={cancelResetRef} className="button button-outline" type="button" onClick={() => setResetOpen(false)}>Cancelar</button>
-          <button className="button button-primary" type="button" onClick={() => { onReset(); setResetOpen(false); }}>Confirmar restablecimiento</button>
+          <button ref={cancelResetRef} className="button button-outline" type="button" onClick={() => setResetOpen(false)}>{t("cancel")}</button>
+          <button className="button button-primary" type="button" onClick={() => { onReset(); setResetOpen(false); }}>{t("confirmResetPreferences")}</button>
         </div>
       </div>
     </ModalFrame>}
@@ -644,17 +663,16 @@ function localDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function buildWeeklyActivity(movements: InventoryMovement[]): WeeklyActivityDay[] {
+function buildWeeklyActivity(movements: InventoryMovement[], language: AppPreferences["language"]): WeeklyActivityDay[] {
   const today = new Date();
-  const weekdayInitials = ["D", "L", "M", "X", "J", "V", "S"];
-  const longDate = new Intl.DateTimeFormat("es-CR", { weekday: "long", day: "numeric", month: "long" });
+  const weekdayKeys: TranslationKey[] = ["weekdaySunday", "weekdayMonday", "weekdayTuesday", "weekdayWednesday", "weekdayThursday", "weekdayFriday", "weekdaySaturday"];
   const todayKey = localDateKey(today);
   const days = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6 + index);
     return {
       dateKey: localDateKey(date),
-      label: `${weekdayInitials[date.getDay()]} ${date.getDate()}`,
-      longLabel: longDate.format(date),
+      label: `${translated(language, weekdayKeys[date.getDay()])} ${formatNumber(date.getDate(), language, { useGrouping: false })}`,
+      longLabel: formatDate(date, language, { weekday: "long", day: "numeric", month: "long" }),
       count: 0,
       isToday: localDateKey(date) === todayKey,
     };
@@ -671,8 +689,9 @@ function buildWeeklyActivity(movements: InventoryMovement[]): WeeklyActivityDay[
   return days.map((day) => ({ ...day, count: counts.get(day.dateKey) ?? 0 }));
 }
 
-function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
-  const days = useMemo(() => buildWeeklyActivity(movements), [movements]);
+function ActivityChart({ movements, language }: { movements: InventoryMovement[]; language: AppPreferences["language"] }) {
+  const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
+  const days = useMemo(() => buildWeeklyActivity(movements, language), [movements, language]);
   const maximum = Math.max(1, ...days.map((day) => day.count));
   const yTicks = (maximum <= 3
     ? Array.from({ length: maximum + 1 }, (_, index) => maximum - index)
@@ -682,28 +701,33 @@ function ActivityChart({ movements }: { movements: InventoryMovement[] }) {
     position: `${value / maximum * 100}%`,
   }));
   const total = days.reduce((sum, day) => sum + day.count, 0);
-  const activitySummary = days.map((day) => `${day.longLabel}: ${day.count} ${day.count === 1 ? "movimiento" : "movimientos"}`).join(". ");
+  const weekSuffix = t("movementsThisWeek").replace(t("movementPlural"), "").trim();
+  const activitySummary = days.map((day) => t("recentMovementSummary", {
+    date: day.longLabel,
+    count: formatNumber(day.count, language),
+    movementLabel: t(day.count === 1 ? "movementSingular" : "movementPlural"),
+  })).join(". ");
 
   return <section className="panel movement-chart-panel activity-chart-panel" aria-labelledby="activity-chart-title">
     <div className="panel-heading">
-      <div><h2 id="activity-chart-title">Actividad reciente</h2><p>Altas, ediciones y bajas de artículos en los últimos siete días.</p></div>
+      <div><h2 id="activity-chart-title">{t("recentActivity")}</h2><p>{t("recentActivityDescription")}</p></div>
       <span className="panel-icon"><Icon name="clock" size={18} /></span>
     </div>
-    {total === 0 && <p className="chart-empty-note">Sin movimientos registrados en los últimos siete días.</p>}
-    <div className="chart-area" role="img" aria-label={`Movimientos diarios. ${activitySummary}`}>
-      <div className="chart-y-labels" aria-hidden="true">{yTicks.map((tick) => <span key={tick.value} style={{ bottom: tick.position }}>{tick.value}</span>)}</div>
+    {total === 0 && <p className="chart-empty-note">{t("noRecentMovements")}</p>}
+    <div className="chart-area" role="img" aria-label={t("activityChartAccessibleName", { summary: activitySummary })}>
+      <div className="chart-y-labels" aria-hidden="true">{yTicks.map((tick) => <span key={tick.value} style={{ bottom: tick.position }}>{formatNumber(tick.value, language)}</span>)}</div>
       <div className="chart-plot" aria-hidden="true">
         {yTicks.map((tick) => <span className="chart-gridline" key={tick.value} style={{ bottom: tick.position }} />)}
         <div className="chart-bars">
           {days.map((day) => <div className="chart-column" key={day.dateKey}>
-            <span className="bar-count-label" aria-hidden="true" style={{ bottom: `calc(${day.count / maximum * 100}% + 6px)` }}>{day.count}</span>
+            <span className="bar-count-label" aria-hidden="true" style={{ bottom: `calc(${day.count / maximum * 100}% + 6px)` }}>{formatNumber(day.count, language)}</span>
             <div className="bar-rail"><span className={`bar-fill${day.count === 0 ? " inactive" : day.isToday ? " current" : ""}`} style={{ height: `${day.count / maximum * 100}%` }} /></div>
           </div>)}
         </div>
       </div>
       <div className="chart-x-labels" aria-hidden="true">{days.map((day) => <span key={day.dateKey}>{day.label}</span>)}</div>
     </div>
-    <div className="chart-legend"><span className="legend-dot" /><span>Movimientos por día</span><strong className="chart-total">{total} {total === 1 ? "movimiento" : "movimientos"} en la semana</strong></div>
+    <div className="chart-legend"><span className="legend-dot" /><span>{t("activityByDay")}</span><strong className="chart-total">{formatNumber(total, language)} {t(total === 1 ? "movementSingular" : "movementPlural")} {weekSuffix}</strong></div>
   </section>;
 }
 
@@ -942,16 +966,18 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
   </section>;
 }
 
-function DashboardPage({ items, categories, movements, categoryName, showRecentActivityChart, showCategoryChart, onViewInventory, onViewCategories }: {
+function DashboardPage({ items, categories, movements, categoryName, language, showRecentActivityChart, showCategoryChart, onViewInventory, onViewCategories }: {
   items: InventoryItem[];
   categories: Category[];
   movements: InventoryMovement[];
   categoryName: Map<string, string>;
+  language: AppPreferences["language"];
   showRecentActivityChart: boolean;
   showCategoryChart: boolean;
   onViewInventory: () => void;
   onViewCategories: () => void;
 }) {
+  const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const [recentPage, setRecentPage] = useState(1);
   const [categoryViewMode, setCategoryViewMode] = useState<"percentage" | "count">("percentage");
   const categoryTotals = categories.map((category) => ({
@@ -967,15 +993,15 @@ function DashboardPage({ items, categories, movements, categoryName, showRecentA
   const visibleRecentItems = recentItems.slice(firstRecentIndex, firstRecentIndex + recentPageSize);
   useEffect(() => setRecentPage(1), [items]);
   const registeredValue = items.reduce((total, item) => total + (item.cost !== null && Number.isFinite(item.cost) && item.cost >= 0 ? item.cost : 0), 0);
-  const fullRegisteredValue = registeredValueLabel(registeredValue);
+  const fullRegisteredValue = formatUsd(registeredValue);
   const useCompactRegisteredValue = fullRegisteredValue.length > 10;
   const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string; currency?: boolean; exactValue?: string; compact?: boolean }> = [
-    { label: "Artículos registrados", value: String(items.length).padStart(2, "0"), detail: "En el registro actual", icon: "box", color: "violet" },
-    { label: "Categorías", value: String(categories.length), detail: "Para clasificar artículos", icon: "layers", color: "blue" },
+    { label: t("registeredArticles"), value: formatNumber(items.length, language).padStart(2, "0"), detail: t("currentRegister"), icon: "box", color: "violet" },
+    { label: t("categories"), value: formatNumber(categories.length, language), detail: t("toClassifyArticles"), icon: "layers", color: "blue" },
     {
-      label: "Valor registrado",
+      label: t("registeredValue"),
       value: useCompactRegisteredValue ? compactRegisteredValueLabel(registeredValue) : fullRegisteredValue,
-      detail: "Suma de costos capturados",
+      detail: t("capturedCostsSum"),
       icon: "currency",
       color: "green",
       currency: true,
@@ -985,8 +1011,8 @@ function DashboardPage({ items, categories, movements, categoryName, showRecentA
   ];
   return <section className="page-content">
     <div className="page-heading dashboard-heading">
-      <div><div className="eyebrow">{new Intl.DateTimeFormat("es-CR", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}</div><h1>{getGreeting()} <span className="wave">✦</span></h1><p>Resumen del registro interno de artículos.</p></div>
-      <div className="dashboard-actions"><button className="button button-outline" onClick={onViewCategories}><Icon name="layers" size={17} />Ver categorías</button><button className="button button-primary" onClick={onViewInventory}><Icon name="box" size={17} />Ver artículos</button></div>
+      <div><div className="eyebrow">{formatDate(new Date(), language, { weekday: "long", day: "numeric", month: "long" })}</div><h1>{formatGreeting(new Date().getHours(), language)} <span className="wave">✦</span></h1><p>{t("dashboardDescription")}</p></div>
+      <div className="dashboard-actions"><button className="button button-outline" onClick={onViewCategories}><Icon name="layers" size={17} />{t("view")} {t("categories")}</button><button className="button button-primary" onClick={onViewInventory}><Icon name="box" size={17} />{t("view")} {t("articles")}</button></div>
     </div>
 
     <div className="stats-grid stats-grid-internal">
@@ -1002,18 +1028,18 @@ function DashboardPage({ items, categories, movements, categoryName, showRecentA
     </div>
 
     <div className="dashboard-grid internal-dashboard-grid" data-show-activity-chart={showRecentActivityChart} data-show-category-chart={showCategoryChart}>
-      {showRecentActivityChart && <ActivityChart movements={movements} />}
+      {showRecentActivityChart && <ActivityChart movements={movements} language={language} />}
       <section className="panel recent-panel">
         <div className="panel-heading">
           <div className="recent-panel-heading-main">
-            <h2>Ingresos recientes</h2>
-            <p>Artículos agregados más recientemente</p>
+            <h2>{t("recentEntries")}</h2>
+            <p>{t("recentlyAddedArticles")}</p>
           </div>
           <div className="recent-heading-tools">
-            {recentItems.length > recentPageSize && <nav className="recent-pagination" aria-label="Paginación de ingresos recientes">
-              <button className="quiet-icon recent-page-button" aria-label="Página anterior de ingresos" title="Ingresos anteriores" onClick={() => setRecentPage((page) => Math.max(1, Math.min(page, recentPageCount) - 1))} disabled={currentRecentPage === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
-              <span className="sr-only" aria-live="polite">Página {currentRecentPage} de {recentPageCount}</span>
-              <button className="quiet-icon recent-page-button" aria-label="Página siguiente de ingresos" title="Más ingresos" onClick={() => setRecentPage((page) => Math.min(recentPageCount, Math.min(page, recentPageCount) + 1))} disabled={currentRecentPage === recentPageCount}><Icon name="chevron" size={15} /></button>
+            {recentItems.length > recentPageSize && <nav className="recent-pagination" aria-label={t("recentItemsPagination")}>
+              <button className="quiet-icon recent-page-button" aria-label={t("previousPage")} title={t("previousEntries")} onClick={() => setRecentPage((page) => Math.max(1, Math.min(page, recentPageCount) - 1))} disabled={currentRecentPage === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
+              <span className="sr-only" aria-live="polite">{t("movementPageCount", { page: formatNumber(currentRecentPage, language), pages: formatNumber(recentPageCount, language) })}</span>
+              <button className="quiet-icon recent-page-button" aria-label={t("nextPage")} title={t("moreEntries")} onClick={() => setRecentPage((page) => Math.min(recentPageCount, Math.min(page, recentPageCount) + 1))} disabled={currentRecentPage === recentPageCount}><Icon name="chevron" size={15} /></button>
             </nav>}
             <span className="panel-icon"><Icon name="clock" size={18} /></span>
           </div>
@@ -1021,17 +1047,17 @@ function DashboardPage({ items, categories, movements, categoryName, showRecentA
         {recentItems.length > 0 ? <div className="recent-list">
           {visibleRecentItems.map((item) => <div className="recent-row article-recent-row" key={item.id}>
             <span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span>
-            <span className="recent-copy"><strong>{item.name}</strong><small>{categoryName.get(item.categoryId) ?? "Sin categoría"} · {dateLabel(item.createdAt)}</small></span>
+            <span className="recent-copy"><strong>{item.name}</strong><small>{categoryName.get(item.categoryId) ?? t("noCategory")} · {formatDate(item.createdAt, language)}</small></span>
           </div>)}
-        </div> : <EmptyState title="Sin artículos todavía" text="Los artículos que agregues aparecerán aquí." />}
+        </div> : <EmptyState title={t("noArticlesYet")} text={t("articlesWillAppear")} />}
       </section>
       {showCategoryChart && <section className="panel category-panel">
         <div className="panel-heading category-panel-heading">
-          <div className="category-heading-copy"><h2>Artículos por categoría</h2><p>Registros en cada grupo</p></div>
+          <div className="category-heading-copy"><h2>{t("articlesByCategory")}</h2><p>{t("categoryItemsCountDescription")}</p></div>
           <div className="category-heading-tools">
-            <div className="category-view-toggle" role="group" aria-label="Modo de visualización de artículos por categoría">
-              <button type="button" aria-label="Mostrar porcentajes" aria-pressed={categoryViewMode === "percentage"} onClick={() => setCategoryViewMode("percentage")}>%</button>
-              <button type="button" aria-label="Mostrar cantidad de artículos" aria-pressed={categoryViewMode === "count"} onClick={() => setCategoryViewMode("count")}>#</button>
+            <div className="category-view-toggle" role="group" aria-label={t("categoryChartMode")}>
+              <button type="button" aria-label={t("showPercentages")} aria-pressed={categoryViewMode === "percentage"} onClick={() => setCategoryViewMode("percentage")}>%</button>
+              <button type="button" aria-label={t("showArticleCount")} aria-pressed={categoryViewMode === "count"} onClick={() => setCategoryViewMode("count")}>#</button>
             </div>
             <span className="panel-icon" aria-hidden="true"><Icon name="layers" size={18} /></span>
           </div>
@@ -1041,14 +1067,14 @@ function DashboardPage({ items, categories, movements, categoryName, showRecentA
             const percentage = items.length > 0 ? category.count / items.length * 100 : 0;
             const barWidth = categoryViewMode === "percentage" ? percentage : category.count / maxCategoryCount * 100;
             const displayValue = categoryViewMode === "percentage"
-              ? `${categoryPercentageFormatter.format(percentage)}%`
-              : String(category.count);
+              ? `${formatNumber(percentage, language, { maximumFractionDigits: 1 })}%`
+              : formatNumber(category.count, language);
             return <div className="category-item" key={category.id}>
-              <div className="category-label"><span className={`category-mark mark-${index % 4}`}>{category.name.slice(0, 1)}</span><span className="category-name">{category.name}<small>{category.count} artículos</small></span><strong>{displayValue}</strong></div>
+              <div className="category-label"><span className={`category-mark mark-${index % 4}`}>{category.name.slice(0, 1)}</span><span className="category-name">{category.name}<small>{t(category.count === 1 ? "categoryCountSingular" : "categoryCountPlural", { count: formatNumber(category.count, language) })}</small></span><strong>{displayValue}</strong></div>
               <div className="category-track"><span className={`category-progress progress-${index % 4}`} style={{ width: `${barWidth}%` }} /></div>
             </div>;
           })}
-          {categoryTotals.length === 0 && <EmptyState title="Aún no hay categorías" text="Se mostrarán aquí cuando agregues artículos." />}
+          {categoryTotals.length === 0 && <EmptyState title={t("noCategoriesYet")} text={t("categoriesWillAppear")} />}
         </div>
       </section>}
     </div>
@@ -1195,8 +1221,8 @@ function EmptyState({ title, text }: { title: string; text: string }) {
   return <div className="empty-state"><span className="empty-icon"><Icon name="box" size={21} /></span><strong>{title}</strong><p>{text}</p></div>;
 }
 
-function LoadingScreen() {
-  return <div className="loading-screen"><span className="loading-mark"><Icon name="layers" size={20} /></span><span>Preparando el registro...</span></div>;
+function LoadingScreen({ language }: { language: AppPreferences["language"] }) {
+  return <div className="loading-screen" lang={language}><span className="loading-mark"><Icon name="layers" size={20} /></span><span>{translated(language, "loadingRegistry")}</span></div>;
 }
 
 function CategoryModal({ category, error, saving, onClose, onSave }: { category: Category | null; error: string; saving: boolean; onClose: () => void; onSave: (draft: CategoryDraft) => Promise<void> }) {
