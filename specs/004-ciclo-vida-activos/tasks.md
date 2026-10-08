@@ -10,7 +10,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T02 — Reglas puras de estado y motivo (`src/lib/inventoryRepository.ts`) — 25–30 min
 
-- [ ] **Cubre:** RF-1, RF-5, RF-7, RF-8, RF-12; principios P2, P3, P5, P6.
+- [x] **Cubre:** RF-1, RF-5, RF-7, RF-8, RF-12; principios P2, P3, P5, P6.
 - Añadir resolución de estados ausentes/vacíos y desconocidos, tabla pura de transiciones, validación del motivo recortado (1–200 para De baja; opcional en otros destinos) y comparación de Estado sin alterar la comparación actual de otros campos.
 - **Hecho cuando:** las reglas producen el default Disponible para ausente/null/vacío, conservan el raw desconocido, coinciden con todas las transiciones aprobadas y no aceptan motivo de baja vacío/solo espacios o mayor a 200 tras `trim()`.
 

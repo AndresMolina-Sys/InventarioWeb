@@ -1,5 +1,6 @@
 import { createSampleSnapshot, readLegacySnapshot } from "../data/demo";
 import type {
+  AssetLifecycleStatus,
   Category,
   CategoryDraft,
   InventoryItem,
@@ -32,12 +33,74 @@ type SnapshotChange<T> = {
 
 export type UpdateItemResult = "updated" | "unchanged";
 
+export type ResolvedAssetStatus =
+  | { kind: "canonical"; value: AssetLifecycleStatus }
+  | { kind: "unknown"; value: string };
+
+const ASSET_LIFECYCLE_STATUSES: readonly AssetLifecycleStatus[] = [
+  "available",
+  "assigned",
+  "maintenance",
+  "decommissioned",
+];
+
+const ALLOWED_ASSET_STATUS_TRANSITIONS: Record<AssetLifecycleStatus, readonly AssetLifecycleStatus[]> = {
+  available: ["assigned", "maintenance", "decommissioned"],
+  assigned: ["available", "maintenance", "decommissioned"],
+  maintenance: ["available", "decommissioned"],
+  decommissioned: [],
+};
+
 type AuditableItem = Pick<
   InventoryItem,
   "code" | "name" | "categoryId" | "serialNumber" | "location" | "cost" | "brand" | "model" | "notes"
 >;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
+
+function isAssetLifecycleStatus(value: string): value is AssetLifecycleStatus {
+  return ASSET_LIFECYCLE_STATUSES.includes(value as AssetLifecycleStatus);
+}
+
+export function resolveAssetStatus(raw: string | null | undefined): ResolvedAssetStatus {
+  if (raw == null || raw.trim() === "") {
+    return { kind: "canonical", value: "available" };
+  }
+  return isAssetLifecycleStatus(raw)
+    ? { kind: "canonical", value: raw }
+    : { kind: "unknown", value: raw };
+}
+
+export function getAllowedTransitions(current: string | null | undefined): readonly AssetLifecycleStatus[] {
+  const resolvedStatus = resolveAssetStatus(current);
+  return resolvedStatus.kind === "unknown"
+    ? ASSET_LIFECYCLE_STATUSES
+    : ALLOWED_ASSET_STATUS_TRANSITIONS[resolvedStatus.value];
+}
+
+export function normalizeAssetStatusReason(
+  status: AssetLifecycleStatus,
+  reason: string | null | undefined = "",
+): string {
+  const normalizedReason = reason?.trim() ?? "";
+  if (normalizedReason.length > 200) {
+    throw new Error("El motivo no puede superar los 200 caracteres.");
+  }
+  if (status === "decommissioned" && normalizedReason.length === 0) {
+    throw new Error("Escribe el motivo de la baja.");
+  }
+  return normalizedReason;
+}
+
+export function assetStatusesMatch(
+  before: string | null | undefined,
+  after: string | null | undefined,
+): boolean {
+  const resolvedBefore = resolveAssetStatus(before);
+  const resolvedAfter = resolveAssetStatus(after);
+  return resolvedBefore.kind === resolvedAfter.kind
+    && resolvedBefore.value === resolvedAfter.value;
+}
 
 function openDatabase(): Promise<IDBDatabase> {
   if (typeof indexedDB === "undefined") {
