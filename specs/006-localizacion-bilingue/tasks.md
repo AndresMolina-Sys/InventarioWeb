@@ -34,7 +34,7 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
   - Localizar los tres encabezados del CSV existente de Artículos y el formato de su fecha de ingreso. No agregar exportaciones ni opciones para Categorías o Movimientos.
   - Hecho cuando: exportar Artículos en ambos idiomas conserva las tres columnas, su orden, las filas y cada valor distinto de la fecha; solo cambian los encabezados y la representación regional de la fecha de ingreso.
 
-- [ ] **T07. `src/App.tsx` — etiquetas y ficha técnica bilingües (20–30 min).** RF-3, RF-4, RF-6, RF-7 (Principios 1, 2, 5, 6)
+- [x] **T07. `src/App.tsx` — etiquetas y ficha técnica bilingües (20–30 min).** RF-3, RF-4, RF-6, RF-7 (Principios 1, 2, 5, 6)
   - Traducir textos generados de previsualización e impresión, incluidas ayudas, vacíos y avisos, sin alterar valores de usuario ni barcode; aplicar fechas localizadas y conservar USD fijo, dimensiones, límites de contenido y salida monocromática vigentes.
   - Hecho cuando: la etiqueta sigue midiendo 70 × 35 mm y la ficha ocupa una página Carta; en ambos idiomas los rótulos cambian, los datos y barcode no, las fechas mantienen el mismo instante y una etiqueta incompatible muestra el aviso y bloquea imprimir.
 

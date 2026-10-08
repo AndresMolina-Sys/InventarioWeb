@@ -126,15 +126,33 @@ function optionalTextLabel(value: string | undefined, emptyLabel: string): strin
   return hasNonBlankText(value) ? value : emptyLabel;
 }
 
-function technicalSheetCostLabel(value: number | null | string | undefined): string {
+function technicalSheetCostLabel(value: number | null | string | undefined, language: AppPreferences["language"]): string {
   return typeof value === "number" && Number.isFinite(value)
     ? registeredValueLabel(value)
-    : "Sin especificar";
+    : translated(language, "unspecified");
+}
+
+function technicalSheetDisplay(snapshot: TechnicalSheetSnapshot, language: AppPreferences["language"]) {
+  return Object.freeze({
+    code: optionalTextLabel(snapshot.code, translated(language, "unavailableInBrackets")),
+    name: optionalTextLabel(snapshot.name, translated(language, "unavailableInBrackets")),
+    categoryName: optionalTextLabel(snapshot.categoryName, translated(language, "unavailableInBrackets")),
+    brand: optionalTextLabel(snapshot.brand, translated(language, "unspecified")),
+    model: optionalTextLabel(snapshot.model, translated(language, "unspecified")),
+    serialNumber: optionalTextLabel(snapshot.serialNumber, translated(language, "unspecified")),
+    location: optionalTextLabel(snapshot.location, translated(language, "unspecified")),
+    cost: technicalSheetCostLabel(snapshot.cost, language),
+    createdAt: snapshot.createdAt && !Number.isNaN(Date.parse(snapshot.createdAt))
+      ? dateLabel(snapshot.createdAt, language)
+      : translated(language, "unavailableInBrackets"),
+    notes: optionalTextLabel(snapshot.notes, translated(language, "noObservations")),
+  });
 }
 
 export function prepareTechnicalSheetPreview(
   item: InventoryItem,
   categoryName: string | undefined,
+  language: AppPreferences["language"] = "es",
 ): TechnicalSheetPreviewState {
   const itemRecord = item as Partial<InventoryItem>;
   const snapshot = Object.freeze({
@@ -163,50 +181,34 @@ export function prepareTechnicalSheetPreview(
 
   return Object.freeze({
     snapshot,
-    display: Object.freeze({
-      code: optionalTextLabel(snapshot.code, "[No disponible]"),
-      name: optionalTextLabel(snapshot.name, "[No disponible]"),
-      categoryName: optionalTextLabel(snapshot.categoryName, "[No disponible]"),
-      brand: optionalTextLabel(snapshot.brand, "Sin especificar"),
-      model: optionalTextLabel(snapshot.model, "Sin especificar"),
-      serialNumber: optionalTextLabel(snapshot.serialNumber, "Sin especificar"),
-      location: optionalTextLabel(snapshot.location, "Sin especificar"),
-      cost: technicalSheetCostLabel(snapshot.cost),
-      createdAt: snapshot.createdAt ?? "[No disponible]",
-      notes: optionalTextLabel(snapshot.notes, "Sin observaciones"),
-    }),
+    display: technicalSheetDisplay(snapshot, language),
     missingRequiredFields,
     barcode,
     canPrint: missingRequiredFields.length === 0 && barcode?.status === "printable",
   });
 }
 
-function code128BlockMessage(reason: Code128BBlockedReason): string {
-  if (reason === "unsupported-character") return "El código contiene caracteres que no se pueden representar en Code 128-B.";
-  if (reason === "width-exceeded") return "El código de barras completo no cabe en una etiqueta de 70 × 35 mm.";
-  return "La altura del código de barras no cabe en una etiqueta de 70 × 35 mm.";
+function code128BlockMessage(reason: Code128BBlockedReason, language: AppPreferences["language"]): string {
+  if (reason === "unsupported-character") return translated(language, "barcodeUnsupportedCharacters");
+  if (reason === "width-exceeded") return translated(language, "barcodeTooWideLabel");
+  return translated(language, "barcodeTooShort");
 }
 
-function technicalSheetBlockMessage(preview: TechnicalSheetPreviewState): string {
+function technicalSheetBlockMessage(preview: TechnicalSheetPreviewState, language: AppPreferences["language"]): string {
   if (preview.missingRequiredFields.length > 0) {
     const labels: Record<TechnicalSheetRequiredField, string> = {
-      code: "Código",
-      name: "Nombre",
-      category: "Categoría",
+      code: translated(language, "code"),
+      name: translated(language, "name"),
+      category: translated(language, "category"),
     };
     const missing = preview.missingRequiredFields.map((field) => labels[field]).join(", ");
-    return `Faltan datos obligatorios (${missing}). Completa el registro del artículo antes de imprimir la ficha.`;
+    return translated(language, "missingRequiredFields", { fields: missing });
   }
 
   if (preview.barcode?.status !== "blocked") return "";
-  if (preview.barcode.reason === "unsupported-character") return "El Código contiene caracteres que no se pueden representar en Code 128-B.";
-  if (preview.barcode.reason === "width-exceeded") return "El código de barras completo supera el ancho máximo de 180 mm.";
-  return "El código de barras no cumple la altura mínima requerida.";
-}
-
-function technicalSheetDateLabel(value: string | undefined): string {
-  if (!value || Number.isNaN(Date.parse(value))) return "[No disponible]";
-  return dateLabel(value);
+  if (preview.barcode.reason === "unsupported-character") return translated(language, "barcodeUnsupportedUppercase");
+  if (preview.barcode.reason === "width-exceeded") return translated(language, "barcodeTooWideSheet");
+  return translated(language, "barcodeMinimumHeight");
 }
 
 function translated(language: AppPreferences["language"], key: TranslationKey, parameters?: TranslationParameters): string {
@@ -1378,11 +1380,11 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
   onClose: () => void;
   language: AppPreferences["language"];
 }) {
-  const t = (key: TranslationKey) => translated(language, key);
+  const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
   const [technicalSheetPreview, setTechnicalSheetPreview] = useState<TechnicalSheetPreviewState | null>(null);
-  const [printError, setPrintError] = useState("");
-  const [technicalSheetPrintError, setTechnicalSheetPrintError] = useState("");
+  const [printError, setPrintError] = useState<"printDialogFailed" | "">("");
+  const [technicalSheetPrintError, setTechnicalSheetPrintError] = useState<"printDialogUnavailable" | "">("");
   const blockedMessageId = useId();
   const printErrorMessageId = useId();
   const technicalSheetWarningId = useId();
@@ -1409,7 +1411,7 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
 
   function openTechnicalSheetPreview() {
     setTechnicalSheetPrintError("");
-    setTechnicalSheetPreview(prepareTechnicalSheetPreview(item, categoryName));
+    setTechnicalSheetPreview(prepareTechnicalSheetPreview(item, categoryName, language));
   }
 
   function startTechnicalSheetPrint() {
@@ -1431,7 +1433,7 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
     } catch {
       window.removeEventListener("afterprint", handleAfterPrint);
       afterPrintHandlerRef.current = null;
-      setTechnicalSheetPrintError("No fue posible abrir el diálogo de impresión del navegador. Puedes reintentar o cerrar esta vista previa.");
+      setTechnicalSheetPrintError("printDialogUnavailable");
       restorePrintFocus();
     }
   }
@@ -1449,7 +1451,8 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
     onClose();
   };
   if (technicalSheetPreview) {
-    const blockingMessage = technicalSheetBlockMessage(technicalSheetPreview);
+    const display = technicalSheetDisplay(technicalSheetPreview.snapshot, language);
+    const blockingMessage = technicalSheetBlockMessage(technicalSheetPreview, language);
     const printableBarcode = technicalSheetPreview.barcode?.status === "printable"
       ? technicalSheetPreview.barcode
       : null;
@@ -1459,8 +1462,8 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
 
     return <ModalFrame
       key="technical-sheet-preview"
-      title="Vista previa de ficha técnica"
-      subtitle="Revisa la ficha antes de solicitar la impresión."
+      title={t("printTechnicalSheetPreview")}
+      subtitle={t("reviewBeforePrintSheet")}
       onClose={closeTechnicalSheetPreview}
       className="technical-sheet-preview-modal"
       hideHeaderClose
@@ -1469,19 +1472,19 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
       manageFocus
     >
       <div className="modal-form">
-        <p className="sr-only" role="status">Vista previa de la ficha técnica de {technicalSheetPreview.display.name}.</p>
+        <p className="sr-only" role="status">{t("technicalSheetPreviewFor", { name: display.name })}</p>
         {blockingMessage && <p className="form-error" id={technicalSheetWarningId} role="alert">{blockingMessage}</p>}
-        {technicalSheetPrintError && <p className="form-error" id={technicalSheetPrintErrorId} role="alert">{technicalSheetPrintError}</p>}
-        <article className="technical-sheet-page" aria-label="Ficha técnica y acta de resguardo">
+        {technicalSheetPrintError && <p className="form-error" id={technicalSheetPrintErrorId} role="alert">{t(technicalSheetPrintError)}</p>}
+        <article className="technical-sheet-page" aria-label={t("technicalSheetTitle")}>
           <header className="technical-sheet-document-header">
-            <p>Control interno · InventarioWeb</p>
-            <h2>Ficha técnica y acta de resguardo</h2>
+            <p>{t("institutionalHeading")}</p>
+            <h2>{t("technicalSheetTitle")}</h2>
           </header>
 
-          <section className="technical-sheet-identification" aria-label="Identificación del artículo">
+          <section className="technical-sheet-identification" aria-label={t("itemIdentification")}>
             <div>
-              <span className="technical-sheet-label">Código</span>
-              <strong className="technical-sheet-code-value">{technicalSheetPreview.display.code}</strong>
+              <span className="technical-sheet-label">{t("code")}</span>
+              <strong className="technical-sheet-code-value">{display.code}</strong>
             </div>
             <div className="technical-sheet-barcode-area">
               {printableBarcode ? <svg
@@ -1490,49 +1493,49 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
                 width={`${printableBarcode.widthMm}mm`}
                 height={`${printableBarcode.barHeightMm}mm`}
                 role="img"
-                aria-label={`Código de barras Code 128-B para el Código ${technicalSheetPreview.display.code}`}
+                aria-label={t("barcodeForUppercaseCode", { code: display.code })}
               >
-                <title>Código de barras Code 128-B</title>
+                <title>{t("barcodeTitle")}</title>
                 {printableBarcode.bars.map((bar) => <rect key={bar.x} x={bar.x} y="0" width={bar.width} height={printableBarcode.barHeightMm / CODE128_MODULE_WIDTH_MM} />)}
               </svg> : <p className="technical-sheet-barcode-placeholder">
-                {technicalSheetPreview.missingRequiredFields.includes("code") ? "Código no disponible" : "Código de barras no disponible"}
+                {technicalSheetPreview.missingRequiredFields.includes("code") ? t("codeUnavailable") : t("barcodeUnavailable")}
               </p>}
             </div>
           </section>
 
           <dl className="technical-sheet-specifications">
-            <div><dt>Código</dt><dd className="technical-sheet-code-value">{technicalSheetPreview.display.code}</dd></div>
-            <div><dt>Nombre</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.name}</dd></div>
-            <div><dt>Categoría</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.categoryName}</dd></div>
-            <div><dt>Marca</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.brand}</dd></div>
-            <div><dt>Modelo</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.model}</dd></div>
-            <div><dt>Número de serie</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.serialNumber}</dd></div>
-            <div><dt>Ubicación</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.location}</dd></div>
-            <div><dt>Costo registrado</dt><dd className="technical-sheet-value">{technicalSheetPreview.display.cost}</dd></div>
-            <div><dt>Fecha de ingreso</dt><dd className="technical-sheet-value">{technicalSheetDateLabel(technicalSheetPreview.snapshot.createdAt)}</dd></div>
-            <div className="technical-sheet-notes-field"><dt>Observaciones / Notas</dt><dd className="technical-sheet-notes-value">{technicalSheetPreview.display.notes}</dd></div>
+            <div><dt>{t("code")}</dt><dd className="technical-sheet-code-value">{display.code}</dd></div>
+            <div><dt>{t("name")}</dt><dd className="technical-sheet-value">{display.name}</dd></div>
+            <div><dt>{t("category")}</dt><dd className="technical-sheet-value">{display.categoryName}</dd></div>
+            <div><dt>{t("brand")}</dt><dd className="technical-sheet-value">{display.brand}</dd></div>
+            <div><dt>{t("model")}</dt><dd className="technical-sheet-value">{display.model}</dd></div>
+            <div><dt>{t("serialNumber")}</dt><dd className="technical-sheet-value">{display.serialNumber}</dd></div>
+            <div><dt>{t("location")}</dt><dd className="technical-sheet-value">{display.location}</dd></div>
+            <div><dt>{t("registeredCost")}</dt><dd className="technical-sheet-value">{display.cost}</dd></div>
+            <div><dt>{t("entryDate")}</dt><dd className="technical-sheet-value">{display.createdAt}</dd></div>
+            <div className="technical-sheet-notes-field"><dt>{t("observations")}</dt><dd className="technical-sheet-notes-value">{display.notes}</dd></div>
           </dl>
 
           <div className="technical-sheet-signatures">
             <section className="technical-sheet-signature-box" aria-labelledby="technical-sheet-delivered-title">
-              <h3 id="technical-sheet-delivered-title">Entregado por</h3>
-              <div className="technical-sheet-signature-line"><span>Firma</span><span aria-hidden="true" /></div>
-              <div className="technical-sheet-signature-field"><span>Nombre</span><span aria-hidden="true" /></div>
-              <div className="technical-sheet-signature-field"><span>Cargo</span><span aria-hidden="true" /></div>
-              <div className="technical-sheet-signature-field"><span>Fecha</span><span aria-hidden="true" /></div>
+              <h3 id="technical-sheet-delivered-title">{t("deliveredBy")}</h3>
+              <div className="technical-sheet-signature-line"><span>{t("signature")}</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>{t("name")}</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>{t("role")}</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>{t("dateOfSignature")}</span><span aria-hidden="true" /></div>
             </section>
             <section className="technical-sheet-signature-box" aria-labelledby="technical-sheet-received-title">
-              <h3 id="technical-sheet-received-title">Recibido por / Asignado a</h3>
-              <div className="technical-sheet-signature-line"><span>Firma</span><span aria-hidden="true" /></div>
-              <div className="technical-sheet-signature-field"><span>Nombre</span><span aria-hidden="true" /></div>
-              <div className="technical-sheet-signature-field"><span>Documento de identidad</span><span aria-hidden="true" /></div>
-              <div className="technical-sheet-signature-field"><span>Fecha</span><span aria-hidden="true" /></div>
+              <h3 id="technical-sheet-received-title">{t("receivedBy")}</h3>
+              <div className="technical-sheet-signature-line"><span>{t("signature")}</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>{t("name")}</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>{t("identityDocument")}</span><span aria-hidden="true" /></div>
+              <div className="technical-sheet-signature-field"><span>{t("dateOfSignature")}</span><span aria-hidden="true" /></div>
             </section>
           </div>
         </article>
         <div className="modal-footer">
-          <button ref={technicalSheetCloseButtonRef} className="button button-outline" type="button" aria-label="Cerrar vista previa de ficha técnica" onClick={closeTechnicalSheetPreview}>Cerrar</button>
-          <button ref={technicalSheetPrintButtonRef} className="button button-primary" type="button" disabled={!technicalSheetPreview.canPrint} aria-describedby={printDescription} onClick={startTechnicalSheetPrint}>Imprimir</button>
+          <button ref={technicalSheetCloseButtonRef} className="button button-outline" type="button" aria-label={`${t("close")} ${t("printTechnicalSheetPreview")}`} onClick={closeTechnicalSheetPreview}>{t("close")}</button>
+          <button ref={technicalSheetPrintButtonRef} className="button button-primary" type="button" disabled={!technicalSheetPreview.canPrint} aria-describedby={printDescription} onClick={startTechnicalSheetPrint}>{t("print")}</button>
         </div>
       </div>
     </ModalFrame>;
@@ -1544,35 +1547,36 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
     try {
       window.print();
     } catch {
-      setPrintError("No se pudo iniciar el diálogo de impresión. Inténtalo de nuevo.");
+      setPrintError("printDialogFailed");
     }
   };
 
   if (labelPreviewOpen) {
-    return <ModalFrame key="label-preview" title="Vista previa de etiqueta" subtitle="Revisa los datos antes de imprimir." onClose={closeCurrentView} manageFocus>
+    return <ModalFrame key="label-preview" title={t("printLabelPreview")} subtitle={t("reviewBeforePrintLabel")} closeLabel={t("close")} onClose={closeCurrentView} manageFocus>
       <div className="modal-form label-preview-content">
         <div className="print-label">
           <dl className="article-detail-grid print-label-fields">
-            <div><dt>Código</dt><dd className="print-label-code">{item.code}</dd></div>
-            <div><dt>Nombre</dt><dd>{item.name}</dd></div>
-            <div><dt>Categoría</dt><dd>{categoryName ?? "Sin categoría"}</dd></div>
-            <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
+            <div><dt>{t("code")}</dt><dd className="print-label-code">{item.code}</dd></div>
+            <div><dt>{t("name")}</dt><dd>{item.name}</dd></div>
+            <div><dt>{t("category")}</dt><dd>{categoryName ?? t("noCategory")}</dd></div>
+            <div><dt>{t("entryDate")}</dt><dd>{dateLabel(item.createdAt, language)}</dd></div>
           </dl>
-          {barcode.status === "blocked" ? <p className="form-error print-label-warning" id={blockedMessageId} role="alert">{code128BlockMessage(barcode.reason)}</p> : <svg
+          {barcode.status === "blocked" ? <p className="form-error print-label-warning" id={blockedMessageId} role="alert">{code128BlockMessage(barcode.reason, language)}</p> : <svg
             className="print-label-barcode"
             viewBox={`0 0 ${barcode.totalModules} ${barcode.barHeightMm / CODE128_MODULE_WIDTH_MM}`}
             width={barcode.totalModules}
             height={barcode.barHeightMm / CODE128_MODULE_WIDTH_MM}
             role="img"
-            aria-label={`Código de barras Code 128-B para el código ${item.code}`}
+            aria-label={t("barcodeForCode", { code: item.code })}
           >
+            <title>{t("barcodeTitle")}</title>
             {barcode.bars.map((bar) => <rect key={bar.x} x={bar.x} y="0" width={bar.width} height={barcode.barHeightMm / CODE128_MODULE_WIDTH_MM} />)}
           </svg>}
         </div>
-        {printError && <p className="form-error print-label-warning" id={printErrorMessageId} role="alert">{printError}</p>}
+        {printError && <p className="form-error print-label-warning" id={printErrorMessageId} role="alert">{t(printError)}</p>}
         <div className="modal-footer">
-          <button className="button button-outline" type="button" onClick={() => { setLabelPreviewOpen(false); setPrintError(""); }}>Volver al detalle</button>
-          <button className="button button-primary" type="button" disabled={barcode.status !== "printable"} aria-describedby={printButtonDescription} onClick={startPrint}>Imprimir</button>
+          <button className="button button-outline" type="button" onClick={() => { setLabelPreviewOpen(false); setPrintError(""); }}>{t("returnToDetails")}</button>
+          <button className="button button-primary" type="button" disabled={barcode.status !== "printable"} aria-describedby={printButtonDescription} onClick={startPrint}>{t("print")}</button>
         </div>
       </div>
     </ModalFrame>;
@@ -1600,9 +1604,9 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
         <div className="detail-span"><dt>{t("notes")}</dt><dd>{item.notes || t("noNotes")}</dd></div>
       </dl>
       <div className="modal-footer">
-        <button ref={technicalSheetTriggerRef} className="button button-outline" type="button" onClick={openTechnicalSheetPreview}>Imprimir ficha técnica</button>
-        <button className="button button-outline" type="button" onClick={() => setLabelPreviewOpen(true)}>Imprimir etiqueta</button>
-        <button className="button button-primary" type="button" onClick={onClose}>Cerrar</button>
+        <button ref={technicalSheetTriggerRef} className="button button-outline" type="button" onClick={openTechnicalSheetPreview}>{t("printTechnicalSheet")}</button>
+        <button className="button button-outline" type="button" onClick={() => setLabelPreviewOpen(true)}>{t("printLabel")}</button>
+        <button className="button button-primary" type="button" onClick={onClose}>{t("close")}</button>
       </div>
     </div>
   </ModalFrame>;
