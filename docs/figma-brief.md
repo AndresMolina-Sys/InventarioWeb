@@ -27,8 +27,10 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 
 ### 02 · Artículos — escritorio (1440 × 1024)
 
-- Título y botón “Agregar artículo”, filtro de categoría y exportación.
-- La tabla presenta solo Nombre, Categoría, Fecha de ingreso y Acciones (Ver, Editar, Borrar).
+- Título y botón “Agregar artículo”, búsqueda, filtros de categoría y estado, y exportación. Los filtros se combinan.
+- La tabla presenta Nombre, Categoría, Estado, Fecha de ingreso y Acciones (Ver, Editar, Borrar); en móvil conserva el desplazamiento horizontal interno.
+- El estado se distingue mediante texto y badge, además del color. Los estados canónicos son Disponible, Asignado, En mantenimiento y De baja; un valor explícito desconocido muestra «Desconocido» con su valor raw disponible para accesibilidad y solo aparece con el filtro «Todos». Ausente, null o blanco se presenta como Disponible sin escribir un default al leer.
+- De baja permanece en Todos y en su filtro. Ver y la impresión siguen disponibles; Editar y Borrar quedan deshabilitados con una explicación accesible para proteger su auditoría.
 - La fecha incluye día, mes, año y hora local de ingreso.
 - El detalle del artículo incluye «Última modificación» en la ficha, después de Código y antes de N.º de serie, con el estilo legible de los demás valores. El pie muestra solo el botón «Cerrar»; se conserva el cierre de la cabecera.
 - «Imprimir etiqueta» aparece exclusivamente en el detalle del artículo. Abre allí mismo una vista previa horizontal 2:1 de 70 × 35 mm, con padding interno de 0,5 mm, Código, Nombre, Categoría, Fecha de ingreso y un barcode Code 128-B generado localmente, sin conexión ni dependencias externas.
@@ -39,7 +41,8 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - La vista previa muestra una hoja de hasta 180 mm de ancho, con especificaciones en dos columnas en escritorio y una en móvil. Permite scroll vertical dentro del diálogo; a 360–375 px no desborda horizontalmente. Las dos áreas de firma se mantienen juntas y con al menos 30 mm de alto. El foco visible y los avisos conservan la escala mínima de 12 px.
 - La ficha se garantiza en una sola hoja Carta vertical a escala 100 %, márgenes de 15 mm y contenido máximo de 180 mm, en escala de grises. Esta garantía aplica con esos ajustes estándar; cambios manuales de papel, orientación, escala o márgenes en el diálogo nativo quedan fuera de alcance. La impresión de la ficha aísla solo esa hoja; la impresión de etiqueta sigue aislando solo su etiqueta. Ninguna de las dos altera ni transmite artículos, categorías, fechas o movimientos.
 - El diálogo enfoca «Cerrar» al abrir y contiene Tab/Mayús+Tab; si «Imprimir» está deshabilitado, el ciclo solo alcanza «Cerrar». Escape cierra y devuelve el foco al disparador; al cancelar la impresión nativa, la vista previa permanece abierta y el foco vuelve a «Imprimir». Si `window.print()` falla, muestra un aviso accesible y permite reintentar o cerrar. Abrir, imprimir o cancelar no escribe en IndexedDB ni realiza solicitudes remotas; no se añaden dependencias.
-- El formulario recoge Código, nombre, categoría, Ubicación opcional, N.º de serie opcional, Costo opcional, marca, modelo y notas. Una ubicación vacía aparece como «Sin especificar».
+- El formulario recoge Código, nombre, categoría, estado inicial, Ubicación opcional, N.º de serie opcional, Costo opcional, marca, modelo y notas. El estado inicial predeterminado es Disponible; solo se ofrecen Disponible, Asignado y En mantenimiento. Una ubicación vacía aparece como «Sin especificar».
+- El selector de estado de edición aparece solo en «Editar artículo» y ofrece los destinos válidos de la matriz. Un estado desconocido puede corregirse directamente a cualquier estado canónico, incluida De baja.
 
 ### 03 · Categorías — escritorio (1440 × 1024)
 
@@ -52,6 +55,8 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - Navegación inferior con Resumen, Artículos, Categorías y Movimientos.
 - La tabla puede desplazarse horizontalmente; conserva las cuatro columnas y acciones accesibles.
 - Reordena paneles y formulario para una columna; los modales pueden ocupar la parte inferior.
+- Los filtros de categoría y estado ocupan el ancho disponible. Los badges conservan sus etiquetas y las tablas se desplazan internamente sin ampliar el documento.
+- El editor y la confirmación de baja mantienen scroll interno, contenido legible, foco visible y botones al alcance a 360–375 px.
 
 ### 05 · Movimientos — escritorio y móvil
 
@@ -61,6 +66,7 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - Cada movimiento tiene un botón «Ver detalle» en la columna Acciones; abre el evento seleccionado y al cerrar conserva filtro, página y posición. El encabezado del detalle muestra la acción, artículo, código y fecha/hora.
 - La cabecera del modal contiene el badge de acción (Alta, Edición o Baja), nombre, código y fecha/hora local legible. El detalle es de solo lectura.
 - Altas muestran la ficha completa del estado nuevo y bajas la ficha completa del estado previo. Las ediciones muestran solo diferencias netas en columnas Campo/Antes/Después.
+- En ediciones v2, Estado aparece como Antes/Después; el motivo se muestra aparte del diff. Si el motivo opcional quedó vacío, indicar que no fue registrado. Las altas y bajas v2 conservan el estado en su snapshot completo; los movimientos v1 e históricos se muestran solo con los datos que guardaron.
 - Se auditan Código, Nombre y Categoría como obligatorios; N.º de serie, Ubicación, Costo, Marca, Modelo y Notas son opcionales. SKU, identificadores y fechas técnicas quedan fuera.
 - Textos se comparan tras quitar espacios externos; costo se compara numéricamente y vacío/nulo equivale a cero. Una edición sin cambios netos no se guarda, no cambia `updatedAt` ni crea movimiento.
 - Un opcional vacío se presenta como «Sin especificar»; un campo que no fue conservado en un evento histórico se presenta como «Dato no registrado». Los eventos antiguos usan solo los datos guardados y nunca se completan desde el artículo actual.
@@ -104,8 +110,12 @@ Registro interno de artículos para consultar qué activos existen, dónde se cl
 - La app guarda en IndexedDB y migra datos de la demo anterior desde `localStorage`.
 - Las altas y bajas exitosas y las ediciones con cambios netos auditables se registran junto con su operación; las categorías no generan movimientos. Una edición sin cambios no persiste ni modifica su fecha.
 - Las altas guardan la ficha completa nueva, las bajas la ficha completa previa y las ediciones solo los pares anterior/nuevo que cambiaron entre Código, Nombre, Categoría, N.º de serie, Ubicación, Costo, Marca, Modelo y Notas.
+- Estado se agrega a la auditoría existente: altas/bajas v2 incluyen su valor en la ficha completa, y ediciones v2 agregan Estado Antes/Después cuando cambia. El motivo de Estado queda fuera del diff. Se mantienen sin cambios las reglas de comparación y normalización de los demás campos.
 - La comparación recorta espacios externos en textos y compara costo numéricamente; vacío/nulo y cero son equivalentes. El nombre de categoría y los valores del detalle son los guardados al ocurrir el movimiento.
 - La evolución del historial es aditiva: conserva artículos, categorías y movimientos existentes, no modifica eventos antiguos y no inventa diffs. Los eventos históricos parciales muestran solo los datos conservados; nunca se infieren valores desde el artículo actual.
+- Los estados persistidos usan `available`, `assigned`, `maintenance` y `decommissioned`; la interfaz los etiqueta Disponible, Asignado, En mantenimiento y De baja. Una ausencia, null o texto en blanco se resuelve como Disponible al presentar, sin escribirlo durante lectura/migración. Los textos explícitos desconocidos se conservan exactamente y se pueden corregir directamente a un estado canónico.
+- Las transiciones permitidas son Disponible → Asignado/En mantenimiento/De baja; Asignado → Disponible/En mantenimiento/De baja; En mantenimiento → Disponible/De baja. De baja es terminal: no admite edición ni borrado desde el repositorio ni desde la interfaz, pero conserva Ver, detalle, impresión e historial. La creación ofrece solo Disponible (default), Asignado y En mantenimiento.
+- El cambio de estado muestra un motivo recortado de hasta 200 caracteres. Para De baja es obligatorio con 1–200 caracteres después de recortar y se captura en un diálogo irreversible con `role="dialog"`, `aria-modal` y `aria-labelledby`, foco contenido, cierre con Escape y motivo contador. Cancelar o Escape revierte solo estado/motivo, restaura el foco al selector y no persiste otros campos del borrador. Confirmar guarda artículo, `updatedAt` y movimiento en una transacción; tras éxito devuelve el foco a Ver de la fila o Cerrar del detalle. Si falla IndexedDB, conserva ambos diálogos, valores y alerta con opción de reintento sin escritura parcial. Para otros destinos el motivo es opcional y blanco se conserva como `""`; motivo-only no crea movimiento.
 - No hay login, perfil de usuario ni sincronización entre dispositivos en Portfolio.
 
 ## Accesibilidad y fuente de verdad
