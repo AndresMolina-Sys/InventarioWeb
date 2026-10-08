@@ -179,3 +179,14 @@ export type InventorySnapshot = {
 };
 
 export type ItemDraft = Omit<InventoryItem, "id" | "createdAt" | "updatedAt">;
+
+export type ThemePreference = "system" | "light" | "dark";
+
+export type TableDensityPreference = "comfortable" | "compact";
+
+export type AppPreferences = {
+  theme: ThemePreference;
+  showRecentActivityChart: boolean;
+  showCategoryChart: boolean;
+  tableDensity: TableDensityPreference;
+};
