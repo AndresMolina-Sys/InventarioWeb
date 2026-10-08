@@ -1362,12 +1362,10 @@ function ItemDetailModal({ item, categoryName, onClose }: {
       <div className="article-detail-title">
         <span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span>
         <div className="article-detail-heading">
-          <div className="article-detail-name-row">
-            <strong>{item.name}</strong>
-            <span className="article-detail-status"><span>Estado</span><AssetStatusBadge status={item.status} /></span>
-          </div>
+          <strong>{item.name}</strong>
           <small>{item.code}</small>
         </div>
+        <span className="article-detail-header-status"><AssetStatusBadge status={item.status} /></span>
       </div>
       <dl className="article-detail-grid">
         <div><dt>Categoría</dt><dd>{categoryName ?? "Sin categoría"}</dd></div>

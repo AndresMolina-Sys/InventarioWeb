@@ -328,11 +328,9 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .article-detail { display: block; }
 .article-detail-title { display: flex; align-items: center; gap: 12px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .article-detail-heading { display: grid; flex: 1 1 auto; gap: 5px; min-width: 0; }
-.article-detail-name-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
-.article-detail-title strong { flex: 1 1 150px; min-width: 0; color: var(--ink); font-size: 14px; overflow-wrap: anywhere; }
-.article-detail-status { display: inline-flex; align-items: center; flex: 0 1 auto; gap: 7px; min-width: 0; max-width: min(100%, 230px); color: var(--muted); font-size: var(--type-meta-size); font-weight: 500; line-height: 1.25; white-space: nowrap; }
-.article-detail-status > span:first-child { flex: 0 0 auto; }
-.article-detail-status .asset-status-badge { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; overflow-wrap: normal; text-overflow: ellipsis; white-space: nowrap; }
+.article-detail-title strong { min-width: 0; color: var(--ink); font-size: 14px; overflow-wrap: anywhere; }
+.article-detail-header-status { display: inline-flex; align-items: center; align-self: center; flex: 0 1 auto; min-width: 0; max-width: min(55%, 230px); }
+.article-detail-header-status .asset-status-badge { flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; overflow-wrap: normal; text-overflow: ellipsis; white-space: nowrap; }
 .article-detail-title small { color: var(--muted); font-size: var(--type-meta-size); font-weight: 400; line-height: 1.25; }
 .article-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; margin: 18px 0; }
 .article-detail-grid div { min-width: 0; }
