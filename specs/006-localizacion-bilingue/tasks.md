@@ -38,7 +38,7 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
   - Traducir textos generados de previsualización e impresión, incluidas ayudas, vacíos y avisos, sin alterar valores de usuario ni barcode; aplicar fechas localizadas y conservar USD fijo, dimensiones, límites de contenido y salida monocromática vigentes.
   - Hecho cuando: la etiqueta sigue midiendo 70 × 35 mm y la ficha ocupa una página Carta; en ambos idiomas los rótulos cambian, los datos y barcode no, las fechas mantienen el mismo instante y una etiqueta incompatible muestra el aviso y bloquea imprimir.
 
-- [ ] **T08. `src/styles.css` y `src/App.tsx` — legibilidad, responsive y asistencia (20–30 min).** RF-1, RF-3, RF-6 (Principios 2, 4, 6)
+- [x] **T08. `src/styles.css` y `src/App.tsx` — legibilidad, responsive y asistencia (20–30 min).** RF-1, RF-3, RF-6 (Principios 2, 4, 6)
   - Ajustar cadenas inglesas largas, focos y nombres accesibles sin bajar de 12 px; mantener formularios, diálogos y documentos utilizables a 360 y 375 px. Conservar dimensiones impresas, una página Carta y escala de grises.
   - Hecho cuando: ninguna regla activa en vistas escritorio/móvil reduce texto visible bajo 12 px, las cadenas inglesas no provocan overflow horizontal a 360/375 px, el idioma semántico acompaña el idioma elegido y foco/teclado permanecen operables.
 

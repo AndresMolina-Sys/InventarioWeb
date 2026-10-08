@@ -1140,7 +1140,7 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
   return <section className="page-content">
     <div className="page-heading">
       <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(language))}</div><h1>{t("articles")}</h1><p>{t("inventoryDescription")}</p></div>
-      <button className="button button-primary" onClick={onNew}><Icon name="plus" size={18} />{t("addArticle")}</button>
+      <button className="button button-primary" onClick={(event) => { event.currentTarget.focus(); onNew(); }}><Icon name="plus" size={18} />{t("addArticle")}</button>
     </div>
     <section className="panel inventory-panel">
       <div className="inventory-toolbar">
@@ -1167,7 +1167,7 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
             <td className="date-cell">{dateLabel(item.createdAt, language)}</td>
             <td><div className="row-actions">
               <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onView(item)} title={`${t("view")} ${item.name}`} aria-label={`${t("view")} ${item.name}`}><Icon name="view" size={16} /></button>
-              <button className="quiet-icon" onClick={() => onEdit(item)} title={protectedItem ? protectionMessage : `${t("edit")} ${item.name}`} aria-label={`${t("edit")} ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
+              <button className="quiet-icon" onClick={(event) => { event.currentTarget.focus(); onEdit(item); }} title={protectedItem ? protectionMessage : `${t("edit")} ${item.name}`} aria-label={`${t("edit")} ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
               <button className="quiet-icon danger-icon" onClick={() => onDelete(item)} title={protectedItem ? protectionMessage : t("confirmDeleteArticle", { name: item.name })} aria-label={t("confirmDeleteArticle", { name: item.name })} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
               {protectedItem && <span id={protectionDescriptionId} className="sr-only">{protectionMessage}</span>}
             </div></td>
@@ -1193,7 +1193,7 @@ function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete, la
   return <section className="page-content">
     <div className="page-heading">
       <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(language))}</div><h1>{t("categories")}</h1><p>{t("categoryDescription")}</p></div>
-      <button className="button button-primary" onClick={onNew}><Icon name="plus" size={18} />{t("addCategory")}</button>
+      <button className="button button-primary" onClick={(event) => { event.currentTarget.focus(); onNew(); }}><Icon name="plus" size={18} />{t("addCategory")}</button>
     </div>
     <section className="panel inventory-panel">
       <div className="inventory-toolbar"><div><h2>{t("categoryRegistry")}</h2><p className="inventory-count">{t("allCategoryCount", { count: formatNumber(categories.length, language) })}</p></div></div>
@@ -1206,7 +1206,7 @@ function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete, la
             <td>{t(count === 1 ? "associatedArticleSingular" : "associatedArticlePlural", { count: formatNumber(count, language) })}</td>
             <td><div className="row-actions">
               <button className="quiet-icon" onClick={() => onView(category)} title={`${t("view")} ${category.name}`} aria-label={`${t("view")} ${category.name}`}><Icon name="view" size={16} /></button>
-              <button className="quiet-icon" onClick={() => onEdit(category)} title={`${t("edit")} ${category.name}`} aria-label={`${t("edit")} ${category.name}`}><Icon name="edit" size={16} /></button>
+              <button className="quiet-icon" onClick={(event) => { event.currentTarget.focus(); onEdit(category); }} title={`${t("edit")} ${category.name}`} aria-label={`${t("edit")} ${category.name}`}><Icon name="edit" size={16} /></button>
               <button className="quiet-icon danger-icon" onClick={() => onDelete(category)} title={t("confirmDeleteCategory", { name: category.name })} aria-label={t("confirmDeleteCategory", { name: category.name })}><Icon name="trash" size={16} /></button>
             </div></td>
           </tr>;
@@ -1250,7 +1250,7 @@ function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, o
           <td className="date-cell">{dateLabel(item.updatedAt, language)}</td>
           <td><div className="row-actions">
             <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onViewItem(item)} title={`${t("view")} ${item.name}`} aria-label={`${t("view")} ${item.name}`}><Icon name="view" size={16} /></button>
-            <button className="quiet-icon" onClick={() => onEditItem(item)} title={protectedItem ? protectionMessage : `${t("edit")} ${item.name}`} aria-label={`${t("edit")} ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
+            <button className="quiet-icon" onClick={(event) => { event.currentTarget.focus(); onEditItem(item); }} title={protectedItem ? protectionMessage : `${t("edit")} ${item.name}`} aria-label={`${t("edit")} ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
             <button className="quiet-icon danger-icon" onClick={() => onDeleteItem(item)} title={protectedItem ? protectionMessage : t("confirmDeleteArticle", { name: item.name })} aria-label={t("confirmDeleteArticle", { name: item.name })} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
             {protectedItem && <span id={protectionDescriptionId} className="sr-only">{protectionMessage}</span>}
           </div></td>
@@ -1273,13 +1273,14 @@ function LoadingScreen({ language }: { language: AppPreferences["language"] }) {
 function CategoryModal({ category, error, saving, onClose, onSave, language }: { category: Category | null; error: string; saving: boolean; onClose: () => void; onSave: (draft: CategoryDraft) => Promise<void>; language: AppPreferences["language"] }) {
   const t = (key: TranslationKey) => translated(language, key);
   const [name, setName] = useState(category?.name ?? "");
+  const nameInputRef = useRef<HTMLInputElement>(null);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await onSave({ name });
   }
-  return <ModalFrame title={t(category ? "editCategory" : "addCategory")} subtitle={t("writeCategoryName")} closeLabel={t("close")} onClose={onClose}>
+  return <ModalFrame title={t(category ? "editCategory" : "addCategory")} subtitle={t("writeCategoryName")} closeLabel={t("close")} onClose={onClose} manageFocus initialFocusRef={nameInputRef}>
     <form className="modal-form" onSubmit={(event) => void submit(event)}>
-      <label>{t("name")}<input autoFocus required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder={t("categoryNamePlaceholder")} /></label>
+      <label>{t("name")}<input ref={nameInputRef} required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder={t("categoryNamePlaceholder")} /></label>
       {error && <p className="form-error" role="alert">{localizedAppError(error, language)}</p>}
       <div className="modal-footer"><span className="modal-hint">{t("categoryNameMustBeUnique")}</span><button className="button button-outline" type="button" onClick={onClose}>{t("cancel")}</button><button className="button button-primary" disabled={saving}>{saving ? t("saving") : category ? t("saveChanges") : t("addCategory")}</button></div>
     </form>
@@ -1301,6 +1302,7 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
 }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   const titleId = useId();
   onCloseRef.current = onClose;
@@ -1318,9 +1320,9 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
     if (!manageFocus) return;
 
     const dialog = dialogRef.current;
-    const previouslyFocusedElement = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    if (!previouslyFocusedElementRef.current && document.activeElement instanceof HTMLElement) {
+      previouslyFocusedElementRef.current = document.activeElement;
+    }
     (initialFocusRef?.current ?? closeButtonRef.current)?.focus();
 
     function containKeyboardNavigation(event: KeyboardEvent) {
@@ -1362,7 +1364,12 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
     document.addEventListener("keydown", containKeyboardNavigation);
     return () => {
       document.removeEventListener("keydown", containKeyboardNavigation);
-      if (previouslyFocusedElement?.isConnected) previouslyFocusedElement.focus();
+      if (dialog && !dialog.isConnected) {
+        const previouslyFocusedElement = previouslyFocusedElementRef.current;
+        if (previouslyFocusedElement?.isConnected) {
+          window.requestAnimationFrame(() => previouslyFocusedElement.focus());
+        }
+      }
     };
   }, [initialFocusRef, manageFocus]);
 
@@ -1626,6 +1633,7 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
   const decommissionReasonGuidanceId = useId();
   const readOnlyNoticeId = useId();
   const statusSelectRef = useRef<HTMLSelectElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const decommissionReasonRef = useRef<HTMLTextAreaElement>(null);
   const isReadOnly = item !== null && isDecommissioned(item);
   const statusChanged = item !== null && !assetStatusesMatch(item.status, selectedStatus);
@@ -1658,6 +1666,7 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
     field("reason", "");
     setFormError("");
     onClearError();
+    window.requestAnimationFrame(() => statusSelectRef.current?.focus());
   }
 
   function closeEditor() {
@@ -1741,11 +1750,11 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
   const originalStatus = item ? resolveAssetStatus(item.status) : null;
   const statusOptions = item ? editableStatusOptions(item, language) : [];
   return <>
-    <ModalFrame title={t(item ? "editArticle" : "addArticle")} subtitle={t("completeRecordDetails")} closeLabel={t("close")} onClose={closeEditor}>
+    <ModalFrame title={t(item ? "editArticle" : "addArticle")} subtitle={t("completeRecordDetails")} closeLabel={t("close")} onClose={closeEditor} manageFocus={!decommissionConfirmationOpen} initialFocusRef={isReadOnly ? undefined : nameInputRef}>
       <form className="modal-form" onSubmit={(event) => void submit(event)} aria-describedby={isReadOnly ? readOnlyNoticeId : undefined}>
         <div className="form-grid">
           {isReadOnly && <p className="modal-hint field-span-2" id={readOnlyNoticeId} role="status">{t("readOnlyDecommissioned")}</p>}
-          <label className="field-span-2">{t("name")}<input autoFocus={!isReadOnly} disabled={isReadOnly} required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder={t("itemNamePlaceholder")} /></label>
+          <label className="field-span-2">{t("name")}<input ref={nameInputRef} disabled={isReadOnly} required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder={t("itemNamePlaceholder")} /></label>
           <label>{t("code")}<input disabled={isReadOnly} required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder={t("itemCodePlaceholder")} /></label>
           <label>{t("category")}<select disabled={isReadOnly} required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>{t("categoryPlaceholder")}</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
           {item
