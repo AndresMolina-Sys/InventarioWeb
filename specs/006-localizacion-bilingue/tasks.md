@@ -8,7 +8,7 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
   - Añadir `AppLanguage = "es" | "en"` y `language` a `AppPreferences`, conservando sin cambios las preferencias de tema, gráficos y densidad.
   - Hecho cuando: TypeScript acepta únicamente `es` y `en` para `AppPreferences.language`, y los cuatro campos previos conservan sus tipos actuales.
 
-- [ ] **T02. `src/lib/preferencesRepository.ts` — fallback y persistencia de idioma (20–30 min).** RF-1, RF-2, RF-8 (Principios 3, 5, 6)
+- [x] **T02. `src/lib/preferencesRepository.ts` — fallback y persistencia de idioma (20–30 min).** RF-1, RF-2, RF-8 (Principios 3, 5, 6)
   - Extender la normalización por campo y los valores iniciales: idioma ausente o inválido produce español y conserva cada preferencia previa válida; la lectura no escribe; cambio, restablecimiento y error de almacenamiento siguen el comportamiento de la spec 005.
   - Hecho cuando: leer preferencias antiguas de cuatro campos conserva esos cuatro valores, devuelve `language: "es"` y no cambia el contenido almacenado; guardar, restablecer o fallar el almacenamiento cumple los casos RF-2 y RF-8 sin acceder a IndexedDB.
 

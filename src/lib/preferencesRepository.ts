@@ -1,4 +1,5 @@
 import type {
+  AppLanguage,
   AppPreferences,
   TableDensityPreference,
   ThemePreference,
@@ -11,6 +12,7 @@ export const DEFAULT_APP_PREFERENCES: Readonly<AppPreferences> = Object.freeze({
   showRecentActivityChart: true,
   showCategoryChart: true,
   tableDensity: "comfortable",
+  language: "es",
 });
 
 export type PreferencesLoadResult =
@@ -40,6 +42,10 @@ function isTableDensityPreference(value: unknown): value is TableDensityPreferen
   return value === "comfortable" || value === "compact";
 }
 
+function isAppLanguage(value: unknown): value is AppLanguage {
+  return value === "es" || value === "en";
+}
+
 export function createDefaultAppPreferences(): AppPreferences {
   return { ...DEFAULT_APP_PREFERENCES };
 }
@@ -62,6 +68,9 @@ export function normalizeAppPreferences(value: unknown): AppPreferences {
     tableDensity: isTableDensityPreference(preferences.tableDensity)
       ? preferences.tableDensity
       : DEFAULT_APP_PREFERENCES.tableDensity,
+    language: isAppLanguage(preferences.language)
+      ? preferences.language
+      : DEFAULT_APP_PREFERENCES.language,
   };
 }
 
