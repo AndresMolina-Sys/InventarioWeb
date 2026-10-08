@@ -6,7 +6,7 @@ import { createDefaultAppPreferences, loadAppPreferences, saveAppPreferences } f
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemDraft, UpdateItemResult } from "./lib/inventoryRepository";
 import type { AppPreferences, AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot, ThemePreference } from "./types";
-import { formatDate, formatGreeting, formatNumber, formatUsd, getLocale, translate } from "./i18n";
+import { formatDate, formatGreeting, formatNumber, formatUsd, getLocale, presentAssetStatus, translate } from "./i18n";
 import type { TranslationKey, TranslationParameters } from "./i18n";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "settings" | "category-detail";
@@ -14,16 +14,15 @@ type MovementFilter = "all" | InventoryMovement["type"];
 type AssetStatusFilter = "all" | AssetLifecycleStatus;
 type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers" | "currency" | "settings";
 
-const ASSET_STATUS_LABELS: Record<AssetLifecycleStatus, string> = {
-  available: "Disponible",
-  assigned: "Asignado",
-  maintenance: "En mantenimiento",
-  decommissioned: "De baja",
+const ASSET_STATUS_KEYS: Record<AssetLifecycleStatus, TranslationKey> = {
+  available: "statusAvailable",
+  assigned: "statusAssigned",
+  maintenance: "statusMaintenance",
+  decommissioned: "statusDecommissioned",
 };
 
 const INITIAL_ASSET_STATUS_OPTIONS: readonly AssetLifecycleStatus[] = ["available", "assigned", "maintenance"];
 const ASSET_STATUS_FILTER_OPTIONS: readonly AssetLifecycleStatus[] = ["available", "assigned", "maintenance", "decommissioned"];
-const DECOMMISSIONED_PROTECTION_MESSAGE = "Este artículo está dado de baja y no se puede editar ni borrar.";
 
 const iconPaths: Record<IconName, ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>,
@@ -49,27 +48,30 @@ function Icon({ name, size = 18, className }: { name: IconName; size?: number; c
   return <svg aria-hidden="true" className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{iconPaths[name]}</svg>;
 }
 
-function AssetStatusBadge({ status }: { status: string | null | undefined }) {
-  const resolved = resolveAssetStatus(status);
+function assetStatusLabel(status: AssetLifecycleStatus, language: AppPreferences["language"]): string {
+  return translated(language, ASSET_STATUS_KEYS[status]);
+}
+
+function AssetStatusBadge({ status, language = "es" }: { status: string | null | undefined; language?: AppPreferences["language"] }) {
+  const resolved = presentAssetStatus(status, language);
   if (resolved.kind === "unknown") {
-    return <span className="asset-status-badge is-unknown" aria-label={`Estado desconocido: ${resolved.value}`} title={resolved.value}>Desconocido</span>;
+    const label = `${resolved.label} — ${resolved.rawValue}`;
+    return <span className="asset-status-badge is-unknown" aria-label={translated(language, "unknownStatusAccessible", { value: resolved.rawValue })} title={resolved.rawValue}>{label}</span>;
   }
-  return <span className={`asset-status-badge is-${resolved.value}`} aria-label={`Estado: ${ASSET_STATUS_LABELS[resolved.value]}`}>{ASSET_STATUS_LABELS[resolved.value]}</span>;
+  return <span className={`asset-status-badge is-${resolveAssetStatus(status).value}`} aria-label={translated(language, "canonicalStatusAccessible", { value: resolved.label })}>{resolved.label}</span>;
 }
 
 function isDecommissioned(item: InventoryItem): boolean {
   return resolveAssetStatus(item.status).value === "decommissioned";
 }
 
-function dateLabel(value: string): string {
-  return new Intl.DateTimeFormat("es-CR", {
-    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-  }).format(new Date(value));
+function dateLabel(value: string, language: AppPreferences["language"] = "es"): string {
+  return formatDate(value, language);
 }
 
-function costLabel(value: number | null): string {
-  if (value === null) return "Sin especificar";
-  return new Intl.NumberFormat("es-CR", { style: "currency", currency: "USD" }).format(value);
+function costLabel(value: number | null, language: AppPreferences["language"] = "es"): string {
+  if (value === null) return translated(language, "unspecified");
+  return formatUsd(value);
 }
 
 function registeredValueLabel(value: number): string {
@@ -293,7 +295,7 @@ function App() {
   const [categoryModal, setCategoryModal] = useState<Category | "new" | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<TranslationKey | null>(null);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -331,10 +333,10 @@ function App() {
 
   const categoryName = useMemo(() => new Map(snapshot.categories.map((category) => [category.id, category.name])), [snapshot.categories]);
   const filteredItems = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("es");
+    const query = search.trim().toLocaleLowerCase(getLocale(language));
     return snapshot.items.filter((item) => {
       const matchesQuery = !query || [item.name, item.code, item.serialNumber, item.sku, item.brand, item.model, item.location, item.notes, categoryName.get(item.categoryId) ?? ""]
-        .some((value) => value.toLocaleLowerCase("es").includes(query));
+        .some((value) => value.toLocaleLowerCase(getLocale(language)).includes(query));
       const resolvedStatus = resolveAssetStatus(item.status);
       const matchesStatus = statusFilter === "all"
         || (resolvedStatus.kind === "canonical" && resolvedStatus.value === statusFilter);
@@ -342,7 +344,7 @@ function App() {
         && (categoryFilter === "all" || item.categoryId === categoryFilter)
         && matchesStatus;
     });
-  }, [categoryFilter, categoryName, search, snapshot.items, statusFilter]);
+  }, [categoryFilter, categoryName, language, search, snapshot.items, statusFilter]);
 
   useEffect(() => {
     if (!pendingItemViewFocusId || page !== "inventory") return;
@@ -360,15 +362,15 @@ function App() {
     setSnapshot(data);
   }
 
-  async function mutate(action: () => Promise<void | UpdateItemResult>, successMessage: string): Promise<boolean> {
+  async function mutate(action: () => Promise<void | UpdateItemResult>, successMessage: TranslationKey): Promise<boolean> {
     setWorking(true);
     setError("");
-    setNotice("");
+    setNotice(null);
     try {
       const result = await action();
       if (result !== "unchanged") await refresh();
-      setNotice(result === "unchanged" ? "No hubo cambios para guardar." : successMessage);
-      window.setTimeout(() => setNotice(""), 3200);
+      setNotice(result === "unchanged" ? "noChangesToSave" : successMessage);
+      window.setTimeout(() => setNotice(null), 3200);
       return true;
     } catch (reason) {
       setError(errorMessage(reason));
@@ -385,7 +387,7 @@ function App() {
       && !isDecommissioned(existing);
     const saved = await mutate(
       () => existing ? updateItem(existing.id, draft) : createItem(draft),
-      existing ? "Artículo actualizado." : "Artículo agregado al registro.",
+      existing ? "itemUpdated" : "itemAdded",
     );
     if (saved) {
       setItemModal(null);
@@ -403,22 +405,22 @@ function App() {
   }
 
   async function removeItem(item: InventoryItem): Promise<boolean> {
-    if (!window.confirm(`¿Borrar el artículo «${item.name}»? Esta acción no se puede deshacer.`)) return false;
-    return mutate(() => deleteItem(item.id), "Artículo borrado.");
+    if (!window.confirm(translated(language, "confirmDeleteArticle", { name: item.name }))) return false;
+    return mutate(() => deleteItem(item.id), "itemDeleted");
   }
 
   async function saveCategory(draft: CategoryDraft): Promise<void> {
     const existing = categoryModal !== "new" && categoryModal ? categoryModal : null;
     const saved = await mutate(
       () => existing ? updateCategory(existing.id, draft) : createCategory(draft),
-      existing ? "Categoría actualizada." : "Categoría agregada.",
+      existing ? "categoryUpdated" : "categoryAdded",
     );
     if (saved) setCategoryModal(null);
   }
 
   async function removeCategory(category: Category) {
-    if (!window.confirm(`¿Borrar la categoría «${category.name}»? Esta acción no se puede deshacer.`)) return;
-    const deleted = await mutate(() => deleteCategory(category.id), "Categoría borrada.");
+    if (!window.confirm(translated(language, "confirmDeleteCategory", { name: category.name }))) return;
+    const deleted = await mutate(() => deleteCategory(category.id), "categoryDeleted");
     if (deleted && selectedCategoryId === category.id) {
       setSelectedCategoryId(null);
       setPage("categories");
@@ -466,7 +468,7 @@ function App() {
       </div>
 
       {(error || preferencesNoticeMessage || notice) && <div className={`toast ${error || preferencesNoticeMessage ? "toast-error" : "toast-success"}`} role={error || preferencesNoticeMessage ? "alert" : "status"}>
-        <Icon name={error || preferencesNoticeMessage ? "alert" : "check"} size={17} /><span>{error || preferencesNoticeMessage || notice}</span>
+        <Icon name={error || preferencesNoticeMessage ? "alert" : "check"} size={17} /><span>{error ? localizedAppError(error, language) : preferencesNoticeMessage ?? (notice ? translated(language, notice) : "")}</span>
         {error && <button className="toast-dismiss" onClick={() => setError("")} aria-label={translated(language, "closeNotice")}><Icon name="close" size={16} /></button>}
       </div>}
 
@@ -482,6 +484,7 @@ function App() {
         onViewCategories={() => setPage("categories")}
       />}
       {page === "inventory" && <InventoryPage
+        language={language}
         items={filteredItems}
         allItems={snapshot.items}
         categories={snapshot.categories}
@@ -496,6 +499,7 @@ function App() {
         onExport={exportCsv}
       />}
       {page === "categories" && <CategoriesPage
+        language={language}
         categories={snapshot.categories}
         items={snapshot.items}
         onNew={() => { setError(""); setCategoryModal("new"); }}
@@ -504,6 +508,7 @@ function App() {
         onDelete={(category) => void removeCategory(category)}
       />}
       {page === "category-detail" && selectedCategory && <CategoryDetailPage
+        language={language}
         category={selectedCategory}
         items={snapshot.items.filter((item) => item.categoryId === selectedCategory.id)}
         onBack={() => setPage("categories")}
@@ -511,11 +516,12 @@ function App() {
         onEditItem={(item) => { setError(""); itemEditOriginRef.current = "category-detail"; setItemModal(item); }}
         onDeleteItem={(item) => { void removeItem(item); }}
       />}
-      {page === "movements" && <MovementsPage movements={snapshot.movements} />}
+      {page === "movements" && <MovementsPage movements={snapshot.movements} language={language} />}
       {page === "settings" && <SettingsPage preferences={preferences} onChange={preferenceState.updatePreferences} onReset={() => preferenceState.updatePreferences(createDefaultAppPreferences())} />}
     </main>
 
     {itemModal && <ItemModal
+      language={language}
       item={itemModal === "new" ? null : itemModal}
       categories={snapshot.categories}
       error={error}
@@ -525,11 +531,13 @@ function App() {
       onSave={saveItem}
     />}
     {viewedItem && <ItemDetailModal
+      language={language}
       item={viewedItem}
       categoryName={categoryName.get(viewedItem.categoryId)}
       onClose={() => setViewedItem(null)}
     />}
     {categoryModal && <CategoryModal
+      language={language}
       category={categoryModal === "new" ? null : categoryModal}
       error={error}
       saving={working}
@@ -542,6 +550,34 @@ function App() {
 function errorMessage(reason: unknown): string {
   if (reason instanceof Error) return reason.message;
   return "Ocurrió un error inesperado. Intenta de nuevo.";
+}
+
+function localizedAppError(message: string, language: AppPreferences["language"]): string {
+  const patterns: Array<[RegExp, TranslationKey]> = [
+    [/Escribe el código del artículo\./, "writeItemCode"],
+    [/Escribe un nombre para el artículo\.|Escribe el nombre del artículo\./, "writeItemName"],
+    [/Ya existe un artículo con ese código\./, "duplicateItemCode"],
+    [/Ya existe un artículo con ese número de serie\./, "duplicateSerialNumber"],
+    [/El costo debe ser un número válido\.|El costo no puede ser negativo\./, "invalidCost"],
+    [/Escribe el nombre de la categoría\./, "writeCategoryName"],
+    [/Ya existe una categoría con ese nombre\./, "duplicateCategoryName"],
+    [/El artículo ya no existe\./, "itemNoLongerExists"],
+    [/La categoría ya no existe\./, "categoryNoLongerExists"],
+    [/No se puede editar un artículo dado de baja\./, "cannotEditDecommissioned"],
+    [/No se puede borrar un artículo dado de baja\./, "cannotDeleteDecommissioned"],
+    [/Selecciona un estado válido para el artículo\./, "invalidAssetStatus"],
+    [/La transición de estado no está permitida\./, "invalidStatusTransition"],
+    [/Selecciona una categoría antes de guardar\./, "selectCategoryBeforeSave"],
+    [/El motivo de la baja es obligatorio\./, "decommissionReasonRequired"],
+    [/El motivo no puede superar los 200 caracteres/, "reasonLengthInvalid"],
+  ];
+  for (const [pattern, key] of patterns) {
+    if (pattern.test(message)) return translated(language, key);
+  }
+  const associated = message.match(/No se puede borrar «(.+?)» porque tiene (\d+) artículo\(s\) asociado\(s\)\./);
+  if (associated) return translated(language, "associatedArticleDeleteError", { name: associated[1], count: formatNumber(Number(associated[2]), language) });
+  if (/base local|base de datos local|IndexedDB/i.test(message)) return translated(language, "databaseSaveFailure");
+  return translated(language, "unexpectedError");
 }
 
 function Sidebar({ page, onPage, itemCount, categoryCount, language }: { page: Page; onPage: (page: Page) => void; itemCount: number; categoryCount: number; language: AppPreferences["language"] }) {
@@ -731,10 +767,8 @@ function ActivityChart({ movements, language }: { movements: InventoryMovement[]
   </section>;
 }
 
-function movementActionLabel(type: InventoryMovement["type"]): string {
-  if (type === "created") return "Alta";
-  if (type === "updated") return "Edición";
-  return "Baja";
+function movementActionLabel(type: InventoryMovement["type"], language: AppPreferences["language"]): string {
+  return translated(language, type === "created" ? "entry" : type === "updated" ? "edit" : "removal");
 }
 
 function movementActionIcon(type: InventoryMovement["type"]): IconName {
@@ -743,104 +777,106 @@ function movementActionIcon(type: InventoryMovement["type"]): IconName {
   return "trash";
 }
 
-const movementAuditFields: Array<{ field: InventoryMovementAuditField; label: string }> = [
-  { field: "code", label: "Código" },
-  { field: "name", label: "Nombre" },
-  { field: "categoryName", label: "Categoría" },
-  { field: "serialNumber", label: "N.º de serie" },
-  { field: "location", label: "Ubicación" },
-  { field: "cost", label: "Costo" },
-  { field: "brand", label: "Marca" },
-  { field: "model", label: "Modelo" },
-  { field: "notes", label: "Notas" },
+const movementAuditFields: Array<{ field: InventoryMovementAuditField; label: TranslationKey }> = [
+  { field: "code", label: "code" },
+  { field: "name", label: "name" },
+  { field: "categoryName", label: "category" },
+  { field: "serialNumber", label: "serialNumber" },
+  { field: "location", label: "location" },
+  { field: "cost", label: "cost" },
+  { field: "brand", label: "brand" },
+  { field: "model", label: "model" },
+  { field: "notes", label: "notes" },
 ];
 
-const movementAuditFieldsV2: Array<{ field: InventoryMovementAuditFieldV2; label: string }> = [
+const movementAuditFieldsV2: Array<{ field: InventoryMovementAuditFieldV2; label: TranslationKey }> = [
   ...movementAuditFields,
-  { field: "status", label: "Estado" },
+  { field: "status", label: "statusLabel" },
 ];
 
-function movementAuditValueLabel(value: string | number | null): string {
-  if (typeof value === "number") return costLabel(value);
-  return value?.trim() || "Sin especificar";
+function movementAuditValueLabel(value: string | number | null, language: AppPreferences["language"]): string {
+  if (typeof value === "number") return costLabel(value, language);
+  return value?.trim() || translated(language, "unspecified");
 }
 
 function historicalMovementValueLabel(
   snapshot: Partial<InventoryMovementAuditSnapshot> | undefined,
   field: InventoryMovementAuditField,
+  language: AppPreferences["language"],
 ): string {
   if (!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, field) || snapshot[field] === undefined) {
-    return "Dato no registrado";
+    return translated(language, "noHistoricalData");
   }
 
   const value = snapshot[field];
-  if (value === null) return "Sin especificar";
-  if (typeof value === "number") return costLabel(value);
+  if (value === null) return translated(language, "unspecified");
+  if (typeof value === "number") return costLabel(value, language);
 
   const trimmedValue = value.trim();
   if (trimmedValue) return trimmedValue;
   return field === "code" || field === "name" || field === "categoryName"
-    ? "Dato no registrado"
-    : "Sin especificar";
+    ? translated(language, "noHistoricalData")
+    : translated(language, "unspecified");
 }
 
-function movementStatusValueLabel(value: string): string {
-  const resolved = resolveAssetStatus(value);
+function movementStatusValueLabel(value: string, language: AppPreferences["language"]): string {
+  const resolved = presentAssetStatus(value, language);
   return resolved.kind === "canonical"
-    ? ASSET_STATUS_LABELS[resolved.value]
-    : `Desconocido — ${resolved.value}`;
+    ? resolved.label
+    : `${resolved.label} — ${resolved.rawValue}`;
 }
 
-function movementAuditValueLabelV2(value: string | number | null, field: InventoryMovementAuditFieldV2): string {
-  return field === "status" ? movementStatusValueLabel(String(value ?? "")) : movementAuditValueLabel(value);
+function movementAuditValueLabelV2(value: string | number | null, field: InventoryMovementAuditFieldV2, language: AppPreferences["language"]): string {
+  return field === "status" ? movementStatusValueLabel(String(value ?? ""), language) : movementAuditValueLabel(value, language);
 }
 
-function movementItemNameLabel(movement: InventoryMovement): string {
+function movementItemNameLabel(movement: InventoryMovement, language: AppPreferences["language"]): string {
   if (movement.auditVersion === 1) return movement.itemSnapshot.name;
-  return historicalMovementValueLabel(movement.itemSnapshot, "name");
+  return historicalMovementValueLabel(movement.itemSnapshot, "name", language);
 }
 
-function movementItemSummaryLabel(movement: InventoryMovement): string {
+function movementItemSummaryLabel(movement: InventoryMovement, language: AppPreferences["language"]): string {
   if (movement.auditVersion === 1) {
     return `${movement.itemSnapshot.code} · ${movement.itemSnapshot.categoryName}`;
   }
-  if (!movement.itemSnapshot) return "Este movimiento no conserva los datos del artículo.";
-  return `${historicalMovementValueLabel(movement.itemSnapshot, "code")} · ${historicalMovementValueLabel(movement.itemSnapshot, "categoryName")}`;
+  if (!movement.itemSnapshot) return translated(language, "movementWithoutArticleData");
+  return `${historicalMovementValueLabel(movement.itemSnapshot, "code", language)} · ${historicalMovementValueLabel(movement.itemSnapshot, "categoryName", language)}`;
 }
 
-function MovementDetailContent({ movement }: { movement: InventoryMovement }) {
+function MovementDetailContent({ movement, language }: { movement: InventoryMovement; language: AppPreferences["language"] }) {
+  const t = (key: TranslationKey) => translated(language, key);
   if (movement.auditVersion === 2 && movement.type === "updated") {
     const hasStatusChange = Object.prototype.hasOwnProperty.call(movement.changes, "status");
     return <div className="modal-form movement-detail-content">
-      <h3>Campos modificados</h3>
+      <h3>{t("modifiedFields")}</h3>
       <div className="movement-diff-list">
-        <div className="movement-diff-heading"><span>Campo</span><span>Antes</span><span>Después</span></div>
+        <div className="movement-diff-heading"><span>{t("field")}</span><span>{t("before")}</span><span>{t("after")}</span></div>
         {movementAuditFieldsV2.map(({ field, label }) => {
           const change = movement.changes[field];
           if (!change) return null;
           return <div className="movement-diff-row" key={field}>
-            <strong>{label}</strong>
-            <div><span>Antes</span><p>{movementAuditValueLabelV2(change.before, field)}</p></div>
-            <div><span>Después</span><p>{movementAuditValueLabelV2(change.after, field)}</p></div>
+            <strong>{t(label)}</strong>
+            <div><span>{t("before")}</span><p>{movementAuditValueLabelV2(change.before, field, language)}</p></div>
+            <div><span>{t("after")}</span><p>{movementAuditValueLabelV2(change.after, field, language)}</p></div>
           </div>;
         })}
       </div>
-      {hasStatusChange && <div className="modal-hint movement-reason-context"><strong>Motivo</strong><p>{movement.reason?.trim() || "No registrado"}</p></div>}
+      {hasStatusChange && <div className="modal-hint movement-reason-context"><strong>{t("reason")}</strong><p>{movement.reason?.trim() || t("noHistoricalData")}</p></div>}
     </div>;
   }
 
   if (movement.auditVersion === 1 && movement.type === "updated") {
     return <div className="modal-form movement-detail-content">
-      <h3>Campos modificados</h3>
+      <h3>{t("modifiedFields")}</h3>
       <div className="movement-diff-list">
-        <div className="movement-diff-heading"><span>Campo</span><span>Antes</span><span>Después</span></div>
+        <div className="movement-diff-heading"><span>{t("field")}</span><span>{t("before")}</span><span>{t("after")}</span></div>
         {movementAuditFields.map(({ field, label }) => {
           const change = movement.changes[field];
           if (!change) return null;
           return <div className="movement-diff-row" key={field}>
-            <strong>{label}</strong>
-            <div><span>Antes</span><p>{movementAuditValueLabel(change.before)}</p></div>
-            <div><span>Después</span><p>{movementAuditValueLabel(change.after)}</p></div>
+            <strong>{t(label)}</strong>
+            <div><span>{t("before")}</span><p>{movementAuditValueLabel(change.before, language)}</p></div>
+            <div><span>{t("after")}</span><p>{movementAuditValueLabel(change.after, language)}</p></div>
           </div>;
         })}
       </div>
@@ -851,51 +887,52 @@ function MovementDetailContent({ movement }: { movement: InventoryMovement }) {
     const snapshot = movement.itemSnapshot;
     return <div className="modal-form movement-detail-content">
       <dl className="article-detail-grid movement-audit-fields">
-        <div><dt>Código</dt><dd>{snapshot.code}</dd></div>
-        <div><dt>Nombre</dt><dd>{snapshot.name}</dd></div>
-        <div><dt>Categoría</dt><dd>{snapshot.categoryName}</dd></div>
-        <div><dt>N.º de serie</dt><dd>{movementAuditValueLabel(snapshot.serialNumber)}</dd></div>
-        <div><dt>Ubicación</dt><dd>{movementAuditValueLabel(snapshot.location)}</dd></div>
-        <div><dt>Costo</dt><dd>{costLabel(snapshot.cost)}</dd></div>
-        <div><dt>Marca</dt><dd>{movementAuditValueLabel(snapshot.brand)}</dd></div>
-        <div><dt>Modelo</dt><dd>{movementAuditValueLabel(snapshot.model)}</dd></div>
-        <div className="detail-span"><dt>Notas</dt><dd>{movementAuditValueLabel(snapshot.notes)}</dd></div>
+        <div><dt>{t("code")}</dt><dd>{snapshot.code}</dd></div>
+        <div><dt>{t("name")}</dt><dd>{snapshot.name}</dd></div>
+        <div><dt>{t("category")}</dt><dd>{snapshot.categoryName}</dd></div>
+        <div><dt>{t("serialNumber")}</dt><dd>{movementAuditValueLabel(snapshot.serialNumber, language)}</dd></div>
+        <div><dt>{t("location")}</dt><dd>{movementAuditValueLabel(snapshot.location, language)}</dd></div>
+        <div><dt>{t("cost")}</dt><dd>{costLabel(snapshot.cost, language)}</dd></div>
+        <div><dt>{t("brand")}</dt><dd>{movementAuditValueLabel(snapshot.brand, language)}</dd></div>
+        <div><dt>{t("model")}</dt><dd>{movementAuditValueLabel(snapshot.model, language)}</dd></div>
+        <div className="detail-span"><dt>{t("notes")}</dt><dd>{movementAuditValueLabel(snapshot.notes, language)}</dd></div>
       </dl>
     </div>;
   }
 
   if (movement.auditVersion === 2 && (movement.type === "created" || movement.type === "deleted")) {
     const snapshot = movement.itemSnapshot;
-    const statusLabel = movement.type === "created" ? "Estado inicial" : "Estado previo";
+    const statusLabel = t(movement.type === "created" ? "statusInitial" : "previousStatus");
     return <div className="modal-form movement-detail-content">
       <dl className="article-detail-grid movement-audit-fields">
-        <div><dt>Código</dt><dd>{snapshot.code}</dd></div>
-        <div><dt>Nombre</dt><dd>{snapshot.name}</dd></div>
-        <div><dt>Categoría</dt><dd>{snapshot.categoryName}</dd></div>
-        <div><dt>N.º de serie</dt><dd>{movementAuditValueLabel(snapshot.serialNumber)}</dd></div>
-        <div><dt>Ubicación</dt><dd>{movementAuditValueLabel(snapshot.location)}</dd></div>
-        <div><dt>Costo</dt><dd>{costLabel(snapshot.cost)}</dd></div>
-        <div><dt>Marca</dt><dd>{movementAuditValueLabel(snapshot.brand)}</dd></div>
-        <div><dt>Modelo</dt><dd>{movementAuditValueLabel(snapshot.model)}</dd></div>
-        <div className="detail-span"><dt>Notas</dt><dd>{movementAuditValueLabel(snapshot.notes)}</dd></div>
-        <div><dt>{statusLabel}</dt><dd>{movementStatusValueLabel(snapshot.status)}</dd></div>
+        <div><dt>{t("code")}</dt><dd>{snapshot.code}</dd></div>
+        <div><dt>{t("name")}</dt><dd>{snapshot.name}</dd></div>
+        <div><dt>{t("category")}</dt><dd>{snapshot.categoryName}</dd></div>
+        <div><dt>{t("serialNumber")}</dt><dd>{movementAuditValueLabel(snapshot.serialNumber, language)}</dd></div>
+        <div><dt>{t("location")}</dt><dd>{movementAuditValueLabel(snapshot.location, language)}</dd></div>
+        <div><dt>{t("cost")}</dt><dd>{costLabel(snapshot.cost, language)}</dd></div>
+        <div><dt>{t("brand")}</dt><dd>{movementAuditValueLabel(snapshot.brand, language)}</dd></div>
+        <div><dt>{t("model")}</dt><dd>{movementAuditValueLabel(snapshot.model, language)}</dd></div>
+        <div className="detail-span"><dt>{t("notes")}</dt><dd>{movementAuditValueLabel(snapshot.notes, language)}</dd></div>
+        <div><dt>{statusLabel}</dt><dd>{movementStatusValueLabel(snapshot.status, language)}</dd></div>
       </dl>
     </div>;
   }
 
   const snapshot = movement.itemSnapshot;
   return <div className="modal-form movement-detail-content">
-    <p>Este movimiento no conserva el detalle histórico completo.</p>
+    <p>{t("historicalDetailsUnavailable")}</p>
     <dl className="article-detail-grid movement-audit-fields">
       {movementAuditFields.map(({ field, label }) => <div className={field === "notes" ? "detail-span" : undefined} key={field}>
-        <dt>{label}</dt>
-        <dd>{historicalMovementValueLabel(snapshot, field)}</dd>
+        <dt>{t(label)}</dt>
+        <dd>{historicalMovementValueLabel(snapshot, field, language)}</dd>
       </div>)}
     </dl>
   </div>;
 }
 
-function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
+function MovementsPage({ movements, language }: { movements: InventoryMovement[]; language: AppPreferences["language"] }) {
+  const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const [filter, setFilter] = useState<MovementFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
@@ -919,50 +956,50 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
 
   return <section className="page-content">
     <div className="page-heading movement-page-heading">
-      <div><div className="eyebrow">CONTROL INTERNO</div><h1>Movimientos</h1><p>Consulta las altas, ediciones y bajas de artículos.</p></div>
+      <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(language))}</div><h1>{t("movements")}</h1><p>{t("movementsDescription")}</p></div>
     </div>
     <section className="panel inventory-panel movement-history-panel">
       <div className="inventory-toolbar movement-toolbar">
-        <div><h2>Historial de actividad</h2><p className="inventory-count">{filteredMovements.length} {filteredMovements.length === 1 ? "movimiento" : "movimientos"} en el historial</p></div>
-        <label className="movement-filter"><span>Tipo de acción</span>
-          <select id="movement-filter" name="movementFilter" aria-label="Filtrar por tipo de acción" value={filter} onChange={(event) => changeFilter(event.target.value as MovementFilter)}>
-            <option value="all">Todos los movimientos</option>
-            <option value="created">Altas</option>
-            <option value="updated">Ediciones</option>
-            <option value="deleted">Bajas</option>
+        <div><h2>{t("fullMovementHistory")}</h2><p className="inventory-count">{t("movementCountInHistory", { count: formatNumber(filteredMovements.length, language) })}</p></div>
+        <label className="movement-filter"><span>{t("typeOfAction")}</span>
+          <select id="movement-filter" name="movementFilter" aria-label={t("filterByAction")} value={filter} onChange={(event) => changeFilter(event.target.value as MovementFilter)}>
+            <option value="all">{t("allMovements")}</option>
+            <option value="created">{t("newEntries")}</option>
+            <option value="updated">{t("edits")}</option>
+            <option value="deleted">{t("removals")}</option>
           </select>
         </label>
       </div>
       {visibleMovements.length > 0 ? <div className="table-scroll"><table className="product-table movement-history-table">
-        <caption className="sr-only">Historial completo de movimientos de artículos</caption>
-        <thead><tr><th scope="col">Acción</th><th scope="col">Artículo</th><th scope="col">Fecha y hora</th><th scope="col">Acciones</th></tr></thead>
+        <caption className="sr-only">{t("fullMovementHistory")}</caption>
+        <thead><tr><th scope="col">{t("action")}</th><th scope="col">{t("article")}</th><th scope="col">{t("dateAndTime")}</th><th scope="col">{t("actions")}</th></tr></thead>
         <tbody>{visibleMovements.map((movement) => <tr key={movement.id}>
-          <td><span className={`movement-action action-${movement.type}`}><Icon name={movementActionIcon(movement.type)} size={14} />{movementActionLabel(movement.type)}</span></td>
-          <td><div className="movement-article"><strong>{movement.itemSnapshot ? movementItemNameLabel(movement) : "Artículo sin datos asociados"}</strong><small>{movementItemSummaryLabel(movement)}</small></div></td>
-          <td className="date-cell"><time dateTime={movement.occurredAt}>{dateLabel(movement.occurredAt)}</time></td>
-          <td><button className="button button-outline movement-detail-button" type="button" onClick={() => setSelectedMovement(movement)}><Icon name="view" size={15} />Ver detalle</button></td>
+          <td><span className={`movement-action action-${movement.type}`}><Icon name={movementActionIcon(movement.type)} size={14} />{movementActionLabel(movement.type, language)}</span></td>
+          <td><div className="movement-article"><strong>{movement.itemSnapshot ? movementItemNameLabel(movement, language) : t("itemWithoutAssociatedData")}</strong><small>{movementItemSummaryLabel(movement, language)}</small></div></td>
+          <td className="date-cell"><time dateTime={movement.occurredAt}>{dateLabel(movement.occurredAt, language)}</time></td>
+          <td><button className="button button-outline movement-detail-button" type="button" aria-label={t("viewDetails")} onClick={() => setSelectedMovement(movement)}><Icon name="view" size={15} />{t("viewDetails")}</button></td>
         </tr>)}</tbody>
       </table></div> : <EmptyState
-        title={movements.length === 0 ? "Todavía no hay movimientos" : "No hay movimientos de este tipo"}
-        text={movements.length === 0 ? "Las altas, ediciones y bajas de artículos aparecerán aquí." : "Prueba otro filtro para consultar el historial."}
+        title={movements.length === 0 ? t("noMovementsYet") : t("noMovementsForType")}
+        text={movements.length === 0 ? t("recentMovementsEmpty") : t("tryAnotherMovementFilter")}
       />}
       <div className="table-foot movement-table-foot">
-        <span>Mostrando <strong>{rangeStart}–{rangeEnd}</strong> de <strong>{filteredMovements.length}</strong> movimientos</span>
-        {filteredMovements.length > 0 && <nav className="movement-pagination" aria-label="Paginación de movimientos">
-          <button className="movement-page-button" aria-label="Página anterior" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safePage === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
-          <span aria-live="polite">Página {safePage} de {pageCount}</span>
-          <button className="movement-page-button" aria-label="Página siguiente" onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={safePage === pageCount}><Icon name="chevron" size={15} /></button>
+        <span>{t("showing")} <strong>{formatNumber(rangeStart, language)}–{formatNumber(rangeEnd, language)}</strong> {t("of")} <strong>{formatNumber(filteredMovements.length, language)}</strong> {t("movementPlural")}</span>
+        {filteredMovements.length > 0 && <nav className="movement-pagination" aria-label={t("movementPagination")}>
+          <button className="movement-page-button" aria-label={t("previousPage")} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safePage === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
+          <span aria-live="polite">{t("movementPageCount", { page: formatNumber(safePage, language), pages: formatNumber(pageCount, language) })}</span>
+          <button className="movement-page-button" aria-label={t("nextPage")} onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={safePage === pageCount}><Icon name="chevron" size={15} /></button>
         </nav>}
       </div>
     </section>
     {selectedMovement && <ModalFrame
-      title={movementItemNameLabel(selectedMovement)}
-      subtitle={`${selectedMovement.auditVersion === 1 ? selectedMovement.itemSnapshot.code : historicalMovementValueLabel(selectedMovement.itemSnapshot, "code")} · ${dateLabel(selectedMovement.occurredAt)}`}
-      badge={<span className={`movement-action action-${selectedMovement.type}`}><Icon name={movementActionIcon(selectedMovement.type)} size={14} />{movementActionLabel(selectedMovement.type)}</span>}
-      closeLabel="Cerrar detalle de movimiento"
+      title={movementItemNameLabel(selectedMovement, language)}
+      subtitle={`${selectedMovement.auditVersion === 1 ? selectedMovement.itemSnapshot.code : historicalMovementValueLabel(selectedMovement.itemSnapshot, "code", language)} · ${dateLabel(selectedMovement.occurredAt, language)}`}
+      badge={<span className={`movement-action action-${selectedMovement.type}`}><Icon name={movementActionIcon(selectedMovement.type)} size={14} />{movementActionLabel(selectedMovement.type, language)}</span>}
+      closeLabel={translated(language, "close")}
       manageFocus
       onClose={() => setSelectedMovement(null)}
-    ><MovementDetailContent movement={selectedMovement} /></ModalFrame>}
+    ><MovementDetailContent movement={selectedMovement} language={language} /></ModalFrame>}
   </section>;
 }
 
@@ -1081,7 +1118,7 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
   </section>;
 }
 
-function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, statusFilter, onStatusFilter, onNew, onView, onEdit, onDelete, onExport }: {
+function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, statusFilter, onStatusFilter, onNew, onView, onEdit, onDelete, onExport, language }: {
   items: InventoryItem[];
   allItems: InventoryItem[];
   categories: Category[];
@@ -1094,125 +1131,131 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
   onEdit: (item: InventoryItem) => void;
   onDelete: (item: InventoryItem) => void;
   onExport: () => void;
+  language: AppPreferences["language"];
 }) {
+  const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const protectionDescriptionPrefix = useId();
   return <section className="page-content">
     <div className="page-heading">
-      <div><div className="eyebrow">CONTROL INTERNO</div><h1>Artículos</h1><p>Consulta y administra los artículos registrados.</p></div>
-      <button className="button button-primary" onClick={onNew}><Icon name="plus" size={18} />Agregar artículo</button>
+      <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(language))}</div><h1>{t("articles")}</h1><p>{t("inventoryDescription")}</p></div>
+      <button className="button button-primary" onClick={onNew}><Icon name="plus" size={18} />{t("addArticle")}</button>
     </div>
     <section className="panel inventory-panel">
       <div className="inventory-toolbar">
-        <div><h2>Registro de artículos</h2><p className="inventory-count">{items.length} de {allItems.length} artículos</p></div>
+        <div><h2>{t("articleRegistry")}</h2><p className="inventory-count">{t("articleRecordSummary", { visible: formatNumber(items.length, language), total: formatNumber(allItems.length, language) })}</p></div>
         <div className="toolbar-actions">
-          <select id="category-filter" name="categoryFilter" aria-label="Filtrar por categoría" value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">Todas las categorías</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
-          <select id="status-filter" name="statusFilter" aria-label="Filtrar por estado" value={statusFilter} onChange={(event) => onStatusFilter(event.target.value as AssetStatusFilter)}>
-            <option value="all">Todos</option>
-            {ASSET_STATUS_FILTER_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}
+          <select id="category-filter" name="categoryFilter" aria-label={t("filterByCategory")} value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">{t("allCategories")}</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
+          <select id="status-filter" name="statusFilter" aria-label={t("filterByStatus")} value={statusFilter} onChange={(event) => onStatusFilter(event.target.value as AssetStatusFilter)}>
+            <option value="all">{t("all")}</option>
+            {ASSET_STATUS_FILTER_OPTIONS.map((status) => <option value={status} key={status}>{assetStatusLabel(status, language)}</option>)}
           </select>
-          <button className="button button-outline" onClick={onExport} disabled={items.length === 0}><Icon name="download" size={16} />Exportar</button>
+          <button className="button button-outline" onClick={onExport} disabled={items.length === 0}><Icon name="download" size={16} />{t("export")}</button>
         </div>
       </div>
       {items.length > 0 ? <div className="table-scroll"><table className="product-table article-table">
-        <thead><tr><th>Nombre</th><th>Categoría</th><th>Estado</th><th>Fecha de ingreso</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>{t("name")}</th><th>{t("categoryColumn")}</th><th>{t("statusLabel")}</th><th>{t("entryDate")}</th><th>{t("actions")}</th></tr></thead>
         <tbody>{items.map((item, index) => {
           const protectedItem = isDecommissioned(item);
           const protectionDescriptionId = `${protectionDescriptionPrefix}-item-${index}`;
-          const protectionMessage = DECOMMISSIONED_PROTECTION_MESSAGE;
+          const protectionMessage = t("decommissionedProtection");
           return <tr key={item.id}>
             <td><div className="product-cell"><span className={`product-avatar avatar-${index % 5}`}>{item.name.slice(0, 1)}</span><strong>{item.name}</strong></div></td>
-            <td><span className="category-chip">{categories.find((category) => category.id === item.categoryId)?.name ?? "Sin categoría"}</span></td>
-            <td><AssetStatusBadge status={item.status} /></td>
-            <td className="date-cell">{dateLabel(item.createdAt)}</td>
+            <td><span className="category-chip">{categories.find((category) => category.id === item.categoryId)?.name ?? t("noCategory")}</span></td>
+            <td><AssetStatusBadge status={item.status} language={language} /></td>
+            <td className="date-cell">{dateLabel(item.createdAt, language)}</td>
             <td><div className="row-actions">
-              <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onView(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
-              <button className="quiet-icon" onClick={() => onEdit(item)} title={protectedItem ? protectionMessage : `Editar ${item.name}`} aria-label={`Editar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
-              <button className="quiet-icon danger-icon" onClick={() => onDelete(item)} title={protectedItem ? protectionMessage : `Borrar ${item.name}`} aria-label={`Borrar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
+              <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onView(item)} title={`${t("view")} ${item.name}`} aria-label={`${t("view")} ${item.name}`}><Icon name="view" size={16} /></button>
+              <button className="quiet-icon" onClick={() => onEdit(item)} title={protectedItem ? protectionMessage : `${t("edit")} ${item.name}`} aria-label={`${t("edit")} ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
+              <button className="quiet-icon danger-icon" onClick={() => onDelete(item)} title={protectedItem ? protectionMessage : t("confirmDeleteArticle", { name: item.name })} aria-label={t("confirmDeleteArticle", { name: item.name })} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
               {protectedItem && <span id={protectionDescriptionId} className="sr-only">{protectionMessage}</span>}
             </div></td>
           </tr>;
         })}</tbody>
-      </table></div> : <EmptyState title="No hay artículos para mostrar" text="Ajusta el filtro o agrega un artículo para comenzar." />}
-      <div className="table-foot"><span>Mostrando <strong>{items.length}</strong> de <strong>{allItems.length}</strong> artículos</span><span className="table-foot-note"><Icon name="layers" size={14} />Guardados en este navegador</span></div>
+      </table></div> : <EmptyState title={t("noArticlesToShow")} text={t("adjustArticleFilter")} />}
+      <div className="table-foot"><span>{t("allItemCount", { visible: formatNumber(items.length, language), total: formatNumber(allItems.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(items.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span></div>
     </section>
   </section>;
 }
 
-function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete }: {
+function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete, language }: {
   categories: Category[];
   items: InventoryItem[];
   onNew: () => void;
   onView: (category: Category) => void;
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
+  language: AppPreferences["language"];
 }) {
-  const sortedCategories = [...categories].sort((left, right) => left.name.localeCompare(right.name, "es"));
+  const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
+  const sortedCategories = [...categories].sort((left, right) => left.name.localeCompare(right.name, getLocale(language)));
   return <section className="page-content">
     <div className="page-heading">
-      <div><div className="eyebrow">CONTROL INTERNO</div><h1>Categorías</h1><p>Organiza los artículos por grupos de uso.</p></div>
-      <button className="button button-primary" onClick={onNew}><Icon name="plus" size={18} />Agregar categoría</button>
+      <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(language))}</div><h1>{t("categories")}</h1><p>{t("categoryDescription")}</p></div>
+      <button className="button button-primary" onClick={onNew}><Icon name="plus" size={18} />{t("addCategory")}</button>
     </div>
     <section className="panel inventory-panel">
-      <div className="inventory-toolbar"><div><h2>Registro de categorías</h2><p className="inventory-count">{categories.length} categorías</p></div></div>
+      <div className="inventory-toolbar"><div><h2>{t("categoryRegistry")}</h2><p className="inventory-count">{t("allCategoryCount", { count: formatNumber(categories.length, language) })}</p></div></div>
       {sortedCategories.length > 0 ? <div className="table-scroll"><table className="product-table category-table">
-        <thead><tr><th>Nombre</th><th>Artículos asociados</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>{t("name")}</th><th>{t("associatedArticles")}</th><th>{t("actions")}</th></tr></thead>
         <tbody>{sortedCategories.map((category, index) => {
           const count = items.filter((item) => item.categoryId === category.id).length;
           return <tr key={category.id}>
             <td><div className="product-cell"><span className={`category-mark mark-${index % 4}`}>{category.name.slice(0, 1)}</span><strong>{category.name}</strong></div></td>
-            <td>{count} {count === 1 ? "artículo" : "artículos"}</td>
+            <td>{t(count === 1 ? "associatedArticleSingular" : "associatedArticlePlural", { count: formatNumber(count, language) })}</td>
             <td><div className="row-actions">
-              <button className="quiet-icon" onClick={() => onView(category)} title={`Ver ${category.name}`} aria-label={`Ver ${category.name}`}><Icon name="view" size={16} /></button>
-              <button className="quiet-icon" onClick={() => onEdit(category)} title={`Editar ${category.name}`} aria-label={`Editar ${category.name}`}><Icon name="edit" size={16} /></button>
-              <button className="quiet-icon danger-icon" onClick={() => onDelete(category)} title={`Borrar ${category.name}`} aria-label={`Borrar ${category.name}`}><Icon name="trash" size={16} /></button>
+              <button className="quiet-icon" onClick={() => onView(category)} title={`${t("view")} ${category.name}`} aria-label={`${t("view")} ${category.name}`}><Icon name="view" size={16} /></button>
+              <button className="quiet-icon" onClick={() => onEdit(category)} title={`${t("edit")} ${category.name}`} aria-label={`${t("edit")} ${category.name}`}><Icon name="edit" size={16} /></button>
+              <button className="quiet-icon danger-icon" onClick={() => onDelete(category)} title={t("confirmDeleteCategory", { name: category.name })} aria-label={t("confirmDeleteCategory", { name: category.name })}><Icon name="trash" size={16} /></button>
             </div></td>
           </tr>;
         })}</tbody>
-      </table></div> : <EmptyState title="Aún no hay categorías" text="Agrega una categoría para clasificar artículos." />}
-      <div className="table-foot"><span>Mostrando <strong>{categories.length}</strong> categorías</span><span className="table-foot-note"><Icon name="layers" size={14} />Guardadas en este navegador</span></div>
+      </table></div> : <EmptyState title={t("noCategoriesYet")} text={t("addCategoryToClassify")} />}
+      <div className="table-foot"><span>{t("allCategoryCount", { count: formatNumber(categories.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(categories.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span></div>
     </section>
   </section>;
 }
 
-function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, onDeleteItem }: {
+function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, onDeleteItem, language }: {
   category: Category;
   items: InventoryItem[];
   onBack: () => void;
   onViewItem: (item: InventoryItem) => void;
   onEditItem: (item: InventoryItem) => void;
   onDeleteItem: (item: InventoryItem) => void;
+  language: AppPreferences["language"];
 }) {
+  const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const protectionDescriptionPrefix = useId();
   const sortedItems = [...items].sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
   return <section className="page-content">
     <div className="page-heading">
-      <div><button className="text-link category-back" onClick={onBack}><Icon name="chevron" size={15} />Volver a categorías</button><div className="eyebrow">DETALLE DE CATEGORÍA</div><h1>{category.name}</h1><p>{items.length} {items.length === 1 ? "artículo asociado" : "artículos asociados"}.</p></div>
+      <div><button className="text-link category-back" onClick={onBack}><Icon name="chevron" size={15} />{t("backToCategories")}</button><div className="eyebrow">{t("categoryDetailEyebrow")}</div><h1>{category.name}</h1><p>{t(items.length === 1 ? "associatedArticleSingular" : "associatedArticlePlural", { count: formatNumber(items.length, language) })}.</p></div>
     </div>
     <section className="panel inventory-panel">
-      <div className="inventory-toolbar"><div><h2>Artículos de {category.name}</h2><p>La fecha refleja la última modificación.</p></div></div>
+      <div className="inventory-toolbar"><div><h2>{t("articleListForCategory", { category: category.name })}</h2><p>{t("lastModificationDescription")}</p></div></div>
       {sortedItems.length > 0 ? <div className="table-scroll"><table className="product-table category-detail-table">
-        <thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th>N.º de serie</th><th>Ubicación</th><th>Última modificación</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>{t("code")}</th><th>{t("name")}</th><th>{t("statusLabel")}</th><th>{t("serialNumber")}</th><th>{t("location")}</th><th>{t("lastModified")}</th><th>{t("actions")}</th></tr></thead>
         <tbody>{sortedItems.map((item, index) => {
           const protectedItem = isDecommissioned(item);
           const protectionDescriptionId = `${protectionDescriptionPrefix}-item-${index}`;
-          const protectionMessage = DECOMMISSIONED_PROTECTION_MESSAGE;
+          const protectionMessage = t("decommissionedProtection");
           return <tr key={item.id}>
           <td className="sku-code">{item.code}</td>
           <td><strong className="category-item-name">{item.name}</strong></td>
-          <td><AssetStatusBadge status={item.status} /></td>
+          <td><AssetStatusBadge status={item.status} language={language} /></td>
           <td>{item.serialNumber || "—"}</td>
-          <td>{item.location || "Sin especificar"}</td>
-          <td className="date-cell">{dateLabel(item.updatedAt)}</td>
+          <td>{item.location || t("unspecified")}</td>
+          <td className="date-cell">{dateLabel(item.updatedAt, language)}</td>
           <td><div className="row-actions">
-            <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onViewItem(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
-            <button className="quiet-icon" onClick={() => onEditItem(item)} title={protectedItem ? protectionMessage : `Editar ${item.name}`} aria-label={`Editar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
-            <button className="quiet-icon danger-icon" onClick={() => onDeleteItem(item)} title={protectedItem ? protectionMessage : `Borrar ${item.name}`} aria-label={`Borrar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
+            <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onViewItem(item)} title={`${t("view")} ${item.name}`} aria-label={`${t("view")} ${item.name}`}><Icon name="view" size={16} /></button>
+            <button className="quiet-icon" onClick={() => onEditItem(item)} title={protectedItem ? protectionMessage : `${t("edit")} ${item.name}`} aria-label={`${t("edit")} ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
+            <button className="quiet-icon danger-icon" onClick={() => onDeleteItem(item)} title={protectedItem ? protectionMessage : t("confirmDeleteArticle", { name: item.name })} aria-label={t("confirmDeleteArticle", { name: item.name })} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
             {protectedItem && <span id={protectionDescriptionId} className="sr-only">{protectionMessage}</span>}
           </div></td>
           </tr>;
         })}</tbody>
-      </table></div> : <EmptyState title="No hay artículos asociados" text="Los artículos de esta categoría aparecerán aquí." />}
-      <div className="table-foot"><span>Mostrando <strong>{items.length}</strong> artículos</span><span className="table-foot-note"><Icon name="layers" size={14} />Guardados en este navegador</span></div>
+      </table></div> : <EmptyState title={t("noAssociatedArticles")} text={t("categoryArticlesWillAppear")} />}
+      <div className="table-foot"><span>{t("categoryDetailItemCount", { count: formatNumber(items.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(items.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span></div>
     </section>
   </section>;
 }
@@ -1225,17 +1268,18 @@ function LoadingScreen({ language }: { language: AppPreferences["language"] }) {
   return <div className="loading-screen" lang={language}><span className="loading-mark"><Icon name="layers" size={20} /></span><span>{translated(language, "loadingRegistry")}</span></div>;
 }
 
-function CategoryModal({ category, error, saving, onClose, onSave }: { category: Category | null; error: string; saving: boolean; onClose: () => void; onSave: (draft: CategoryDraft) => Promise<void> }) {
+function CategoryModal({ category, error, saving, onClose, onSave, language }: { category: Category | null; error: string; saving: boolean; onClose: () => void; onSave: (draft: CategoryDraft) => Promise<void>; language: AppPreferences["language"] }) {
+  const t = (key: TranslationKey) => translated(language, key);
   const [name, setName] = useState(category?.name ?? "");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await onSave({ name });
   }
-  return <ModalFrame title={category ? "Editar categoría" : "Agregar categoría"} subtitle="Escribe un nombre para organizar los artículos." onClose={onClose}>
+  return <ModalFrame title={t(category ? "editCategory" : "addCategory")} subtitle={t("writeCategoryName")} closeLabel={t("close")} onClose={onClose}>
     <form className="modal-form" onSubmit={(event) => void submit(event)}>
-      <label>Nombre<input autoFocus required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder="Ej. Equipo audiovisual" /></label>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="modal-footer"><span className="modal-hint">El nombre debe ser único.</span><button className="button button-outline" type="button" onClick={onClose}>Cancelar</button><button className="button button-primary" disabled={saving}>{saving ? "Guardando..." : category ? "Guardar cambios" : "Agregar categoría"}</button></div>
+      <label>{t("name")}<input autoFocus required maxLength={80} value={name} onChange={(event) => setName(event.target.value)} placeholder={t("categoryNamePlaceholder")} /></label>
+      {error && <p className="form-error" role="alert">{localizedAppError(error, language)}</p>}
+      <div className="modal-footer"><span className="modal-hint">{t("categoryNameMustBeUnique")}</span><button className="button button-outline" type="button" onClick={onClose}>{t("cancel")}</button><button className="button button-primary" disabled={saving}>{saving ? t("saving") : category ? t("saveChanges") : t("addCategory")}</button></div>
     </form>
   </ModalFrame>;
 }
@@ -1328,11 +1372,13 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
   </div>;
 }
 
-function ItemDetailModal({ item, categoryName, onClose }: {
+function ItemDetailModal({ item, categoryName, onClose, language }: {
   item: InventoryItem;
   categoryName: string | undefined;
   onClose: () => void;
+  language: AppPreferences["language"];
 }) {
+  const t = (key: TranslationKey) => translated(language, key);
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
   const [technicalSheetPreview, setTechnicalSheetPreview] = useState<TechnicalSheetPreviewState | null>(null);
   const [printError, setPrintError] = useState("");
@@ -1532,7 +1578,7 @@ function ItemDetailModal({ item, categoryName, onClose }: {
     </ModalFrame>;
   }
 
-  return <ModalFrame key="article-detail" title="Detalle del artículo" subtitle="Información del registro interno." onClose={closeCurrentView} manageFocus>
+  return <ModalFrame key="article-detail" title={t("itemDetails")} subtitle={t("internalRecordInformation")} closeLabel={t("close")} onClose={closeCurrentView} manageFocus>
     <div className="modal-form article-detail">
       <div className="article-detail-title">
         <span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span>
@@ -1540,18 +1586,18 @@ function ItemDetailModal({ item, categoryName, onClose }: {
           <strong>{item.name}</strong>
           <small>{item.code}</small>
         </div>
-        <span className="article-detail-header-status"><AssetStatusBadge status={item.status} /></span>
+        <span className="article-detail-header-status"><AssetStatusBadge status={item.status} language={language} /></span>
       </div>
       <dl className="article-detail-grid">
-        <div><dt>Categoría</dt><dd>{categoryName ?? "Sin categoría"}</dd></div>
-        <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
-        <div><dt>Código</dt><dd>{item.code}</dd></div>
-        <div><dt>Última modificación</dt><dd>{dateLabel(item.updatedAt)}</dd></div>
-        <div><dt>N.º de serie</dt><dd>{item.serialNumber || "Sin especificar"}</dd></div>
-        <div><dt>Ubicación</dt><dd>{item.location || "Sin especificar"}</dd></div>
-        <div><dt>Costo</dt><dd>{costLabel(item.cost)}</dd></div>
-        <div><dt>Marca y modelo</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || "Sin especificar"}</dd></div>
-        <div className="detail-span"><dt>Notas</dt><dd>{item.notes || "Sin notas"}</dd></div>
+        <div><dt>{t("category")}</dt><dd>{categoryName ?? t("noCategory")}</dd></div>
+        <div><dt>{t("entryDate")}</dt><dd>{dateLabel(item.createdAt, language)}</dd></div>
+        <div><dt>{t("code")}</dt><dd>{item.code}</dd></div>
+        <div><dt>{t("lastModified")}</dt><dd>{dateLabel(item.updatedAt, language)}</dd></div>
+        <div><dt>{t("serialNumber")}</dt><dd>{item.serialNumber || t("unspecified")}</dd></div>
+        <div><dt>{t("location")}</dt><dd>{item.location || t("unspecified")}</dd></div>
+        <div><dt>{t("cost")}</dt><dd>{costLabel(item.cost, language)}</dd></div>
+        <div><dt>{t("brand")} &amp; {t("model")}</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || t("unspecified")}</dd></div>
+        <div className="detail-span"><dt>{t("notes")}</dt><dd>{item.notes || t("noNotes")}</dd></div>
       </dl>
       <div className="modal-footer">
         <button ref={technicalSheetTriggerRef} className="button button-outline" type="button" onClick={openTechnicalSheetPreview}>Imprimir ficha técnica</button>
@@ -1562,7 +1608,8 @@ function ItemDetailModal({ item, categoryName, onClose }: {
   </ModalFrame>;
 }
 
-function ItemModal({ item, categories, error, saving, onClose, onClearError, onSave }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onClearError: () => void; onSave: (draft: UpdateItemDraft) => Promise<boolean> }) {
+function ItemModal({ item, categories, error, saving, onClose, onClearError, onSave, language }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onClearError: () => void; onSave: (draft: UpdateItemDraft) => Promise<boolean>; language: AppPreferences["language"] }) {
+  const t = (key: TranslationKey) => translated(language, key);
   const [draft, setDraft] = useState<UpdateItemDraft>(() => item ? draftFromItem(item) : {
     code: "", name: "", sku: "", serialNumber: "", brand: "", model: "", location: "", notes: "",
     categoryId: categories[0]?.id ?? "", cost: null, status: "available",
@@ -1587,7 +1634,7 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
 
   function openDecommissionConfirmation() {
     if (!item || !getAllowedTransitions(item.status).includes("decommissioned")) {
-      setFormError("La transición de estado no está permitida.");
+      setFormError(t("invalidStatusTransition"));
       return;
     }
     onClearError();
@@ -1630,7 +1677,7 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isReadOnly) return;
-    if (!draft.categoryId) { setFormError("Selecciona una categoría antes de guardar."); return; }
+    if (!draft.categoryId) { setFormError(t("selectCategoryBeforeSave")); return; }
 
     let nextDraft: UpdateItemDraft = {
       ...draft,
@@ -1641,11 +1688,11 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
     if (item && statusChanged) {
       const nextStatus = resolveAssetStatus(selectedStatus);
       if (nextStatus.kind !== "canonical") {
-        setFormError("Selecciona un estado válido para el artículo.");
+        setFormError(t("invalidAssetStatus"));
         return;
       }
       if (!getAllowedTransitions(item.status).includes(nextStatus.value)) {
-        setFormError("La transición de estado no está permitida.");
+        setFormError(t("invalidStatusTransition"));
         return;
       }
       if (nextStatus.value === "decommissioned") {
@@ -1688,38 +1735,39 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
   }
 
   const originalStatus = item ? resolveAssetStatus(item.status) : null;
-  const statusOptions = item ? editableStatusOptions(item) : [];
+  const statusOptions = item ? editableStatusOptions(item, language) : [];
   return <>
-    <ModalFrame title={item ? "Editar artículo" : "Agregar artículo"} subtitle="Completa los datos del registro." onClose={closeEditor}>
+    <ModalFrame title={t(item ? "editArticle" : "addArticle")} subtitle={t("completeRecordDetails")} closeLabel={t("close")} onClose={closeEditor}>
       <form className="modal-form" onSubmit={(event) => void submit(event)} aria-describedby={isReadOnly ? readOnlyNoticeId : undefined}>
         <div className="form-grid">
-          {isReadOnly && <p className="modal-hint field-span-2" id={readOnlyNoticeId} role="status">Este artículo está dado de baja y no se puede editar ni guardar.</p>}
-          <label className="field-span-2">Nombre<input autoFocus={!isReadOnly} disabled={isReadOnly} required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
-          <label>Código<input disabled={isReadOnly} required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
-          <label>Categoría<select disabled={isReadOnly} required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
+          {isReadOnly && <p className="modal-hint field-span-2" id={readOnlyNoticeId} role="status">{t("readOnlyDecommissioned")}</p>}
+          <label className="field-span-2">{t("name")}<input autoFocus={!isReadOnly} disabled={isReadOnly} required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder={t("itemNamePlaceholder")} /></label>
+          <label>{t("code")}<input disabled={isReadOnly} required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder={t("itemCodePlaceholder")} /></label>
+          <label>{t("category")}<select disabled={isReadOnly} required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>{t("categoryPlaceholder")}</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
           {item
-            ? <label>Estado<select ref={statusSelectRef} disabled={isReadOnly} value={selectedStatus} onChange={(event) => selectStatus(event.target.value)}>{statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
-            : <label>Estado inicial<select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>{INITIAL_ASSET_STATUS_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}</select></label>}
-          {item && originalStatus?.kind === "unknown" && <p className="modal-hint field-span-2">El estado original no es canónico. Puedes corregirlo a Disponible o a otro estado permitido; De baja requiere confirmación.</p>}
+            ? <label>{t("statusLabel")}<select ref={statusSelectRef} disabled={isReadOnly} value={selectedStatus} onChange={(event) => selectStatus(event.target.value)}>{statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+            : <label>{t("statusInitial")}<select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>{INITIAL_ASSET_STATUS_OPTIONS.map((status) => <option value={status} key={status}>{assetStatusLabel(status, language)}</option>)}</select></label>}
+          {item && originalStatus?.kind === "unknown" && <p className="modal-hint field-span-2">{t("unknownStatusCorrection")}</p>}
           {item && statusChanged && selectedStatus !== "decommissioned" && <>
-            <label className="field-span-2">Motivo del cambio (Opcional)<textarea rows={2} disabled={isReadOnly} value={draft.reason ?? ""} aria-describedby={reasonGuidanceId} onChange={(event) => field("reason", event.target.value)} placeholder="Explica brevemente el cambio de estado" /></label>
-            <p className="modal-hint field-span-2" id={reasonGuidanceId}>Se recortan los espacios; el límite de 200 caracteres se aplica al texto recortado.</p>
+            <label className="field-span-2">{t("changeReasonOptional")}<textarea rows={2} disabled={isReadOnly} value={draft.reason ?? ""} aria-describedby={reasonGuidanceId} onChange={(event) => field("reason", event.target.value)} placeholder={t("statusReasonPlaceholder")} /></label>
+            <p className="modal-hint field-span-2" id={reasonGuidanceId}>{t("reasonLengthGuidance")}</p>
           </>}
-          <label>Ubicación (Opcional)<input disabled={isReadOnly} maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
-          <label>N.º de serie (Opcional)<input disabled={isReadOnly} maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
-          <label>Costo $ (Opcional)<input disabled={isReadOnly} type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
-          <label>Marca<input disabled={isReadOnly} maxLength={100} value={draft.brand} onChange={(event) => field("brand", event.target.value)} placeholder="Opcional" /></label>
-          <label className="field-span-2">Modelo<input disabled={isReadOnly} maxLength={100} value={draft.model} onChange={(event) => field("model", event.target.value)} placeholder="Opcional" /></label>
-          <label className="field-span-2">Notas<textarea disabled={isReadOnly} rows={3} maxLength={500} value={draft.notes} onChange={(event) => field("notes", event.target.value)} placeholder="Detalles útiles para identificar este artículo" /></label>
+          <label>{t("locationOptional")}<input disabled={isReadOnly} maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder={t("locationPlaceholder")} /></label>
+          <label>{t("serialNumberOptional")}<input disabled={isReadOnly} maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder={t("optionalPlaceholder")} /></label>
+          <label>{t("costOptional")}<input disabled={isReadOnly} type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
+          <label>{t("brand")}<input disabled={isReadOnly} maxLength={100} value={draft.brand} onChange={(event) => field("brand", event.target.value)} placeholder={t("optionalPlaceholder")} /></label>
+          <label className="field-span-2">{t("model")}<input disabled={isReadOnly} maxLength={100} value={draft.model} onChange={(event) => field("model", event.target.value)} placeholder={t("optionalPlaceholder")} /></label>
+          <label className="field-span-2">{t("notes")}<textarea disabled={isReadOnly} rows={3} maxLength={500} value={draft.notes} onChange={(event) => field("notes", event.target.value)} placeholder={t("modelNotesPlaceholder")} /></label>
         </div>
-        {formError && <p className="form-error" role="alert">{formError}</p>}
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="modal-footer"><span className="modal-hint">La fecha de ingreso se registra al guardar.</span><button className="button button-outline" type="button" onClick={onClose} autoFocus={isReadOnly}>Cancelar</button><button className="button button-primary" disabled={saving || isReadOnly} aria-disabled={isReadOnly} aria-describedby={isReadOnly ? readOnlyNoticeId : undefined}>{saving ? "Guardando..." : item ? "Guardar cambios" : "Agregar artículo"}</button></div>
+        {formError && <p className="form-error" role="alert">{localizedAppError(formError, language)}</p>}
+        {error && <p className="form-error" role="alert">{localizedAppError(error, language)}</p>}
+        <div className="modal-footer"><span className="modal-hint">{t("editDateSavedHint")}</span><button className="button button-outline" type="button" onClick={onClose} autoFocus={isReadOnly}>{t("cancel")}</button><button className="button button-primary" disabled={saving || isReadOnly} aria-disabled={isReadOnly} aria-describedby={isReadOnly ? readOnlyNoticeId : undefined}>{saving ? t("saving") : item ? t("saveChanges") : t("addArticle")}</button></div>
       </form>
     </ModalFrame>
     {decommissionConfirmationOpen && <ModalFrame
-      title="Confirmar baja"
-      subtitle="La baja es irreversible para este artículo."
+      title={t("decommissionConfirmation")}
+      subtitle={t("decommissionIrreversible")}
+      closeLabel={t("close")}
       className="decommission-confirmation"
       onClose={cancelDecommissionConfirmation}
       manageFocus
@@ -1728,8 +1776,8 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
       hideHeaderClose={saving}
     >
       <div className="modal-form decommission-confirmation-content">
-        <p>Confirma la baja para guardar ahora todos los cambios del artículo y su motivo en un único movimiento.</p>
-        <label>Motivo de la baja<textarea
+        <p>{t("confirmDecommissionSave")}</p>
+        <label>{t("decommissionReasonRequired")}<textarea
           ref={decommissionReasonRef}
           rows={3}
           required
@@ -1737,18 +1785,18 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
           disabled={saving}
           aria-describedby={decommissionReasonGuidanceId}
           onChange={(event) => setDecommissionReason(event.target.value)}
-          placeholder="Escribe el motivo de la baja"
+          placeholder={t("decommissionReasonPlaceholder")}
         /></label>
         <p className="modal-hint" id={decommissionReasonGuidanceId}>
-          {decommissionReasonLength}/200 caracteres después de recortar. Escribe entre 1 y 200 caracteres para habilitar la confirmación.
+          {formatNumber(decommissionReasonLength, language)}{t("reasonLengthRemaining")}
         </p>
-        {decommissionReasonLength > 200 && <p className="form-error" role="alert">El motivo no puede superar los 200 caracteres después de recortar.</p>}
-        {error && <p className="form-error" role="alert">No se pudo guardar en la base local: {error}</p>}
-        {formError && <p className="form-error" role="alert">{formError}</p>}
+        {decommissionReasonLength > 200 && <p className="form-error" role="alert">{t("reasonLengthInvalid")}</p>}
+        {error && <p className="form-error" role="alert">{t("databaseSaveFailure")}</p>}
+        {formError && <p className="form-error" role="alert">{localizedAppError(formError, language)}</p>}
         <div className="modal-footer">
-          <button className="button button-outline" type="button" disabled={saving} onClick={cancelDecommissionConfirmation}>Cancelar</button>
+          <button className="button button-outline" type="button" disabled={saving} onClick={cancelDecommissionConfirmation}>{t("cancel")}</button>
           <button className="button button-primary" type="button" disabled={!canConfirmDecommission || saving} onClick={() => void confirmDecommission()}>
-            {saving ? "Guardando..." : error ? "Reintentar baja" : "Confirmar baja"}
+            {saving ? t("saving") : error ? t("retryDecommission") : t("decommissionConfirmation")}
           </button>
         </div>
       </div>
@@ -1756,15 +1804,15 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
   </>;
 }
 
-function editableStatusOptions(item: InventoryItem): Array<{ value: string; label: string }> {
+function editableStatusOptions(item: InventoryItem, language: AppPreferences["language"]): Array<{ value: string; label: string }> {
   const current = resolveAssetStatus(item.status);
   const options = new Map<string, string>();
   options.set(
     current.value,
-    current.kind === "unknown" ? `Desconocido — ${current.value}` : ASSET_STATUS_LABELS[current.value],
+    current.kind === "unknown" ? `${translated(language, "unknown")} — ${current.value}` : assetStatusLabel(current.value, language),
   );
   for (const status of getAllowedTransitions(item.status)) {
-    options.set(status, ASSET_STATUS_LABELS[status]);
+    options.set(status, assetStatusLabel(status, language));
   }
   return [...options].map(([value, label]) => ({ value, label }));
 }

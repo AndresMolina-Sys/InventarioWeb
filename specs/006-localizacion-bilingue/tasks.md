@@ -24,7 +24,7 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
   - Integrar el selector Español/English en Ajustes con etiquetas accesibles; aplicar inmediatamente la preferencia al árbol visible y al atributo semántico de idioma; localizar navegación, Ajustes y Resumen, incluidos KPI, gráficos, leyendas, ejes y vacíos.
   - Hecho cuando: seleccionar cualquiera de los idiomas actualiza en menos de 100 ms el selector, la navegación y todo texto generado del Resumen sin recarga; reiniciar preferencias confirmando/cancelando produce los resultados de RF-8.
 
-- [ ] **T05. `src/App.tsx` — Artículos, Categorías, Movimientos y diálogos (20–30 min).** RF-3, RF-4, RF-7 (Principios 2, 3, 5, 6)
+- [x] **T05. `src/App.tsx` — Artículos, Categorías, Movimientos y diálogos (20–30 min).** RF-3, RF-4, RF-7 (Principios 2, 3, 5, 6)
   - Localizar textos generados de listas, tablas, filtros, formularios, validaciones, acciones, estados vacíos y diálogos de estas vistas. Presentar estados canónicos traducidos y «Desconocido» localizado junto al raw desconocido, sin traducir ni modificar datos del usuario.
   - Hecho cuando: en ambos idiomas todas las cadenas generadas de estas vistas cambian sin recargar, los cuatro estados canónicos tienen su etiqueta correspondiente y códigos, nombres, notas, categorías, valores raw de estados y registros permanecen idénticos.
 
