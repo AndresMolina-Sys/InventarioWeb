@@ -22,7 +22,7 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Condicionar el render de Actividad reciente y Artículos por categoría a sus preferencias. Ajustar el grid para redistribuir paneles presentes sin reservar columnas o espacios vacíos; mantener intacta la creación de movimientos.
   - Hecho cuando: Se verifican las cuatro combinaciones de gráficos y, al ocultarlos, no quedan huecos reservados; los artículos, categorías y movimientos conservan sus valores y la actividad sigue registrándose; `npm run build` pasa.
 
-- [ ] **T06. Tokens de tema para shell, navegación y paneles (`src/styles.css`) — 25–30 min.** RF-4 (Principios P1, P2, P4, P6)
+- [x] **T06. Tokens de tema para shell, navegación y paneles (`src/styles.css`) — 25–30 min.** RF-4 (Principios P1, P2, P4, P6)
   - Convertir colores codificados de la estructura principal, navegación, fondos, tarjetas, métricas, gráficos, tablas y estados a tokens semánticos; definir paletas clara y oscura sin alterar la presentación clara existente.
   - Hecho cuando: Con tema Claro se conserva la apariencia actual y con Oscuro shell, navegación, resumen, categorías y tablas usan superficies/textos/bordes oscuros y legibles; no se cambia la impresión y `npm run build` pasa.
 
