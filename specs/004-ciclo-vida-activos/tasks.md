@@ -4,7 +4,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T01 — Contratos de estado y auditoría (`src/types.ts`) — 20–25 min
 
-- [ ] **Cubre:** RF-1, RF-2, RF-9, RF-10, RF-14; principios P1, P2, P3, P5, P6.
+- [x] **Cubre:** RF-1, RF-2, RF-9, RF-10, RF-14; principios P1, P2, P3, P5, P6.
 - Definir el conjunto canónico interno en inglés, el estado legacy opcional/no canónico, el borrador de creación con estado, snapshots de movimiento versión 2, diff de Estado y motivo contextual separado. Mantener tipos para movimientos versión 1 e históricos.
 - **Hecho cuando:** TypeScript puede representar los cuatro estados canónicos, un estado raw desconocido y eventos v1/v2 sin convertir eventos antiguos en v2; los eventos v2 tipan `status` en snapshots completos y como campo de diff.
 
