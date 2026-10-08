@@ -34,7 +34,7 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Aplicar altura base de 68 px para Cómoda y 56 px para Compacta a Artículos, Categorías, Movimientos y detalle de categoría. Permitir crecimiento de filas por contenido; preservar fuente mínima de 12 px, botones y áreas operables.
   - Hecho cuando: Las cuatro tablas cambian de densidad, una fila corta mide la altura base seleccionada y una fila con texto largo aumenta sin recorte; a 360 y 375 px no se genera overflow horizontal y `npm run build` pasa.
 
-- [ ] **T09. Verificación funcional de persistencia y datos (Chrome DevTools) — 25–30 min.** RF-2, RF-3, RF-5, RF-7, RF-8 (Principios P4, P5)
+- [x] **T09. Verificación funcional de persistencia y datos (Chrome DevTools) — 25–30 min.** RF-2, RF-3, RF-5, RF-7, RF-8 (Principios P4, P5)
   - Usar un contexto de navegador aislado para verificar defaults, cambios independientes, recarga, valores parciales/inválidos, errores controlados de lectura/escritura, reintento posterior, pestañas sin sincronización viva, reset y datos de IndexedDB.
   - Hecho cuando: Todas las preferencias sobreviven recarga cuando el guardado funciona; los fallos muestran aviso y no bloquean el uso; reset cancelar/confirmar cumple RF-7; se demuestra que IndexedDB mantiene exactamente los artículos, categorías y movimientos de inicio; consola sin errores/advertencias.
 
