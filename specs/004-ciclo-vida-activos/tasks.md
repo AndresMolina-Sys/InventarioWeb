@@ -35,7 +35,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T06 — Estado en creación, tabla y detalle (`src/App.tsx`) — 25–30 min
 
-- [ ] **Cubre:** RF-2, RF-3, RF-4, RF-12, RF-13; principios P2, P3, P5, P6.
+- [x] **Cubre:** RF-2, RF-3, RF-4, RF-12, RF-13; principios P2, P3, P5, P6.
 - Añadir selector de creación (sin De baja), insignias en tabla/detalle y filtro combinado con búsqueda/categoría. Hacer que los estados desconocidos aparezcan solo en Todos. Agregar o conectar Editar desde detalle; deshabilitar Editar y Borrar para De baja, también en el detalle de categoría, con explicación accesible.
 - **Hecho cuando:** la creación solo ofrece los tres estados iniciales permitidos; cada estado tiene etiqueta visible y accesible; filtros combinados producen los registros correctos; De baja permanece visible y no permite editar ni borrar desde ninguna tabla o detalle.
 

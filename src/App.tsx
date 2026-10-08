@@ -1,14 +1,26 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, updateCategory, updateItem } from "./lib/inventoryRepository";
+import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, resolveAssetStatus, updateCategory, updateItem } from "./lib/inventoryRepository";
 import { CODE128_MODULE_WIDTH_MM, CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM, encodeCode128B } from "./lib/code128";
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemResult } from "./lib/inventoryRepository";
-import type { Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditSnapshot, InventorySnapshot, ItemDraft } from "./types";
+import type { AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditSnapshot, InventorySnapshot, ItemDraft } from "./types";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
+type AssetStatusFilter = "all" | AssetLifecycleStatus;
 type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers" | "currency";
+
+const ASSET_STATUS_LABELS: Record<AssetLifecycleStatus, string> = {
+  available: "Disponible",
+  assigned: "Asignado",
+  maintenance: "En mantenimiento",
+  decommissioned: "De baja",
+};
+
+const INITIAL_ASSET_STATUS_OPTIONS: readonly AssetLifecycleStatus[] = ["available", "assigned", "maintenance"];
+const ASSET_STATUS_FILTER_OPTIONS: readonly AssetLifecycleStatus[] = ["available", "assigned", "maintenance", "decommissioned"];
+const DECOMMISSIONED_PROTECTION_MESSAGE = "Este artículo está dado de baja y no se puede editar ni borrar.";
 
 const iconPaths: Record<IconName, ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>,
@@ -31,6 +43,18 @@ const iconPaths: Record<IconName, ReactNode> = {
 
 function Icon({ name, size = 18, className }: { name: IconName; size?: number; className?: string }) {
   return <svg aria-hidden="true" className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{iconPaths[name]}</svg>;
+}
+
+function AssetStatusBadge({ status }: { status: string | null | undefined }) {
+  const resolved = resolveAssetStatus(status);
+  if (resolved.kind === "unknown") {
+    return <span className="asset-status-badge is-unknown" aria-label={`Estado desconocido: ${resolved.value}`} title={resolved.value}>Desconocido</span>;
+  }
+  return <span className={`asset-status-badge is-${resolved.value}`} aria-label={`Estado: ${ASSET_STATUS_LABELS[resolved.value]}`}>{ASSET_STATUS_LABELS[resolved.value]}</span>;
+}
+
+function isDecommissioned(item: InventoryItem): boolean {
+  return resolveAssetStatus(item.status).value === "decommissioned";
 }
 
 function dateLabel(value: string): string {
@@ -193,6 +217,7 @@ function App() {
   const [working, setWorking] = useState(false);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<AssetStatusFilter>("all");
   const [itemModal, setItemModal] = useState<InventoryItem | "new" | null>(null);
   const [viewedItem, setViewedItem] = useState<InventoryItem | null>(null);
   const [categoryModal, setCategoryModal] = useState<Category | "new" | null>(null);
@@ -232,9 +257,14 @@ function App() {
     return snapshot.items.filter((item) => {
       const matchesQuery = !query || [item.name, item.code, item.serialNumber, item.sku, item.brand, item.model, item.location, item.notes, categoryName.get(item.categoryId) ?? ""]
         .some((value) => value.toLocaleLowerCase("es").includes(query));
-      return matchesQuery && (categoryFilter === "all" || item.categoryId === categoryFilter);
+      const resolvedStatus = resolveAssetStatus(item.status);
+      const matchesStatus = statusFilter === "all"
+        || (resolvedStatus.kind === "canonical" && resolvedStatus.value === statusFilter);
+      return matchesQuery
+        && (categoryFilter === "all" || item.categoryId === categoryFilter)
+        && matchesStatus;
     });
-  }, [categoryFilter, categoryName, search, snapshot.items]);
+  }, [categoryFilter, categoryName, search, snapshot.items, statusFilter]);
 
   async function refresh() {
     setSnapshot(await loadSnapshot());
@@ -267,9 +297,9 @@ function App() {
     if (saved) setItemModal(null);
   }
 
-  async function removeItem(item: InventoryItem) {
-    if (!window.confirm(`¿Borrar el artículo «${item.name}»? Esta acción no se puede deshacer.`)) return;
-    await mutate(() => deleteItem(item.id), "Artículo borrado.");
+  async function removeItem(item: InventoryItem): Promise<boolean> {
+    if (!window.confirm(`¿Borrar el artículo «${item.name}»? Esta acción no se puede deshacer.`)) return false;
+    return mutate(() => deleteItem(item.id), "Artículo borrado.");
   }
 
   async function saveCategory(draft: CategoryDraft): Promise<void> {
@@ -342,10 +372,12 @@ function App() {
         categories={snapshot.categories}
         categoryFilter={categoryFilter}
         onCategoryFilter={setCategoryFilter}
+        statusFilter={statusFilter}
+        onStatusFilter={setStatusFilter}
         onNew={() => { setError(""); setItemModal("new"); }}
         onView={setViewedItem}
         onEdit={(item) => { setError(""); setItemModal(item); }}
-        onDelete={removeItem}
+        onDelete={(item) => { void removeItem(item); }}
         onExport={exportCsv}
       />}
       {page === "categories" && <CategoriesPage
@@ -361,7 +393,8 @@ function App() {
         items={snapshot.items.filter((item) => item.categoryId === selectedCategory.id)}
         onBack={() => setPage("categories")}
         onViewItem={setViewedItem}
-        onDeleteItem={removeItem}
+        onEditItem={(item) => { setError(""); setItemModal(item); }}
+        onDeleteItem={(item) => { void removeItem(item); }}
       />}
       {page === "movements" && <MovementsPage movements={snapshot.movements} />}
     </main>
@@ -374,7 +407,13 @@ function App() {
       onClose={() => setItemModal(null)}
       onSave={saveItem}
     />}
-    {viewedItem && <ItemDetailModal item={viewedItem} categoryName={categoryName.get(viewedItem.categoryId)} onClose={() => setViewedItem(null)} />}
+    {viewedItem && <ItemDetailModal
+      item={viewedItem}
+      categoryName={categoryName.get(viewedItem.categoryId)}
+      onClose={() => setViewedItem(null)}
+      onEdit={() => { setViewedItem(null); setError(""); setItemModal(viewedItem); }}
+      onDelete={async (item) => { if (await removeItem(item)) setViewedItem(null); }}
+    />}
     {categoryModal && <CategoryModal
       category={categoryModal === "new" ? null : categoryModal}
       error={error}
@@ -780,18 +819,21 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
   </section>;
 }
 
-function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, onNew, onView, onEdit, onDelete, onExport }: {
+function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, statusFilter, onStatusFilter, onNew, onView, onEdit, onDelete, onExport }: {
   items: InventoryItem[];
   allItems: InventoryItem[];
   categories: Category[];
   categoryFilter: string;
   onCategoryFilter: (value: string) => void;
+  statusFilter: AssetStatusFilter;
+  onStatusFilter: (value: AssetStatusFilter) => void;
   onNew: () => void;
   onView: (item: InventoryItem) => void;
   onEdit: (item: InventoryItem) => void;
   onDelete: (item: InventoryItem) => void;
   onExport: () => void;
 }) {
+  const protectionDescriptionPrefix = useId();
   return <section className="page-content">
     <div className="page-heading">
       <div><div className="eyebrow">CONTROL INTERNO</div><h1>Artículos</h1><p>Consulta y administra los artículos registrados.</p></div>
@@ -802,21 +844,32 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
         <div><h2>Registro de artículos</h2><p className="inventory-count">{items.length} de {allItems.length} artículos</p></div>
         <div className="toolbar-actions">
           <select id="category-filter" name="categoryFilter" aria-label="Filtrar por categoría" value={categoryFilter} onChange={(event) => onCategoryFilter(event.target.value)}><option value="all">Todas las categorías</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select>
+          <select id="status-filter" name="statusFilter" aria-label="Filtrar por estado" value={statusFilter} onChange={(event) => onStatusFilter(event.target.value as AssetStatusFilter)}>
+            <option value="all">Todos</option>
+            {ASSET_STATUS_FILTER_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}
+          </select>
           <button className="button button-outline" onClick={onExport} disabled={items.length === 0}><Icon name="download" size={16} />Exportar</button>
         </div>
       </div>
       {items.length > 0 ? <div className="table-scroll"><table className="product-table article-table">
-        <thead><tr><th>Nombre</th><th>Categoría</th><th>Fecha de ingreso</th><th>Acciones</th></tr></thead>
-        <tbody>{items.map((item, index) => <tr key={item.id}>
-          <td><div className="product-cell"><span className={`product-avatar avatar-${index % 5}`}>{item.name.slice(0, 1)}</span><strong>{item.name}</strong></div></td>
-          <td><span className="category-chip">{categories.find((category) => category.id === item.categoryId)?.name ?? "Sin categoría"}</span></td>
-          <td className="date-cell">{dateLabel(item.createdAt)}</td>
-          <td><div className="row-actions">
-            <button className="quiet-icon" onClick={() => onView(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
-            <button className="quiet-icon" onClick={() => onEdit(item)} title={`Editar ${item.name}`} aria-label={`Editar ${item.name}`}><Icon name="edit" size={16} /></button>
-            <button className="quiet-icon danger-icon" onClick={() => onDelete(item)} title={`Borrar ${item.name}`} aria-label={`Borrar ${item.name}`}><Icon name="trash" size={16} /></button>
-          </div></td>
-        </tr>)}</tbody>
+        <thead><tr><th>Nombre</th><th>Categoría</th><th>Estado</th><th>Fecha de ingreso</th><th>Acciones</th></tr></thead>
+        <tbody>{items.map((item, index) => {
+          const protectedItem = isDecommissioned(item);
+          const protectionDescriptionId = `${protectionDescriptionPrefix}-item-${index}`;
+          const protectionMessage = DECOMMISSIONED_PROTECTION_MESSAGE;
+          return <tr key={item.id}>
+            <td><div className="product-cell"><span className={`product-avatar avatar-${index % 5}`}>{item.name.slice(0, 1)}</span><strong>{item.name}</strong></div></td>
+            <td><span className="category-chip">{categories.find((category) => category.id === item.categoryId)?.name ?? "Sin categoría"}</span></td>
+            <td><AssetStatusBadge status={item.status} /></td>
+            <td className="date-cell">{dateLabel(item.createdAt)}</td>
+            <td><div className="row-actions">
+              <button className="quiet-icon" onClick={() => onView(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
+              <button className="quiet-icon" onClick={() => onEdit(item)} title={protectedItem ? protectionMessage : `Editar ${item.name}`} aria-label={`Editar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
+              <button className="quiet-icon danger-icon" onClick={() => onDelete(item)} title={protectedItem ? protectionMessage : `Borrar ${item.name}`} aria-label={`Borrar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
+              {protectedItem && <span id={protectionDescriptionId} className="sr-only">{protectionMessage}</span>}
+            </div></td>
+          </tr>;
+        })}</tbody>
       </table></div> : <EmptyState title="No hay artículos para mostrar" text="Ajusta el filtro o agrega un artículo para comenzar." />}
       <div className="table-foot"><span>Mostrando <strong>{items.length}</strong> de <strong>{allItems.length}</strong> artículos</span><span className="table-foot-note"><Icon name="layers" size={14} />Guardados en este navegador</span></div>
     </section>
@@ -859,13 +912,15 @@ function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete }: 
   </section>;
 }
 
-function CategoryDetailPage({ category, items, onBack, onViewItem, onDeleteItem }: {
+function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, onDeleteItem }: {
   category: Category;
   items: InventoryItem[];
   onBack: () => void;
   onViewItem: (item: InventoryItem) => void;
+  onEditItem: (item: InventoryItem) => void;
   onDeleteItem: (item: InventoryItem) => void;
 }) {
+  const protectionDescriptionPrefix = useId();
   const sortedItems = [...items].sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
   return <section className="page-content">
     <div className="page-heading">
@@ -874,18 +929,26 @@ function CategoryDetailPage({ category, items, onBack, onViewItem, onDeleteItem 
     <section className="panel inventory-panel">
       <div className="inventory-toolbar"><div><h2>Artículos de {category.name}</h2><p>La fecha refleja la última modificación.</p></div></div>
       {sortedItems.length > 0 ? <div className="table-scroll"><table className="product-table category-detail-table">
-        <thead><tr><th>Código</th><th>Nombre</th><th>N.º de serie</th><th>Ubicación</th><th>Última modificación</th><th>Acciones</th></tr></thead>
-        <tbody>{sortedItems.map((item) => <tr key={item.id}>
+        <thead><tr><th>Código</th><th>Nombre</th><th>Estado</th><th>N.º de serie</th><th>Ubicación</th><th>Última modificación</th><th>Acciones</th></tr></thead>
+        <tbody>{sortedItems.map((item, index) => {
+          const protectedItem = isDecommissioned(item);
+          const protectionDescriptionId = `${protectionDescriptionPrefix}-item-${index}`;
+          const protectionMessage = DECOMMISSIONED_PROTECTION_MESSAGE;
+          return <tr key={item.id}>
           <td className="sku-code">{item.code}</td>
           <td><strong className="category-item-name">{item.name}</strong></td>
+          <td><AssetStatusBadge status={item.status} /></td>
           <td>{item.serialNumber || "—"}</td>
           <td>{item.location || "Sin especificar"}</td>
           <td className="date-cell">{dateLabel(item.updatedAt)}</td>
           <td><div className="row-actions">
             <button className="quiet-icon" onClick={() => onViewItem(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
-            <button className="quiet-icon danger-icon" onClick={() => onDeleteItem(item)} title={`Borrar ${item.name}`} aria-label={`Borrar ${item.name}`}><Icon name="trash" size={16} /></button>
+            <button className="quiet-icon" onClick={() => onEditItem(item)} title={protectedItem ? protectionMessage : `Editar ${item.name}`} aria-label={`Editar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
+            <button className="quiet-icon danger-icon" onClick={() => onDeleteItem(item)} title={protectedItem ? protectionMessage : `Borrar ${item.name}`} aria-label={`Borrar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
+            {protectedItem && <span id={protectionDescriptionId} className="sr-only">{protectionMessage}</span>}
           </div></td>
-        </tr>)}</tbody>
+          </tr>;
+        })}</tbody>
       </table></div> : <EmptyState title="No hay artículos asociados" text="Los artículos de esta categoría aparecerán aquí." />}
       <div className="table-foot"><span>Mostrando <strong>{items.length}</strong> artículos</span><span className="table-foot-note"><Icon name="layers" size={14} />Guardados en este navegador</span></div>
     </section>
@@ -1001,7 +1064,13 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
   </div>;
 }
 
-function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem; categoryName: string | undefined; onClose: () => void }) {
+function ItemDetailModal({ item, categoryName, onClose, onEdit, onDelete }: {
+  item: InventoryItem;
+  categoryName: string | undefined;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: (item: InventoryItem) => void | Promise<void>;
+}) {
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
   const [technicalSheetPreview, setTechnicalSheetPreview] = useState<TechnicalSheetPreviewState | null>(null);
   const [printError, setPrintError] = useState("");
@@ -1010,11 +1079,14 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
   const printErrorMessageId = useId();
   const technicalSheetWarningId = useId();
   const technicalSheetPrintErrorId = useId();
+  const statusProtectionDescriptionId = useId();
   const technicalSheetTriggerRef = useRef<HTMLButtonElement>(null);
   const technicalSheetCloseButtonRef = useRef<HTMLButtonElement>(null);
   const technicalSheetPrintButtonRef = useRef<HTMLButtonElement>(null);
   const afterPrintHandlerRef = useRef<(() => void) | null>(null);
   const barcode = useMemo(() => encodeCode128B(item.code), [item.code]);
+  const protectedItem = isDecommissioned(item);
+  const protectionMessage = DECOMMISSIONED_PROTECTION_MESSAGE;
   const printButtonDescription = barcode.status === "blocked"
     ? blockedMessageId
     : printError ? printErrorMessageId : undefined;
@@ -1205,6 +1277,7 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
     <div className="modal-form article-detail">
       <div className="article-detail-title"><span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span><div><strong>{item.name}</strong><small>{item.code}</small></div></div>
       <dl className="article-detail-grid">
+        <div><dt>Estado</dt><dd><AssetStatusBadge status={item.status} /></dd></div>
         <div><dt>Categoría</dt><dd>{categoryName ?? "Sin categoría"}</dd></div>
         <div><dt>Fecha de ingreso</dt><dd>{dateLabel(item.createdAt)}</dd></div>
         <div><dt>Código</dt><dd>{item.code}</dd></div>
@@ -1215,9 +1288,12 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
         <div><dt>Marca y modelo</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || "Sin especificar"}</dd></div>
         <div className="detail-span"><dt>Notas</dt><dd>{item.notes || "Sin notas"}</dd></div>
       </dl>
+      {protectedItem && <p className="modal-hint" id={statusProtectionDescriptionId}>{protectionMessage}</p>}
       <div className="modal-footer">
         <button ref={technicalSheetTriggerRef} className="button button-outline" type="button" onClick={openTechnicalSheetPreview}>Imprimir ficha técnica</button>
         <button className="button button-outline" type="button" onClick={() => setLabelPreviewOpen(true)}>Imprimir etiqueta</button>
+        <button className="button button-outline" type="button" onClick={onEdit} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? statusProtectionDescriptionId : undefined}>Editar</button>
+        <button className="button button-outline danger-icon" type="button" onClick={() => { void onDelete(item); }} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? statusProtectionDescriptionId : undefined}>Borrar</button>
         <button className="button button-primary" type="button" onClick={onClose}>Cerrar</button>
       </div>
     </div>
@@ -1227,7 +1303,7 @@ function ItemDetailModal({ item, categoryName, onClose }: { item: InventoryItem;
 function ItemModal({ item, categories, error, saving, onClose, onSave }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onSave: (draft: ItemDraft) => Promise<void> }) {
   const [draft, setDraft] = useState<ItemDraft>(() => item ? draftFromItem(item) : {
     code: "", name: "", sku: "", serialNumber: "", brand: "", model: "", location: "", notes: "",
-    categoryId: categories[0]?.id ?? "", cost: null,
+    categoryId: categories[0]?.id ?? "", cost: null, status: "available",
   });
   const [formError, setFormError] = useState("");
   function field<K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) {
@@ -1245,6 +1321,7 @@ function ItemModal({ item, categories, error, saving, onClose, onSave }: { item:
         <label className="field-span-2">Nombre<input autoFocus required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
         <label>Código<input required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
         <label>Categoría<select required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
+        {!item && <label>Estado inicial<select value={draft.status ?? "available"} onChange={(event) => field("status", event.target.value as AssetLifecycleStatus)}>{INITIAL_ASSET_STATUS_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}</select></label>}
         <label>Ubicación (Opcional)<input maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
         <label>N.º de serie (Opcional)<input maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
         <label>Costo $ (Opcional)<input type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
