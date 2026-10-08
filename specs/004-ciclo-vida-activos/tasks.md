@@ -59,7 +59,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T10 — Verificación final y documentación (`docs/figma-brief.md`, `AGENTS.md`, `MEMORY.md`) — 25–30 min
 
-- [ ] **Cubre:** RF-1–RF-14; principios P1–P6.
+- [x] **Cubre:** RF-1–RF-14; principios P1–P6.
 - Actualizar las reglas y el brief con estados, auditoría, terminalidad y protección local; ejecutar `npm run build` y verificar en Chrome DevTools escritorio y móvil con datos de QA aislados. Revisar teclado, foco, filtros, fallos/reintento, consola y preservación de datos legacy.
 - **Hecho cuando:** `npm run build` termina correctamente; DevTools confirma flujos de alta/transición/baja, historial y vista móvil a 360/375 px sin errores/advertencias de consola; el diff documental refleja Estado como auditado y De baja como inmutable, sin reescribir ni borrar datos del perfil del usuario.
 
