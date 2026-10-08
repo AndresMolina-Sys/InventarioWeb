@@ -32,6 +32,6 @@
   Ejecutar el build y revisar el disparador, el contenido del preview, los estados bloqueados, el foco, el cierre y la presentación responsive en escritorio y móvil.
   **Hecho cuando:** `npm run build` pasa; Chrome DevTools confirma que el preview queda completamente visible en menos de 100 ms, los campos y avisos coinciden con sus estados, la navegación por teclado cumple la spec, la consola queda sin errores ni advertencias y a 360/375 px no hay desbordamiento horizontal.
 
-- [ ] **T09. QA de impresión física, cancelación y datos locales** RF-6–RF-13, criterios de finalización, (Principios 1, 2, 3, 4, 5, 6)
+- [x] **T09. QA de impresión física, cancelación y datos locales** RF-6–RF-13, criterios de finalización, (Principios 1, 2, 3, 4, 5, 6)
   Verificar en Chrome la salida Carta, el cálculo y apariencia del código de barras, las firmas, los flujos de cancelar/reintentar y la inmutabilidad local.
   **Hecho cuando:** con Carta vertical, escala 100 % y márgenes de 15 mm se obtiene una página en escala de grises, con símbolo conforme a la fórmula/límites y ambas firmas juntas de al menos 30 mm; cancelar conserva preview y foco en «Imprimir», los errores permiten reintentar o cerrar, IndexedDB conserva artículos/categorías/movimientos/fechas y no se transmiten datos ni se hacen solicitudes remotas.
