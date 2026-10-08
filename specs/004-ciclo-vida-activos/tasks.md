@@ -16,7 +16,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T03 — Lectura compatible, alta y ejemplos (`src/lib/inventoryRepository.ts`, `src/data/demo.ts`) — 25–30 min
 
-- [ ] **Cubre:** RF-1, RF-2, RF-9, RF-10, RF-14; principios P1, P2, P3, P5.
+- [x] **Cubre:** RF-1, RF-2, RF-9, RF-10, RF-14; principios P1, P2, P3, P5.
 - Añadir `available` a nuevos artículos y a los ejemplos sembrados. Hacer que la carga de lectura no escriba defaults sobre registros legacy; conservar sin cambios los artículos importados de `localStorage`. Generar snapshots de alta v2 con estado inicial.
 - La solicitud original ya autorizó este cambio aditivo de `status` y movimientos v2; no volver a pedir aprobación para esos datos. Consultar al usuario únicamente si se descubre que hace falta una migración destructiva o una modificación persistida fuera del alcance aprobado.
 - **Hecho cuando:** cargar una base legacy no modifica su registro; crear un artículo en cada uno de los tres estados disponibles persiste la elección y el movimiento de alta incluye el mismo estado.

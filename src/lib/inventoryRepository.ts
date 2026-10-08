@@ -3,6 +3,7 @@ import type {
   AssetLifecycleStatus,
   Category,
   CategoryDraft,
+  CreatedMovementV2,
   InventoryItem,
   InventoryMovement,
   InventoryMovementAuditField,
@@ -37,6 +38,8 @@ export type ResolvedAssetStatus =
   | { kind: "canonical"; value: AssetLifecycleStatus }
   | { kind: "unknown"; value: string };
 
+const INITIAL_ASSET_LIFECYCLE_STATUSES = ["available", "assigned", "maintenance"] as const satisfies readonly AssetLifecycleStatus[];
+
 const ASSET_LIFECYCLE_STATUSES: readonly AssetLifecycleStatus[] = [
   "available",
   "assigned",
@@ -57,6 +60,16 @@ type AuditableItem = Pick<
 >;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
+
+type InitialAssetLifecycleStatus = typeof INITIAL_ASSET_LIFECYCLE_STATUSES[number];
+
+type NewInventoryItem = InventoryItem & {
+  status: InitialAssetLifecycleStatus;
+};
+
+function isInitialAssetLifecycleStatus(value: string): value is InitialAssetLifecycleStatus {
+  return INITIAL_ASSET_LIFECYCLE_STATUSES.includes(value as InitialAssetLifecycleStatus);
+}
 
 function isAssetLifecycleStatus(value: string): value is AssetLifecycleStatus {
   return ASSET_LIFECYCLE_STATUSES.includes(value as AssetLifecycleStatus);
@@ -432,6 +445,24 @@ function createVersionedMovement(
     : { ...movement, type: "deleted" };
 }
 
+function createCreatedMovementV2(
+  occurredAt: string,
+  item: NewInventoryItem,
+  categories: Category[],
+): CreatedMovementV2 {
+  const itemSnapshot = createInventoryMovementAuditSnapshot(
+    item,
+    movementItemSnapshot(item, categories).categoryName,
+  );
+  return {
+    id: crypto.randomUUID(),
+    type: "created",
+    occurredAt,
+    auditVersion: 2,
+    itemSnapshot: { ...itemSnapshot, status: item.status },
+  };
+}
+
 function validateItemDraft(draft: ItemDraft, items: InventoryItem[], currentId?: string): void {
   if (!draft.code.trim()) throw new Error("Escribe el código del artículo.");
   if (!draft.name.trim()) throw new Error("Escribe el nombre del artículo.");
@@ -466,8 +497,12 @@ export function loadSnapshot(): Promise<InventorySnapshot> {
 export function createItem(draft: ItemDraft): Promise<void> {
   return transactSnapshot((snapshot) => {
     validateItemDraft(draft, snapshot.items);
+    const status = draft.status ?? "available";
+    if (!isInitialAssetLifecycleStatus(status)) {
+      throw new Error("El estado inicial debe ser Disponible, Asignado o En mantenimiento.");
+    }
     const now = new Date().toISOString();
-    const item: InventoryItem = {
+    const item: NewInventoryItem = {
       ...draft,
       code: draft.code.trim(),
       name: draft.name.trim(),
@@ -477,6 +512,7 @@ export function createItem(draft: ItemDraft): Promise<void> {
       model: draft.model.trim(),
       location: draft.location.trim(),
       notes: draft.notes.trim(),
+      status,
       id: crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
@@ -485,7 +521,7 @@ export function createItem(draft: ItemDraft): Promise<void> {
       snapshot: {
         ...snapshot,
         items: [item, ...snapshot.items],
-        movements: [...snapshot.movements, createVersionedMovement("created", now, item, snapshot.categories)],
+        movements: [...snapshot.movements, createCreatedMovementV2(now, item, snapshot.categories)],
       },
       result: undefined,
     };

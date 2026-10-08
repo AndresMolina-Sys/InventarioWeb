@@ -49,6 +49,7 @@ export function buildDemoItems(categories: Category[]): InventoryItem[] {
       notes: article.notes,
       categoryId: categoryIds.get(article.category) ?? categories[0]?.id ?? "",
       cost: null,
+      status: "available",
       createdAt,
       updatedAt: createdAt,
     };
@@ -79,6 +80,7 @@ function normalizeSnapshot(value: unknown, categoriesFallback: Category[], addMi
       notes: item.notes ?? "",
       categoryId: item.categoryId,
       cost: parsedCost !== null && Number.isFinite(parsedCost) && parsedCost >= 0 ? parsedCost : null,
+      ...(item.status !== undefined ? { status: item.status } : {}),
       createdAt,
       updatedAt: item.updatedAt ?? createdAt,
     }];
