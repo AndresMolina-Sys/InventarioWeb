@@ -48,6 +48,6 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
   - Ejecutar `npm run build` y verificar la funcionalidad en un perfil local de QA: preferencias antiguas/inválidas, persistencia y reset, todas las vistas, formatos, CSV, impresión, datos IndexedDB, teclado, consola y overflow.
   - Hecho cuando: el build termina con código 0; Chrome DevTools confirma ambos idiomas a 1440, 375 y 360 px, actualización menor de 100 ms, consola sin errores ni advertencias, sin overflow, impresión y CSV conforme a RF-4–RF-6, y artículos/categorías/movimientos son idénticos antes y después.
 
-- [ ] **T10. `docs/figma-brief.md`, `docs/constitution.md`, `AGENTS.md` y `MEMORY.md` — cierre documental (20–30 min).** RF-1–RF-8 (Principios 2, 5, 6)
+- [x] **T10. `docs/figma-brief.md`, `docs/constitution.md`, `AGENTS.md` y `MEMORY.md` — cierre documental (20–30 min).** RF-1–RF-8 (Principios 2, 5, 6)
   - Documentar selector, formatos, accesibilidad, responsive e impresión; cambiar el principio 6 al texto aprobado exactamente; actualizar reglas y memoria local con idioma, persistencia y límites, manteniendo MEMORY.md en 50 líneas o menos.
   - Hecho cuando: el brief describe la interfaz bilingüe implementada, el principio 6 coincide carácter por carácter con el texto aprobado, AGENTS.md refleja las reglas actuales y MEMORY.md tiene como máximo 50 líneas.

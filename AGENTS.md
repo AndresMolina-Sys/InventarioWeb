@@ -6,6 +6,7 @@ InventarioWeb Portfolio es un registro web de control interno para consultar y m
 
 - React 19.3, TypeScript 5.9, Vite 8.3 y Node.js 22+.
 - `src/App.tsx`: pantallas y diálogos; `src/types.ts`: modelos compartidos.
+- `src/i18n.ts`: catálogos tipados, textos y formatos por idioma; `src/lib/preferencesRepository.ts`: preferencias locales.
 - `src/lib/inventoryRepository.ts`: operaciones IndexedDB y validaciones; `src/data/demo.ts`: categorías, artículos de ejemplo y migración desde `localStorage`.
 - `docs/figma-brief.md` y `.cursor/rules/inventory-app.mdc` describen diseño y convenciones.
 - `supabase/` contiene archivos históricos no usados por Portfolio. No ejecutar su SQL ni conectar recursos remotos desde esta app.
@@ -19,14 +20,12 @@ npm run build
 npm run preview
 ```
 
-- Tests: `node --test
-
-`npm run build` valida TypeScript y genera el bundle. No hay scripts de pruebas ni lint. No se requieren variables de entorno.
+`npm run build` valida TypeScript y genera el bundle. No hay scripts de pruebas ni lint configurados. No se requieren variables de entorno.
 
 ## Convenciones
 
 - Componentes funcionales; dos espacios, comillas dobles, punto y coma y nombres camelCase.
-- Texto visible, errores y comentarios breves en español. Reutiliza los tipos compartidos y sigue `.cursor/rules/inventory-app.mdc`; conserva accesibilidad, teclado y diseño adaptable.
+- Mantén los identificadores internos en inglés. La interfaz y los mensajes al usuario usan español o inglés según la preferencia local, con español inicial; escribe los comentarios breves del código en español. Centraliza textos y formatos en `src/i18n.ts`; sigue `.cursor/rules/inventory-app.mdc` y conserva accesibilidad, teclado y diseño adaptable.
 - Mantén la persistencia en el repositorio y el contenido inicial en `src/data/demo.ts`.
 
 ## Reglas de dominio / trampas conocidas
@@ -63,8 +62,8 @@ npm run preview
 - El gráfico del Resumen usa ticks enteros: si el máximo es 3 o menor, presenta cada entero hasta cero; con máximos mayores presenta máximo, entero medio y cero. Las guías y números Y comparten la posición proporcional `(máximo − tick) / máximo` y quedan centrados; eje Y mantiene fuente mínima de 12 px. Las barras miden 18–32 px, centradas bajo sus etiquetas y con radio de 7 px; cada barra muestra encima su conteo diario, incluso `0` en días sin movimientos, con fuente mínima de 12 px. Las marcas para días en cero miden 3 px y las etiquetas `S/D/L/M/X/J/V` usan `X` para miércoles.
 - En escritorio, el área del gráfico se expande y ancla su leyenda al fondo; en móvil mide 130 px y deja la leyenda debajo.
 - Los datos pertenecen al perfil local del navegador y no se sincronizan entre equipos. Portfolio no tiene usuarios ni autenticación.
-- **Ajustes (spec 005):** guarda `theme`, `showRecentActivityChart`, `showCategoryChart` y `tableDensity` en `localStorage`, separado de IndexedDB. Defaults: `system`, `true`, `true`, `comfortable`; valida campo por campo, no sincroniza pestañas abiertas, y ante error conserva el cambio en sesión, anuncia el fallo y reintenta en la próxima acción. Restablecer requiere confirmación y solo modifica preferencias.
-- Tema `system` sigue `prefers-color-scheme`; `light`/`dark` cubren shell, tablas, controles, formularios y diálogos. Conserva impresión monocromática, texto normal con contraste ≥4.5:1, controles/foco ≥3:1 y foco visible. Las dos opciones de gráfico solo cambian Resumen y refluye paneles; no alteran datos ni movimientos. Tablas usan 68 px Cómoda / 56 px Compacta como altura base y pueden crecer; ningún texto baja de 12 px. La spec 005 permanece en español; la localización bilingüe pertenece a la spec 006, aún no implementada.
+- **Ajustes y localización (specs 005–006):** guarda `theme`, `language`, `showRecentActivityChart`, `showCategoryChart` y `tableDensity` en `localStorage` bajo `inventarioweb:preferences:v1`, separado de IndexedDB. Defaults: `system`, `es`, `true`, `true`, `comfortable`; valida cada campo independientemente, no sincroniza pestañas abiertas, y ante error conserva el cambio en sesión, anuncia el fallo y reintenta en la próxima acción. Restablecer requiere confirmación y solo modifica preferencias.
+- `system` sigue `prefers-color-scheme`; `light`/`dark` cubren shell, tablas, controles, formularios y diálogos. La interfaz y sus mensajes se muestran en español o inglés según la preferencia, español por defecto; fechas usan `es-CR`/`en-US` en zona local y costos conservan USD `$1,234.56` en ambos idiomas. Los datos escritos por la persona no se traducen. Solo el CSV existente de Artículos se localiza (encabezados y fecha); no se agregan exportaciones de otras vistas. Los textos generados en etiquetas y ficha técnica se localizan y la impresión sigue monocromática. Texto normal conserva contraste ≥4.5:1, controles/foco ≥3:1 y foco visible. Las opciones de gráficos solo cambian Resumen; densidad Cómoda/Compacta usa 68/56 px de altura base. Ningún texto visible baja de 12 px.
 
 ## Forma de trabajar
 
