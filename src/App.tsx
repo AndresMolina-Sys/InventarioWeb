@@ -2,15 +2,15 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { assetStatusesMatch, createCategory, createItem, deleteCategory, deleteItem, getAllowedTransitions, loadSnapshot, normalizeAssetStatusReason, resolveAssetStatus, updateCategory, updateItem } from "./lib/inventoryRepository";
 import { CODE128_MODULE_WIDTH_MM, CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM, encodeCode128B } from "./lib/code128";
-import { loadAppPreferences, saveAppPreferences } from "./lib/preferencesRepository";
+import { createDefaultAppPreferences, loadAppPreferences, saveAppPreferences } from "./lib/preferencesRepository";
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemDraft, UpdateItemResult } from "./lib/inventoryRepository";
 import type { AppPreferences, AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot, ThemePreference } from "./types";
 
-type Page = "dashboard" | "inventory" | "categories" | "movements" | "category-detail";
+type Page = "dashboard" | "inventory" | "categories" | "movements" | "settings" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
 type AssetStatusFilter = "all" | AssetLifecycleStatus;
-type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers" | "currency";
+type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers" | "currency" | "settings";
 
 const ASSET_STATUS_LABELS: Record<AssetLifecycleStatus, string> = {
   available: "Disponible",
@@ -40,6 +40,7 @@ const iconPaths: Record<IconName, ReactNode> = {
   alert: <><path d="M10.3 4.8 2.8 18a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.8a2 2 0 0 0-3.4 0Z" /><path d="M12 9v4m0 4h.01" /></>,
   layers: <><path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 12 9 5 9-5M3 16l9 5 9-5" /></>,
   currency: <><circle cx="12" cy="12" r="9" /><path d="M15 8.5c-.5-.7-1.5-1.1-3-1.1-1.6 0-2.6.7-2.6 1.8 0 3 5.2 1.2 5.2 4.1 0 1.1-1 2-2.7 2-1.4 0-2.5-.4-3.2-1.2M12 6v12" /></>,
+  settings: <><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" /><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z" /></>,
 };
 
 function Icon({ name, size = 18, className }: { name: IconName; size?: number; className?: string }) {
@@ -435,7 +436,7 @@ function App() {
 
   if (dataLoading) return <LoadingScreen />;
   const selectedCategory = snapshot.categories.find((category) => category.id === selectedCategoryId) ?? null;
-  const pageTitle = page === "dashboard" ? "Resumen" : page === "inventory" ? "Artículos" : page === "movements" ? "Movimientos" : page === "category-detail" ? selectedCategory?.name ?? "Categoría" : "Categorías";
+  const pageTitle = page === "dashboard" ? "Resumen" : page === "inventory" ? "Artículos" : page === "movements" ? "Movimientos" : page === "settings" ? "Ajustes" : page === "category-detail" ? selectedCategory?.name ?? "Categoría" : "Categorías";
   const preferencesNoticeMessage = preferencesNotice === "read"
     ? "No se pudieron leer las preferencias locales; se usarán los valores iniciales."
     : preferencesNotice === "write"
@@ -501,6 +502,7 @@ function App() {
         onDeleteItem={(item) => { void removeItem(item); }}
       />}
       {page === "movements" && <MovementsPage movements={snapshot.movements} />}
+      {page === "settings" && <SettingsPage preferences={preferences} onChange={preferenceState.updatePreferences} onReset={() => preferenceState.updatePreferences(createDefaultAppPreferences())} />}
     </main>
 
     {itemModal && <ItemModal
@@ -539,6 +541,7 @@ function Sidebar({ page, onPage, itemCount, categoryCount }: { page: Page; onPag
     { key: "inventory", label: "Artículos", icon: "box" },
     { key: "categories", label: "Categorías", icon: "layers" },
     { key: "movements", label: "Movimientos", icon: "clock" },
+    { key: "settings", label: "Ajustes", icon: "settings" },
   ];
   return <aside className="sidebar">
     <a className="brand" href="#inicio" onClick={(event) => { event.preventDefault(); onPage("dashboard"); }}>
@@ -547,13 +550,84 @@ function Sidebar({ page, onPage, itemCount, categoryCount }: { page: Page; onPag
     <div className="workspace-select"><span className="workspace-mark">I</span><span><strong>InventarioWeb</strong><small>Registro de artículos</small></span><Icon name="chevron" size={15} /></div>
     <div className="nav-label">MENÚ</div>
     <nav className="side-nav" aria-label="Navegación principal">
-      {links.map((link) => <button key={link.key} className={`nav-link ${activePage === link.key ? "active" : ""}`} aria-label={link.label} title={link.label} onClick={() => onPage(link.key)}>
+      {links.map((link) => <button key={link.key} className={`nav-link ${activePage === link.key ? "active" : ""}`} aria-label={link.label} aria-current={activePage === link.key ? "page" : undefined} title={link.label} onClick={() => onPage(link.key)}>
         <Icon name={link.icon} size={18} /><span>{link.label}</span>{link.key === "inventory" ? <span className="nav-count">{itemCount}</span> : link.key === "categories" ? <span className="nav-count">{categoryCount}</span> : null}
       </button>)}
     </nav>
     <div className="sidebar-spacer" />
     <div className="sidebar-note"><span className="note-icon"><Icon name="spark" size={16} /></span><strong>Control organizado</strong><p>Consulta los artículos y sus datos en un solo lugar.</p></div>
   </aside>;
+}
+
+function SettingsPage({ preferences, onChange, onReset }: {
+  preferences: AppPreferences;
+  onChange: (change: PreferencesChange) => void;
+  onReset: () => void;
+}) {
+  const [resetOpen, setResetOpen] = useState(false);
+  const cancelResetRef = useRef<HTMLButtonElement>(null);
+
+  return <section className="page-content">
+    <div className="page-heading">
+      <div><div className="eyebrow">CONTROL INTERNO</div><h1>Ajustes</h1><p>Personaliza la apariencia y la información visible.</p></div>
+    </div>
+    <section className="panel inventory-panel">
+      <div className="inventory-toolbar">
+        <div><h2>Preferencias de visualización</h2><p>Los cambios se aplican a esta sesión y se guardan en este navegador.</p></div>
+      </div>
+      <div className="modal-form">
+        <div className="form-grid">
+          <label htmlFor="preference-theme">Tema
+            <select id="preference-theme" name="theme" value={preferences.theme} onChange={(event) => onChange({ theme: event.target.value as ThemePreference })}>
+              <option value="system">Sistema</option>
+              <option value="light">Claro</option>
+              <option value="dark">Oscuro</option>
+            </select>
+          </label>
+          <label htmlFor="preference-activity-chart">Actividad reciente
+            <select id="preference-activity-chart" name="showRecentActivityChart" value={preferences.showRecentActivityChart ? "shown" : "hidden"} onChange={(event) => onChange({ showRecentActivityChart: event.target.value === "shown" })}>
+              <option value="shown">Visible</option>
+              <option value="hidden">Oculto</option>
+            </select>
+          </label>
+          <label htmlFor="preference-category-chart">Artículos por categoría
+            <select id="preference-category-chart" name="showCategoryChart" value={preferences.showCategoryChart ? "shown" : "hidden"} onChange={(event) => onChange({ showCategoryChart: event.target.value === "shown" })}>
+              <option value="shown">Visible</option>
+              <option value="hidden">Oculto</option>
+            </select>
+          </label>
+          <label htmlFor="preference-table-density">Densidad de tablas
+            <select id="preference-table-density" name="tableDensity" value={preferences.tableDensity} onChange={(event) => onChange({ tableDensity: event.target.value as AppPreferences["tableDensity"] })}>
+              <option value="comfortable">Cómoda</option>
+              <option value="compact">Compacta</option>
+            </select>
+          </label>
+        </div>
+        <div className="modal-footer">
+          <span className="modal-hint">Las preferencias no modifican los registros del inventario.</span>
+          <button className="button button-outline" type="button" onClick={() => setResetOpen(true)}>Restablecer preferencias</button>
+        </div>
+      </div>
+    </section>
+    {resetOpen && <ModalFrame
+      title="Restablecer preferencias"
+      subtitle="Solo se restablecerán el tema, los gráficos y la densidad. Los artículos, categorías y movimientos no cambiarán."
+      onClose={() => setResetOpen(false)}
+      className="stock-modal"
+      badge={<span className="modal-mark"><Icon name="settings" size={18} /></span>}
+      closeLabel="Cerrar confirmación"
+      manageFocus
+      initialFocusRef={cancelResetRef}
+    >
+      <div className="modal-form">
+        <p>Se aplicarán los valores iniciales: tema del sistema, ambos gráficos visibles y densidad cómoda.</p>
+        <div className="modal-footer">
+          <button ref={cancelResetRef} className="button button-outline" type="button" onClick={() => setResetOpen(false)}>Cancelar</button>
+          <button className="button button-primary" type="button" onClick={() => { onReset(); setResetOpen(false); }}>Confirmar restablecimiento</button>
+        </div>
+      </div>
+    </ModalFrame>}
+  </section>;
 }
 
 type WeeklyActivityDay = {

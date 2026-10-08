@@ -14,7 +14,7 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Inicializar el estado desde el repositorio, aplicar cada selección inmediatamente, posponer/coalescer la escritura del conjunto vigente, mostrar y retirar avisos accesibles según el resultado, y seguir `prefers-color-scheme` solo cuando el tema elegido sea Sistema. Exponer tema efectivo y densidad al contenedor de aplicación.
   - Hecho cuando: La sesión inicia con valores normalizados, un fallo de lectura deja usar la app con aviso, cada escritura fallida conserva la selección en sesión y una siguiente escritura exitosa elimina el aviso; Sistema responde al cambio de tema del navegador y `npm run build` pasa.
 
-- [ ] **T04. Navegación, controles y confirmación de Ajustes (`src/App.tsx`) — 25–30 min.** RF-1, RF-2, RF-3, RF-7, RF-8 (Principios P1, P4, P5, P6)
+- [x] **T04. Navegación, controles y confirmación de Ajustes (`src/App.tsx`) — 25–30 min.** RF-1, RF-2, RF-3, RF-7, RF-8 (Principios P1, P4, P5, P6)
   - Añadir Ajustes a la navegación de escritorio y móvil y construir una pantalla con controles independientes de tema, visibilidad de cada gráfico y densidad. Incorporar «Restablecer preferencias» con confirmación accesible; Escape, Cancelar y cierre equivalente deben conservar valores y restaurar el foco.
   - Hecho cuando: Ajustes abre desde ambas navegaciones; cada control cambia una preferencia y muestra su efecto sin recargar; cancelar el reset no cambia ningún valor, confirmar aplica los cuatro defaults y ningún flujo altera los registros de inventario; `npm run build` pasa.
 
