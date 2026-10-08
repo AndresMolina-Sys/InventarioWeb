@@ -4,7 +4,7 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
 
 ## Fase 1: contratos y preferencias locales
 
-- [ ] **T01. `src/types.ts` — contrato de idioma y preferencias (20–30 min).** RF-1, RF-2, RF-8 (Principios 1, 5, 6)
+- [x] **T01. `src/types.ts` — contrato de idioma y preferencias (20–30 min).** RF-1, RF-2, RF-8 (Principios 1, 5, 6)
   - Añadir `AppLanguage = "es" | "en"` y `language` a `AppPreferences`, conservando sin cambios las preferencias de tema, gráficos y densidad.
   - Hecho cuando: TypeScript acepta únicamente `es` y `en` para `AppPreferences.language`, y los cuatro campos previos conservan sus tipos actuales.
 

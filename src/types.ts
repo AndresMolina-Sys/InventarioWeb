@@ -184,9 +184,12 @@ export type ThemePreference = "system" | "light" | "dark";
 
 export type TableDensityPreference = "comfortable" | "compact";
 
+export type AppLanguage = "es" | "en";
+
 export type AppPreferences = {
   theme: ThemePreference;
   showRecentActivityChart: boolean;
   showCategoryChart: boolean;
   tableDensity: TableDensityPreference;
+  language: AppLanguage;
 };
