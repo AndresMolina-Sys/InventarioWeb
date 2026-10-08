@@ -1,10 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { createCategory, createItem, deleteCategory, deleteItem, loadSnapshot, resolveAssetStatus, updateCategory, updateItem } from "./lib/inventoryRepository";
+import { assetStatusesMatch, createCategory, createItem, deleteCategory, deleteItem, getAllowedTransitions, loadSnapshot, normalizeAssetStatusReason, resolveAssetStatus, updateCategory, updateItem } from "./lib/inventoryRepository";
 import { CODE128_MODULE_WIDTH_MM, CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM, encodeCode128B } from "./lib/code128";
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
-import type { UpdateItemResult } from "./lib/inventoryRepository";
-import type { AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditSnapshot, InventorySnapshot, ItemDraft } from "./types";
+import type { UpdateItemDraft, UpdateItemResult } from "./lib/inventoryRepository";
+import type { AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot } from "./types";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
@@ -288,7 +288,7 @@ function App() {
     }
   }
 
-  async function saveItem(draft: ItemDraft): Promise<void> {
+  async function saveItem(draft: UpdateItemDraft): Promise<void> {
     const existing = itemModal !== "new" && itemModal ? itemModal : null;
     const saved = await mutate(
       () => existing ? updateItem(existing.id, draft) : createItem(draft),
@@ -552,6 +552,11 @@ const movementAuditFields: Array<{ field: InventoryMovementAuditField; label: st
   { field: "notes", label: "Notas" },
 ];
 
+const movementAuditFieldsV2: Array<{ field: InventoryMovementAuditFieldV2; label: string }> = [
+  ...movementAuditFields,
+  { field: "status", label: "Estado" },
+];
+
 function movementAuditValueLabel(value: string | number | null): string {
   if (typeof value === "number") return costLabel(value);
   return value?.trim() || "Sin especificar";
@@ -576,6 +581,17 @@ function historicalMovementValueLabel(
     : "Sin especificar";
 }
 
+function movementStatusValueLabel(value: string): string {
+  const resolved = resolveAssetStatus(value);
+  return resolved.kind === "canonical"
+    ? ASSET_STATUS_LABELS[resolved.value]
+    : `Desconocido — ${resolved.value}`;
+}
+
+function movementAuditValueLabelV2(value: string | number | null, field: InventoryMovementAuditFieldV2): string {
+  return field === "status" ? movementStatusValueLabel(String(value ?? "")) : movementAuditValueLabel(value);
+}
+
 function movementItemNameLabel(movement: InventoryMovement): string {
   if (movement.auditVersion === 1) return movement.itemSnapshot.name;
   return historicalMovementValueLabel(movement.itemSnapshot, "name");
@@ -590,6 +606,26 @@ function movementItemSummaryLabel(movement: InventoryMovement): string {
 }
 
 function MovementDetailContent({ movement }: { movement: InventoryMovement }) {
+  if (movement.auditVersion === 2 && movement.type === "updated") {
+    const hasStatusChange = Object.prototype.hasOwnProperty.call(movement.changes, "status");
+    return <div className="modal-form movement-detail-content">
+      <h3>Campos modificados</h3>
+      <div className="movement-diff-list">
+        <div className="movement-diff-heading"><span>Campo</span><span>Antes</span><span>Después</span></div>
+        {movementAuditFieldsV2.map(({ field, label }) => {
+          const change = movement.changes[field];
+          if (!change) return null;
+          return <div className="movement-diff-row" key={field}>
+            <strong>{label}</strong>
+            <div><span>Antes</span><p>{movementAuditValueLabelV2(change.before, field)}</p></div>
+            <div><span>Después</span><p>{movementAuditValueLabelV2(change.after, field)}</p></div>
+          </div>;
+        })}
+      </div>
+      {hasStatusChange && <div className="modal-hint movement-reason-context"><strong>Motivo</strong><p>{movement.reason?.trim() || "No registrado"}</p></div>}
+    </div>;
+  }
+
   if (movement.auditVersion === 1 && movement.type === "updated") {
     return <div className="modal-form movement-detail-content">
       <h3>Campos modificados</h3>
@@ -621,6 +657,25 @@ function MovementDetailContent({ movement }: { movement: InventoryMovement }) {
         <div><dt>Marca</dt><dd>{movementAuditValueLabel(snapshot.brand)}</dd></div>
         <div><dt>Modelo</dt><dd>{movementAuditValueLabel(snapshot.model)}</dd></div>
         <div className="detail-span"><dt>Notas</dt><dd>{movementAuditValueLabel(snapshot.notes)}</dd></div>
+      </dl>
+    </div>;
+  }
+
+  if (movement.auditVersion === 2 && (movement.type === "created" || movement.type === "deleted")) {
+    const snapshot = movement.itemSnapshot;
+    const statusLabel = movement.type === "created" ? "Estado inicial" : "Estado previo";
+    return <div className="modal-form movement-detail-content">
+      <dl className="article-detail-grid movement-audit-fields">
+        <div><dt>Código</dt><dd>{snapshot.code}</dd></div>
+        <div><dt>Nombre</dt><dd>{snapshot.name}</dd></div>
+        <div><dt>Categoría</dt><dd>{snapshot.categoryName}</dd></div>
+        <div><dt>N.º de serie</dt><dd>{movementAuditValueLabel(snapshot.serialNumber)}</dd></div>
+        <div><dt>Ubicación</dt><dd>{movementAuditValueLabel(snapshot.location)}</dd></div>
+        <div><dt>Costo</dt><dd>{costLabel(snapshot.cost)}</dd></div>
+        <div><dt>Marca</dt><dd>{movementAuditValueLabel(snapshot.brand)}</dd></div>
+        <div><dt>Modelo</dt><dd>{movementAuditValueLabel(snapshot.model)}</dd></div>
+        <div className="detail-span"><dt>Notas</dt><dd>{movementAuditValueLabel(snapshot.notes)}</dd></div>
+        <div><dt>{statusLabel}</dt><dd>{movementStatusValueLabel(snapshot.status)}</dd></div>
       </dl>
     </div>;
   }
@@ -1300,28 +1355,83 @@ function ItemDetailModal({ item, categoryName, onClose, onEdit, onDelete }: {
   </ModalFrame>;
 }
 
-function ItemModal({ item, categories, error, saving, onClose, onSave }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onSave: (draft: ItemDraft) => Promise<void> }) {
-  const [draft, setDraft] = useState<ItemDraft>(() => item ? draftFromItem(item) : {
+function ItemModal({ item, categories, error, saving, onClose, onSave }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onSave: (draft: UpdateItemDraft) => Promise<void> }) {
+  const [draft, setDraft] = useState<UpdateItemDraft>(() => item ? draftFromItem(item) : {
     code: "", name: "", sku: "", serialNumber: "", brand: "", model: "", location: "", notes: "",
     categoryId: categories[0]?.id ?? "", cost: null, status: "available",
   });
+  const [selectedStatus, setSelectedStatus] = useState(() => item ? resolveAssetStatus(item.status).value : "available");
   const [formError, setFormError] = useState("");
-  function field<K extends keyof ItemDraft>(key: K, value: ItemDraft[K]) {
+  const reasonGuidanceId = useId();
+  const statusChanged = item !== null && !assetStatusesMatch(item.status, selectedStatus);
+
+  function field<K extends keyof UpdateItemDraft>(key: K, value: UpdateItemDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
+
+  function selectStatus(value: string) {
+    setSelectedStatus(value);
+    setFormError("");
+    if (item && assetStatusesMatch(item.status, value)) field("reason", "");
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draft.categoryId) { setFormError("Selecciona una categoría antes de guardar."); return; }
+
+    let nextDraft: UpdateItemDraft = {
+      ...draft,
+      status: item ? draft.status : selectedStatus,
+      reason: undefined,
+    };
+
+    if (item && statusChanged) {
+      const nextStatus = resolveAssetStatus(selectedStatus);
+      if (nextStatus.kind !== "canonical") {
+        setFormError("Selecciona un estado válido para el artículo.");
+        return;
+      }
+      if (!getAllowedTransitions(item.status).includes(nextStatus.value)) {
+        setFormError("La transición de estado no está permitida.");
+        return;
+      }
+      if (nextStatus.value === "decommissioned") {
+        // T08 conectará aquí la confirmación antes de permitir guardar la baja.
+        setFormError("La baja requiere confirmación antes de guardar.");
+        return;
+      }
+      try {
+        nextDraft = {
+          ...draft,
+          status: nextStatus.value,
+          reason: normalizeAssetStatusReason(nextStatus.value, draft.reason),
+        };
+      } catch (reason) {
+        setFormError(errorMessage(reason));
+        return;
+      }
+    }
+
     setFormError("");
-    await onSave(draft);
+    await onSave(nextDraft);
   }
+
+  const originalStatus = item ? resolveAssetStatus(item.status) : null;
+  const statusOptions = item ? editableStatusOptions(item) : [];
   return <ModalFrame title={item ? "Editar artículo" : "Agregar artículo"} subtitle="Completa los datos del registro." onClose={onClose}>
     <form className="modal-form" onSubmit={(event) => void submit(event)}>
       <div className="form-grid">
         <label className="field-span-2">Nombre<input autoFocus required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
         <label>Código<input required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
         <label>Categoría<select required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
-        {!item && <label>Estado inicial<select value={draft.status ?? "available"} onChange={(event) => field("status", event.target.value as AssetLifecycleStatus)}>{INITIAL_ASSET_STATUS_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}</select></label>}
+        {item
+          ? <label>Estado<select disabled={isDecommissioned(item)} value={selectedStatus} onChange={(event) => selectStatus(event.target.value)}>{statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+          : <label>Estado inicial<select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>{INITIAL_ASSET_STATUS_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}</select></label>}
+        {item && originalStatus?.kind === "unknown" && <p className="modal-hint field-span-2">El estado original no es canónico. Puedes corregirlo a Disponible o a otro estado permitido; De baja requiere confirmación.</p>}
+        {item && statusChanged && selectedStatus !== "decommissioned" && <>
+          <label className="field-span-2">Motivo del cambio (Opcional)<textarea rows={2} value={draft.reason ?? ""} aria-describedby={reasonGuidanceId} onChange={(event) => field("reason", event.target.value)} placeholder="Explica brevemente el cambio de estado" /></label>
+          <p className="modal-hint field-span-2" id={reasonGuidanceId}>Se recortan los espacios; el límite de 200 caracteres se aplica al texto recortado.</p>
+        </>}
         <label>Ubicación (Opcional)<input maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
         <label>N.º de serie (Opcional)<input maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
         <label>Costo $ (Opcional)<input type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
@@ -1336,10 +1446,24 @@ function ItemModal({ item, categories, error, saving, onClose, onSave }: { item:
   </ModalFrame>;
 }
 
-function draftFromItem(item: InventoryItem): ItemDraft {
+function editableStatusOptions(item: InventoryItem): Array<{ value: string; label: string }> {
+  const current = resolveAssetStatus(item.status);
+  const options = new Map<string, string>();
+  options.set(
+    current.value,
+    current.kind === "unknown" ? `Desconocido — ${current.value}` : ASSET_STATUS_LABELS[current.value],
+  );
+  for (const status of getAllowedTransitions(item.status)) {
+    // La tarea T08 expondrá este destino al integrar su confirmación explícita.
+    if (status !== "decommissioned") options.set(status, ASSET_STATUS_LABELS[status]);
+  }
+  return [...options].map(([value, label]) => ({ value, label }));
+}
+
+function draftFromItem(item: InventoryItem): UpdateItemDraft {
   return {
     code: item.code, name: item.name, sku: item.sku, serialNumber: item.serialNumber, brand: item.brand, model: item.model,
-    location: item.location, notes: item.notes, categoryId: item.categoryId, cost: item.cost,
+    location: item.location, notes: item.notes, categoryId: item.categoryId, cost: item.cost, status: item.status,
   };
 }
 

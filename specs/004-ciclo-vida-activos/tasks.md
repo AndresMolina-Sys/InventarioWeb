@@ -41,7 +41,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T07 — Transiciones ordinarias y motivos opcionales (`src/App.tsx`) — 25–30 min
 
-- [ ] **Cubre:** RF-1, RF-4, RF-5, RF-7, RF-8, RF-9, RF-10; principios P2, P3, P5, P6.
+- [x] **Cubre:** RF-1, RF-4, RF-5, RF-7, RF-8, RF-9, RF-10; principios P2, P3, P5, P6.
 - Integrar el selector de destinos válidos en Editar artículo; ofrecer el estado canónico de corrección a registros desconocidos. Capturar motivo opcional solo si cambia el estado, descartar todos los borradores al cancelar el formulario y preservar el raw desconocido si se cancela el intento de baja. Presentar en movimientos el diff Estado y el motivo como contexto separado.
 - **Hecho cuando:** las transiciones válidas/inválidas coinciden con la matriz; el motivo opcional se recorta, queda vacío si solo contenía espacios y no crea movimientos por sí solo; movimientos nuevos muestran Antes/Después de Estado y el motivo fuera del diff.
 
