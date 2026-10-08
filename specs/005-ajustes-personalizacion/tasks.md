@@ -10,7 +10,7 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Crear el repositorio local autorizado en el plan. Guardar y leer el objeto completo en `localStorage` con clave propia versionada; normalizar cada propiedad independientemente y reportar fallos de acceso, parseo o escritura sin lanzar excepciones al llamador. No leer ni escribir IndexedDB.
   - Hecho cuando: La comprobación manual confirma los cuatro defaults, la preservación de campos válidos ante campos ausentes/inválidos y resultados explícitos para errores de almacenamiento; `npm run build` pasa.
 
-- [ ] **T03. Ciclo de preferencias y tema del sistema (`src/App.tsx`) — 25–30 min.** RF-2, RF-3, RF-4, RF-7 (Principios P1, P3, P4, P5, P6)
+- [x] **T03. Ciclo de preferencias y tema del sistema (`src/App.tsx`) — 25–30 min.** RF-2, RF-3, RF-4, RF-7 (Principios P1, P3, P4, P5, P6)
   - Inicializar el estado desde el repositorio, aplicar cada selección inmediatamente, posponer/coalescer la escritura del conjunto vigente, mostrar y retirar avisos accesibles según el resultado, y seguir `prefers-color-scheme` solo cuando el tema elegido sea Sistema. Exponer tema efectivo y densidad al contenedor de aplicación.
   - Hecho cuando: La sesión inicia con valores normalizados, un fallo de lectura deja usar la app con aviso, cada escritura fallida conserva la selección en sesión y una siguiente escritura exitosa elimina el aviso; Sistema responde al cambio de tema del navegador y `npm run build` pasa.
 

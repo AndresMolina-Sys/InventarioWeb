@@ -2,9 +2,10 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { assetStatusesMatch, createCategory, createItem, deleteCategory, deleteItem, getAllowedTransitions, loadSnapshot, normalizeAssetStatusReason, resolveAssetStatus, updateCategory, updateItem } from "./lib/inventoryRepository";
 import { CODE128_MODULE_WIDTH_MM, CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM, encodeCode128B } from "./lib/code128";
+import { loadAppPreferences, saveAppPreferences } from "./lib/preferencesRepository";
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemDraft, UpdateItemResult } from "./lib/inventoryRepository";
-import type { AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot } from "./types";
+import type { AppPreferences, AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot, ThemePreference } from "./types";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
@@ -210,7 +211,72 @@ function getGreeting(): string {
   return hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
 }
 
+type EffectiveTheme = Exclude<ThemePreference, "system">;
+type PreferencesNotice = "read" | "write" | null;
+type PreferencesChange = Partial<AppPreferences> | ((current: AppPreferences) => AppPreferences);
+
+function getSystemTheme(): EffectiveTheme {
+  return typeof window !== "undefined"
+    && typeof window.matchMedia === "function"
+    && window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function useAppPreferences() {
+  const [loadResult] = useState(() => loadAppPreferences());
+  const [preferences, setPreferences] = useState(loadResult.preferences);
+  const preferencesRef = useRef(preferences);
+  const pendingWriteRef = useRef(false);
+  const [preferencesNotice, setPreferencesNotice] = useState<PreferencesNotice>(
+    loadResult.status === "error" ? "read" : null,
+  );
+  const [systemTheme, setSystemTheme] = useState<EffectiveTheme>(getSystemTheme);
+
+  function updatePreferences(change: PreferencesChange) {
+    const nextPreferences = typeof change === "function"
+      ? change(preferencesRef.current)
+      : { ...preferencesRef.current, ...change };
+    preferencesRef.current = nextPreferences;
+    pendingWriteRef.current = true;
+    setPreferences(nextPreferences);
+  }
+
+  useEffect(() => {
+    if (!pendingWriteRef.current) return;
+
+    const timeoutId = window.setTimeout(() => {
+      pendingWriteRef.current = false;
+      const result = saveAppPreferences(preferencesRef.current);
+      setPreferencesNotice(result.status === "saved" ? null : "write");
+    }, 50);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [preferences]);
+
+  useEffect(() => {
+    if (
+      preferences.theme !== "system"
+      || typeof window === "undefined"
+      || typeof window.matchMedia !== "function"
+    ) return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateSystemTheme = () => setSystemTheme(mediaQuery.matches ? "dark" : "light");
+    updateSystemTheme();
+    mediaQuery.addEventListener("change", updateSystemTheme);
+
+    return () => mediaQuery.removeEventListener("change", updateSystemTheme);
+  }, [preferences.theme]);
+
+  const effectiveTheme = preferences.theme === "system" ? systemTheme : preferences.theme;
+
+  return { preferences, effectiveTheme, preferencesNotice, updatePreferences };
+}
+
 function App() {
+  const preferenceState = useAppPreferences();
+  const { preferences, effectiveTheme, preferencesNotice } = preferenceState;
   const [page, setPage] = useState<Page>("dashboard");
   const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [], movements: [] });
   const snapshotRef = useRef(snapshot);
@@ -370,8 +436,13 @@ function App() {
   if (dataLoading) return <LoadingScreen />;
   const selectedCategory = snapshot.categories.find((category) => category.id === selectedCategoryId) ?? null;
   const pageTitle = page === "dashboard" ? "Resumen" : page === "inventory" ? "Artículos" : page === "movements" ? "Movimientos" : page === "category-detail" ? selectedCategory?.name ?? "Categoría" : "Categorías";
+  const preferencesNoticeMessage = preferencesNotice === "read"
+    ? "No se pudieron leer las preferencias locales; se usarán los valores iniciales."
+    : preferencesNotice === "write"
+      ? "No se pudieron guardar las preferencias; este cambio se conservará solo durante esta sesión."
+      : null;
 
-  return <div className="app-shell">
+  return <div className="app-shell" data-theme={effectiveTheme} data-table-density={preferences.tableDensity}>
     <Sidebar page={page} onPage={setPage} itemCount={snapshot.items.length} categoryCount={snapshot.categories.length} />
     <main className="main-area">
       <div className="topbar">
@@ -386,8 +457,8 @@ function App() {
         </div>
       </div>
 
-      {(error || notice) && <div className={`toast ${error ? "toast-error" : "toast-success"}`} role={error ? "alert" : "status"}>
-        <Icon name={error ? "alert" : "check"} size={17} /><span>{error || notice}</span>
+      {(error || preferencesNoticeMessage || notice) && <div className={`toast ${error || preferencesNoticeMessage ? "toast-error" : "toast-success"}`} role={error || preferencesNoticeMessage ? "alert" : "status"}>
+        <Icon name={error || preferencesNoticeMessage ? "alert" : "check"} size={17} /><span>{error || preferencesNoticeMessage || notice}</span>
         {error && <button className="toast-dismiss" onClick={() => setError("")} aria-label="Cerrar aviso"><Icon name="close" size={16} /></button>}
       </div>}
 
