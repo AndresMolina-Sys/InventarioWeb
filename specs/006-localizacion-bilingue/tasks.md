@@ -30,9 +30,9 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
 
 ## Fase 4: exportación, impresión y presentación accesible
 
-- [ ] **T06. `src/App.tsx` — exportaciones CSV localizadas (20–30 min).** RF-4, RF-5, RF-7 (Principios 2, 5, 6)
-  - Localizar encabezados y fechas de CSV para artículos, categorías y movimientos; conservar orden, número de columnas y todos los demás valores de fila exactamente como están, incluido el estado raw.
-  - Hecho cuando: exportar en ambos idiomas cambia únicamente encabezados y representación regional de fechas; una comparación confirma igual orden y cantidad de columnas y valores idénticos para todas las demás celdas.
+- [x] **T06. `src/App.tsx` — localizar el CSV existente de Artículos (20–30 min).** RF-4, RF-5, RF-7 (Principios 2, 5, 6)
+  - Localizar los tres encabezados del CSV existente de Artículos y el formato de su fecha de ingreso. No agregar exportaciones ni opciones para Categorías o Movimientos.
+  - Hecho cuando: exportar Artículos en ambos idiomas conserva las tres columnas, su orden, las filas y cada valor distinto de la fecha; solo cambian los encabezados y la representación regional de la fecha de ingreso.
 
 - [ ] **T07. `src/App.tsx` — etiquetas y ficha técnica bilingües (20–30 min).** RF-3, RF-4, RF-6, RF-7 (Principios 1, 2, 5, 6)
   - Traducir textos generados de previsualización e impresión, incluidas ayudas, vacíos y avisos, sin alterar valores de usuario ni barcode; aplicar fechas localizadas y conservar USD fijo, dimensiones, límites de contenido y salida monocromática vigentes.

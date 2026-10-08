@@ -429,8 +429,8 @@ function App() {
 
   function exportCsv() {
     const rows = [
-      ["Nombre", "Categoría", "Fecha de ingreso"],
-      ...filteredItems.map((item) => [item.name, categoryName.get(item.categoryId) ?? "Sin categoría", dateLabel(item.createdAt)]),
+      [translated(language, "name"), translated(language, "category"), translated(language, "entryDate")],
+      ...filteredItems.map((item) => [item.name, categoryName.get(item.categoryId) ?? "Sin categoría", dateLabel(item.createdAt, language)]),
     ];
     const csv = rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(",")).join("\r\n");
     const href = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
