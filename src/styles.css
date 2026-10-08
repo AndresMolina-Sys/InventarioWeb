@@ -198,7 +198,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .status-badge { padding: 5px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px; font-size: var(--type-meta-size); font-weight: 500; line-height: 1.25; }.status-badge > span { width: 5px; height: 5px; border-radius: 50%; }
 .status-ok { color: #358367; background: #ecf7f2; }.status-ok > span { background: #4ca584; }.status-low { color: #aa7728; background: #fff7e8; }.status-low > span { background: #d3a148; }
 .row-actions { display: flex; align-items: center; }
-.product-table .row-actions { justify-content: flex-start; gap: 3px; }
+.product-table .row-actions { position: relative; justify-content: flex-start; gap: 3px; }
 .table-foot { min-height: 43px; padding: 0 17px; border-top: 1px solid #f0f1f4; display: flex; align-items: center; justify-content: space-between; color: #999faa; font-size: var(--type-supporting-size); font-weight: 400; line-height: 1.4; }
 .table-foot strong { color: #626a78; }
 .table-foot-note { display: inline-flex; align-items: center; gap: 5px; color: #a0a6af; }.table-foot-note svg { color: #8bb39f; }
