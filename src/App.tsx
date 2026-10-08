@@ -1405,8 +1405,10 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
   const [formError, setFormError] = useState("");
   const reasonGuidanceId = useId();
   const decommissionReasonGuidanceId = useId();
+  const readOnlyNoticeId = useId();
   const statusSelectRef = useRef<HTMLSelectElement>(null);
   const decommissionReasonRef = useRef<HTMLTextAreaElement>(null);
+  const isReadOnly = item !== null && isDecommissioned(item);
   const statusChanged = item !== null && !assetStatusesMatch(item.status, selectedStatus);
   const decommissionReasonLength = decommissionReason.trim().length;
   const canConfirmDecommission = decommissionReasonLength >= 1 && decommissionReasonLength <= 200;
@@ -1459,6 +1461,7 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isReadOnly) return;
     if (!draft.categoryId) { setFormError("Selecciona una categoría antes de guardar."); return; }
 
     let nextDraft: UpdateItemDraft = {
@@ -1520,29 +1523,30 @@ function ItemModal({ item, categories, error, saving, onClose, onClearError, onS
   const statusOptions = item ? editableStatusOptions(item) : [];
   return <>
     <ModalFrame title={item ? "Editar artículo" : "Agregar artículo"} subtitle="Completa los datos del registro." onClose={closeEditor}>
-      <form className="modal-form" onSubmit={(event) => void submit(event)}>
+      <form className="modal-form" onSubmit={(event) => void submit(event)} aria-describedby={isReadOnly ? readOnlyNoticeId : undefined}>
         <div className="form-grid">
-          <label className="field-span-2">Nombre<input autoFocus required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
-          <label>Código<input required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
-          <label>Categoría<select required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
+          {isReadOnly && <p className="modal-hint field-span-2" id={readOnlyNoticeId} role="status">Este artículo está dado de baja y no se puede editar ni guardar.</p>}
+          <label className="field-span-2">Nombre<input autoFocus={!isReadOnly} disabled={isReadOnly} required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
+          <label>Código<input disabled={isReadOnly} required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
+          <label>Categoría<select disabled={isReadOnly} required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
           {item
-            ? <label>Estado<select ref={statusSelectRef} disabled={isDecommissioned(item)} value={selectedStatus} onChange={(event) => selectStatus(event.target.value)}>{statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+            ? <label>Estado<select ref={statusSelectRef} disabled={isReadOnly} value={selectedStatus} onChange={(event) => selectStatus(event.target.value)}>{statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
             : <label>Estado inicial<select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>{INITIAL_ASSET_STATUS_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}</select></label>}
           {item && originalStatus?.kind === "unknown" && <p className="modal-hint field-span-2">El estado original no es canónico. Puedes corregirlo a Disponible o a otro estado permitido; De baja requiere confirmación.</p>}
           {item && statusChanged && selectedStatus !== "decommissioned" && <>
-            <label className="field-span-2">Motivo del cambio (Opcional)<textarea rows={2} value={draft.reason ?? ""} aria-describedby={reasonGuidanceId} onChange={(event) => field("reason", event.target.value)} placeholder="Explica brevemente el cambio de estado" /></label>
+            <label className="field-span-2">Motivo del cambio (Opcional)<textarea rows={2} disabled={isReadOnly} value={draft.reason ?? ""} aria-describedby={reasonGuidanceId} onChange={(event) => field("reason", event.target.value)} placeholder="Explica brevemente el cambio de estado" /></label>
             <p className="modal-hint field-span-2" id={reasonGuidanceId}>Se recortan los espacios; el límite de 200 caracteres se aplica al texto recortado.</p>
           </>}
-          <label>Ubicación (Opcional)<input maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
-          <label>N.º de serie (Opcional)<input maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
-          <label>Costo $ (Opcional)<input type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
-          <label>Marca<input maxLength={100} value={draft.brand} onChange={(event) => field("brand", event.target.value)} placeholder="Opcional" /></label>
-          <label className="field-span-2">Modelo<input maxLength={100} value={draft.model} onChange={(event) => field("model", event.target.value)} placeholder="Opcional" /></label>
-          <label className="field-span-2">Notas<textarea rows={3} maxLength={500} value={draft.notes} onChange={(event) => field("notes", event.target.value)} placeholder="Detalles útiles para identificar este artículo" /></label>
+          <label>Ubicación (Opcional)<input disabled={isReadOnly} maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
+          <label>N.º de serie (Opcional)<input disabled={isReadOnly} maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
+          <label>Costo $ (Opcional)<input disabled={isReadOnly} type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
+          <label>Marca<input disabled={isReadOnly} maxLength={100} value={draft.brand} onChange={(event) => field("brand", event.target.value)} placeholder="Opcional" /></label>
+          <label className="field-span-2">Modelo<input disabled={isReadOnly} maxLength={100} value={draft.model} onChange={(event) => field("model", event.target.value)} placeholder="Opcional" /></label>
+          <label className="field-span-2">Notas<textarea disabled={isReadOnly} rows={3} maxLength={500} value={draft.notes} onChange={(event) => field("notes", event.target.value)} placeholder="Detalles útiles para identificar este artículo" /></label>
         </div>
         {formError && <p className="form-error" role="alert">{formError}</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
-        <div className="modal-footer"><span className="modal-hint">La fecha de ingreso se registra al guardar.</span><button className="button button-outline" type="button" onClick={onClose}>Cancelar</button><button className="button button-primary" disabled={saving}>{saving ? "Guardando..." : item ? "Guardar cambios" : "Agregar artículo"}</button></div>
+        <div className="modal-footer"><span className="modal-hint">La fecha de ingreso se registra al guardar.</span><button className="button button-outline" type="button" onClick={onClose} autoFocus={isReadOnly}>Cancelar</button><button className="button button-primary" disabled={saving || isReadOnly} aria-disabled={isReadOnly} aria-describedby={isReadOnly ? readOnlyNoticeId : undefined}>{saving ? "Guardando..." : item ? "Guardar cambios" : "Agregar artículo"}</button></div>
       </form>
     </ModalFrame>
     {decommissionConfirmationOpen && <ModalFrame
