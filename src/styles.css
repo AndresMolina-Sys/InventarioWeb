@@ -392,6 +392,39 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 .movement-diff-row > div > span { display: none; }
 .movement-diff-row p { margin: 0; color: var(--ink); font-size: 13px; font-weight: 400; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }
 
+/* El Resumen define solo las áreas de los gráficos que están visibles. */
+.internal-dashboard-grid[data-show-activity-chart="false"][data-show-category-chart="true"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "recent" "categories";
+}
+
+.internal-dashboard-grid[data-show-activity-chart="true"][data-show-category-chart="false"] {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr);
+  grid-template-areas: "activity recent";
+}
+
+.internal-dashboard-grid[data-show-activity-chart="false"][data-show-category-chart="false"] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "recent";
+}
+
+@media (max-width: 640px) {
+  .internal-dashboard-grid[data-show-activity-chart="false"][data-show-category-chart="true"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "recent" "categories";
+  }
+
+  .internal-dashboard-grid[data-show-activity-chart="true"][data-show-category-chart="false"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "activity" "recent";
+  }
+
+  .internal-dashboard-grid[data-show-activity-chart="false"][data-show-category-chart="false"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "recent";
+  }
+}
+
 /* Keep the audit header fixed while the detail body scrolls. */
 .modal-card:has(.movement-detail-content) {
   display: flex;

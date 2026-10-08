@@ -468,6 +468,8 @@ function App() {
         categories={snapshot.categories}
         movements={snapshot.movements}
         categoryName={categoryName}
+        showRecentActivityChart={preferences.showRecentActivityChart}
+        showCategoryChart={preferences.showCategoryChart}
         onViewInventory={() => setPage("inventory")}
         onViewCategories={() => setPage("categories")}
       />}
@@ -940,11 +942,13 @@ function MovementsPage({ movements }: { movements: InventoryMovement[] }) {
   </section>;
 }
 
-function DashboardPage({ items, categories, movements, categoryName, onViewInventory, onViewCategories }: {
+function DashboardPage({ items, categories, movements, categoryName, showRecentActivityChart, showCategoryChart, onViewInventory, onViewCategories }: {
   items: InventoryItem[];
   categories: Category[];
   movements: InventoryMovement[];
   categoryName: Map<string, string>;
+  showRecentActivityChart: boolean;
+  showCategoryChart: boolean;
   onViewInventory: () => void;
   onViewCategories: () => void;
 }) {
@@ -997,8 +1001,8 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
       </article>)}
     </div>
 
-    <div className="dashboard-grid internal-dashboard-grid">
-      <ActivityChart movements={movements} />
+    <div className="dashboard-grid internal-dashboard-grid" data-show-activity-chart={showRecentActivityChart} data-show-category-chart={showCategoryChart}>
+      {showRecentActivityChart && <ActivityChart movements={movements} />}
       <section className="panel recent-panel">
         <div className="panel-heading">
           <div className="recent-panel-heading-main">
@@ -1021,7 +1025,7 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
           </div>)}
         </div> : <EmptyState title="Sin artículos todavía" text="Los artículos que agregues aparecerán aquí." />}
       </section>
-      <section className="panel category-panel">
+      {showCategoryChart && <section className="panel category-panel">
         <div className="panel-heading category-panel-heading">
           <div className="category-heading-copy"><h2>Artículos por categoría</h2><p>Registros en cada grupo</p></div>
           <div className="category-heading-tools">
@@ -1046,7 +1050,7 @@ function DashboardPage({ items, categories, movements, categoryName, onViewInven
           })}
           {categoryTotals.length === 0 && <EmptyState title="Aún no hay categorías" text="Se mostrarán aquí cuando agregues artículos." />}
         </div>
-      </section>
+      </section>}
     </div>
   </section>;
 }

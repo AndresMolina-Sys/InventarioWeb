@@ -18,7 +18,7 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
   - Añadir Ajustes a la navegación de escritorio y móvil y construir una pantalla con controles independientes de tema, visibilidad de cada gráfico y densidad. Incorporar «Restablecer preferencias» con confirmación accesible; Escape, Cancelar y cierre equivalente deben conservar valores y restaurar el foco.
   - Hecho cuando: Ajustes abre desde ambas navegaciones; cada control cambia una preferencia y muestra su efecto sin recargar; cancelar el reset no cambia ningún valor, confirmar aplica los cuatro defaults y ningún flujo altera los registros de inventario; `npm run build` pasa.
 
-- [ ] **T05. Visibilidad y reflujo de gráficos (`src/App.tsx`, `src/styles.css`) — 20–25 min.** RF-5, RF-8 (Principios P2, P4, P5, P6)
+- [x] **T05. Visibilidad y reflujo de gráficos (`src/App.tsx`, `src/styles.css`) — 20–25 min.** RF-5, RF-8 (Principios P2, P4, P5, P6)
   - Condicionar el render de Actividad reciente y Artículos por categoría a sus preferencias. Ajustar el grid para redistribuir paneles presentes sin reservar columnas o espacios vacíos; mantener intacta la creación de movimientos.
   - Hecho cuando: Se verifican las cuatro combinaciones de gráficos y, al ocultarlos, no quedan huecos reservados; los artículos, categorías y movimientos conservan sus valores y la actividad sigue registrándose; `npm run build` pasa.
 
