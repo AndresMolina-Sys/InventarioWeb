@@ -47,7 +47,7 @@ Las tareas están ordenadas por dependencias; cada una corresponde a una unidad 
 
 ## T08 — Confirmación irreversible y recuperación de foco (`src/App.tsx`) — 25–30 min
 
-- [ ] **Cubre:** RF-4, RF-5, RF-6, RF-7, RF-8, RF-9, RF-13, RF-14; principios P2, P3, P5, P6.
+- [x] **Cubre:** RF-4, RF-5, RF-6, RF-7, RF-8, RF-9, RF-13, RF-14; principios P2, P3, P5, P6.
 - Implementar el diálogo de baja: confirmación explícita, motivo obligatorio, guardado inmediato de todos los cambios, cancelación/Escape que revierte solo el estado/motivo, y error `role="alert"` con reintento conservando los borradores. Restaurar foco a Ver de la fila o Cerrar del detalle tras éxito.
 - **Hecho cuando:** confirmar con motivo válido cierra los diálogos y guarda una única edición; cancelar/Escape no persiste nada y devuelve foco al selector; si IndexedDB falla, ambos diálogos y todos los valores siguen disponibles, el mensaje accesible aparece y reintentar funciona sin escrituras parciales.
 

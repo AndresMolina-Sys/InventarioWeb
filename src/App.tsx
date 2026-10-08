@@ -213,12 +213,15 @@ function getGreeting(): string {
 function App() {
   const [page, setPage] = useState<Page>("dashboard");
   const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [], movements: [] });
+  const snapshotRef = useRef(snapshot);
   const [dataLoading, setDataLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<AssetStatusFilter>("all");
   const [itemModal, setItemModal] = useState<InventoryItem | "new" | null>(null);
+  const itemEditOriginRef = useRef<"inventory" | "category-detail" | "detail" | null>(null);
+  const [pendingItemViewFocusId, setPendingItemViewFocusId] = useState<string | null>(null);
   const [viewedItem, setViewedItem] = useState<InventoryItem | null>(null);
   const [categoryModal, setCategoryModal] = useState<Category | "new" | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -240,7 +243,10 @@ function App() {
   useEffect(() => {
     let active = true;
     void loadSnapshot().then((data) => {
-      if (active) setSnapshot(data);
+      if (active) {
+        snapshotRef.current = data;
+        setSnapshot(data);
+      }
     }).catch((reason: unknown) => {
       if (active) setError(errorMessage(reason));
     }).finally(() => {
@@ -266,8 +272,20 @@ function App() {
     });
   }, [categoryFilter, categoryName, search, snapshot.items, statusFilter]);
 
+  useEffect(() => {
+    if (!pendingItemViewFocusId || page !== "inventory") return;
+    const viewButton = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-item-view-id]"))
+      .find((button) => button.dataset.itemViewId === pendingItemViewFocusId);
+    if (viewButton) {
+      viewButton.focus();
+      setPendingItemViewFocusId(null);
+    }
+  }, [filteredItems, page, pendingItemViewFocusId]);
+
   async function refresh() {
-    setSnapshot(await loadSnapshot());
+    const data = await loadSnapshot();
+    snapshotRef.current = data;
+    setSnapshot(data);
   }
 
   async function mutate(action: () => Promise<void | UpdateItemResult>, successMessage: string): Promise<boolean> {
@@ -288,13 +306,31 @@ function App() {
     }
   }
 
-  async function saveItem(draft: UpdateItemDraft): Promise<void> {
+  async function saveItem(draft: UpdateItemDraft): Promise<boolean> {
     const existing = itemModal !== "new" && itemModal ? itemModal : null;
+    const isDecommissioning = existing !== null
+      && resolveAssetStatus(draft.status).value === "decommissioned"
+      && !isDecommissioned(existing);
+    const returnToDetail = isDecommissioning && itemEditOriginRef.current === "detail";
     const saved = await mutate(
       () => existing ? updateItem(existing.id, draft) : createItem(draft),
       existing ? "Artículo actualizado." : "Artículo agregado al registro.",
     );
-    if (saved) setItemModal(null);
+    if (saved) {
+      setItemModal(null);
+      if (isDecommissioning && existing && returnToDetail) {
+        setViewedItem(snapshotRef.current.items.find((item) => item.id === existing.id) ?? existing);
+      } else if (isDecommissioning && existing) {
+        setViewedItem(null);
+        setSearch("");
+        setCategoryFilter("all");
+        setStatusFilter("all");
+        setPage("inventory");
+        setPendingItemViewFocusId(existing.id);
+      }
+      itemEditOriginRef.current = null;
+    }
+    return saved;
   }
 
   async function removeItem(item: InventoryItem): Promise<boolean> {
@@ -374,9 +410,9 @@ function App() {
         onCategoryFilter={setCategoryFilter}
         statusFilter={statusFilter}
         onStatusFilter={setStatusFilter}
-        onNew={() => { setError(""); setItemModal("new"); }}
+        onNew={() => { setError(""); itemEditOriginRef.current = null; setItemModal("new"); }}
         onView={setViewedItem}
-        onEdit={(item) => { setError(""); setItemModal(item); }}
+        onEdit={(item) => { setError(""); itemEditOriginRef.current = "inventory"; setItemModal(item); }}
         onDelete={(item) => { void removeItem(item); }}
         onExport={exportCsv}
       />}
@@ -393,7 +429,7 @@ function App() {
         items={snapshot.items.filter((item) => item.categoryId === selectedCategory.id)}
         onBack={() => setPage("categories")}
         onViewItem={setViewedItem}
-        onEditItem={(item) => { setError(""); setItemModal(item); }}
+        onEditItem={(item) => { setError(""); itemEditOriginRef.current = "category-detail"; setItemModal(item); }}
         onDeleteItem={(item) => { void removeItem(item); }}
       />}
       {page === "movements" && <MovementsPage movements={snapshot.movements} />}
@@ -404,14 +440,15 @@ function App() {
       categories={snapshot.categories}
       error={error}
       saving={working}
-      onClose={() => setItemModal(null)}
+      onClose={() => { setItemModal(null); itemEditOriginRef.current = null; }}
+      onClearError={() => setError("")}
       onSave={saveItem}
     />}
     {viewedItem && <ItemDetailModal
       item={viewedItem}
       categoryName={categoryName.get(viewedItem.categoryId)}
       onClose={() => setViewedItem(null)}
-      onEdit={() => { setViewedItem(null); setError(""); setItemModal(viewedItem); }}
+      onEdit={() => { itemEditOriginRef.current = "detail"; setViewedItem(null); setError(""); setItemModal(viewedItem); }}
       onDelete={async (item) => { if (await removeItem(item)) setViewedItem(null); }}
     />}
     {categoryModal && <CategoryModal
@@ -918,7 +955,7 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
             <td><AssetStatusBadge status={item.status} /></td>
             <td className="date-cell">{dateLabel(item.createdAt)}</td>
             <td><div className="row-actions">
-              <button className="quiet-icon" onClick={() => onView(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
+              <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onView(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
               <button className="quiet-icon" onClick={() => onEdit(item)} title={protectedItem ? protectionMessage : `Editar ${item.name}`} aria-label={`Editar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
               <button className="quiet-icon danger-icon" onClick={() => onDelete(item)} title={protectedItem ? protectionMessage : `Borrar ${item.name}`} aria-label={`Borrar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
               {protectedItem && <span id={protectionDescriptionId} className="sr-only">{protectionMessage}</span>}
@@ -997,7 +1034,7 @@ function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, o
           <td>{item.location || "Sin especificar"}</td>
           <td className="date-cell">{dateLabel(item.updatedAt)}</td>
           <td><div className="row-actions">
-            <button className="quiet-icon" onClick={() => onViewItem(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
+            <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onViewItem(item)} title={`Ver ${item.name}`} aria-label={`Ver ${item.name}`}><Icon name="view" size={16} /></button>
             <button className="quiet-icon" onClick={() => onEditItem(item)} title={protectedItem ? protectionMessage : `Editar ${item.name}`} aria-label={`Editar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
             <button className="quiet-icon danger-icon" onClick={() => onDeleteItem(item)} title={protectedItem ? protectionMessage : `Borrar ${item.name}`} aria-label={`Borrar ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="trash" size={16} /></button>
             {protectedItem && <span id={protectionDescriptionId} className="sr-only">{protectionMessage}</span>}
@@ -1049,6 +1086,7 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
+  const titleId = useId();
   onCloseRef.current = onClose;
 
   useEffect(() => {
@@ -1072,6 +1110,7 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
     function containKeyboardNavigation(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
+        event.stopPropagation();
         onCloseRef.current();
         return;
       }
@@ -1112,8 +1151,8 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
   }, [initialFocusRef, manageFocus]);
 
   return <div className="modal-backdrop" onMouseDown={(event) => { if (dismissOnBackdrop && event.target === event.currentTarget) onClose(); }}>
-    <section ref={dialogRef} className={`modal-card ${className}`} role="dialog" aria-modal="true" aria-labelledby="modal-title" tabIndex={-1}>
-      <header className="modal-heading"><div>{badge ?? <span className="modal-mark"><Icon name="box" size={18} /></span>}<div><h2 id="modal-title">{title}</h2><p>{subtitle}</p></div></div>{!hideHeaderClose && <button ref={closeButtonRef} className="quiet-icon" onClick={onClose} aria-label={closeLabel}><Icon name="close" size={19} /></button>}</header>
+    <section ref={dialogRef} className={`modal-card ${className}`} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
+      <header className="modal-heading"><div>{badge ?? <span className="modal-mark"><Icon name="box" size={18} /></span>}<div><h2 id={titleId}>{title}</h2><p>{subtitle}</p></div></div>{!hideHeaderClose && <button ref={closeButtonRef} className="quiet-icon" onClick={onClose} aria-label={closeLabel}><Icon name="close" size={19} /></button>}</header>
       {children}
     </section>
   </div>;
@@ -1355,21 +1394,64 @@ function ItemDetailModal({ item, categoryName, onClose, onEdit, onDelete }: {
   </ModalFrame>;
 }
 
-function ItemModal({ item, categories, error, saving, onClose, onSave }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onSave: (draft: UpdateItemDraft) => Promise<void> }) {
+function ItemModal({ item, categories, error, saving, onClose, onClearError, onSave }: { item: InventoryItem | null; categories: Category[]; error: string; saving: boolean; onClose: () => void; onClearError: () => void; onSave: (draft: UpdateItemDraft) => Promise<boolean> }) {
   const [draft, setDraft] = useState<UpdateItemDraft>(() => item ? draftFromItem(item) : {
     code: "", name: "", sku: "", serialNumber: "", brand: "", model: "", location: "", notes: "",
     categoryId: categories[0]?.id ?? "", cost: null, status: "available",
   });
   const [selectedStatus, setSelectedStatus] = useState(() => item ? resolveAssetStatus(item.status).value : "available");
+  const [decommissionConfirmationOpen, setDecommissionConfirmationOpen] = useState(false);
+  const [decommissionReason, setDecommissionReason] = useState("");
   const [formError, setFormError] = useState("");
   const reasonGuidanceId = useId();
+  const decommissionReasonGuidanceId = useId();
+  const statusSelectRef = useRef<HTMLSelectElement>(null);
+  const decommissionReasonRef = useRef<HTMLTextAreaElement>(null);
   const statusChanged = item !== null && !assetStatusesMatch(item.status, selectedStatus);
+  const decommissionReasonLength = decommissionReason.trim().length;
+  const canConfirmDecommission = decommissionReasonLength >= 1 && decommissionReasonLength <= 200;
 
   function field<K extends keyof UpdateItemDraft>(key: K, value: UpdateItemDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
+  function openDecommissionConfirmation() {
+    if (!item || !getAllowedTransitions(item.status).includes("decommissioned")) {
+      setFormError("La transición de estado no está permitida.");
+      return;
+    }
+    onClearError();
+    setFormError("");
+    field("reason", "");
+    setSelectedStatus("decommissioned");
+    setDecommissionReason("");
+    statusSelectRef.current?.focus();
+    setDecommissionConfirmationOpen(true);
+  }
+
+  function cancelDecommissionConfirmation() {
+    if (saving) return;
+    setDecommissionConfirmationOpen(false);
+    setDecommissionReason("");
+    if (item) setSelectedStatus(resolveAssetStatus(item.status).value);
+    field("reason", "");
+    setFormError("");
+    onClearError();
+  }
+
+  function closeEditor() {
+    if (decommissionConfirmationOpen) {
+      cancelDecommissionConfirmation();
+      return;
+    }
+    onClose();
+  }
+
   function selectStatus(value: string) {
+    if (value === "decommissioned") {
+      openDecommissionConfirmation();
+      return;
+    }
     setSelectedStatus(value);
     setFormError("");
     if (item && assetStatusesMatch(item.status, value)) field("reason", "");
@@ -1396,8 +1478,7 @@ function ItemModal({ item, categories, error, saving, onClose, onSave }: { item:
         return;
       }
       if (nextStatus.value === "decommissioned") {
-        // T08 conectará aquí la confirmación antes de permitir guardar la baja.
-        setFormError("La baja requiere confirmación antes de guardar.");
+        openDecommissionConfirmation();
         return;
       }
       try {
@@ -1416,34 +1497,91 @@ function ItemModal({ item, categories, error, saving, onClose, onSave }: { item:
     await onSave(nextDraft);
   }
 
+  async function confirmDecommission() {
+    if (!item || !canConfirmDecommission || saving) return;
+    let normalizedReason: string;
+    try {
+      normalizedReason = normalizeAssetStatusReason("decommissioned", decommissionReason);
+    } catch (reason) {
+      setFormError(errorMessage(reason));
+      return;
+    }
+
+    setFormError("");
+    onClearError();
+    await onSave({
+      ...draft,
+      status: "decommissioned",
+      reason: normalizedReason,
+    });
+  }
+
   const originalStatus = item ? resolveAssetStatus(item.status) : null;
   const statusOptions = item ? editableStatusOptions(item) : [];
-  return <ModalFrame title={item ? "Editar artículo" : "Agregar artículo"} subtitle="Completa los datos del registro." onClose={onClose}>
-    <form className="modal-form" onSubmit={(event) => void submit(event)}>
-      <div className="form-grid">
-        <label className="field-span-2">Nombre<input autoFocus required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
-        <label>Código<input required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
-        <label>Categoría<select required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
-        {item
-          ? <label>Estado<select disabled={isDecommissioned(item)} value={selectedStatus} onChange={(event) => selectStatus(event.target.value)}>{statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
-          : <label>Estado inicial<select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>{INITIAL_ASSET_STATUS_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}</select></label>}
-        {item && originalStatus?.kind === "unknown" && <p className="modal-hint field-span-2">El estado original no es canónico. Puedes corregirlo a Disponible o a otro estado permitido; De baja requiere confirmación.</p>}
-        {item && statusChanged && selectedStatus !== "decommissioned" && <>
-          <label className="field-span-2">Motivo del cambio (Opcional)<textarea rows={2} value={draft.reason ?? ""} aria-describedby={reasonGuidanceId} onChange={(event) => field("reason", event.target.value)} placeholder="Explica brevemente el cambio de estado" /></label>
-          <p className="modal-hint field-span-2" id={reasonGuidanceId}>Se recortan los espacios; el límite de 200 caracteres se aplica al texto recortado.</p>
-        </>}
-        <label>Ubicación (Opcional)<input maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
-        <label>N.º de serie (Opcional)<input maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
-        <label>Costo $ (Opcional)<input type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
-        <label>Marca<input maxLength={100} value={draft.brand} onChange={(event) => field("brand", event.target.value)} placeholder="Opcional" /></label>
-        <label className="field-span-2">Modelo<input maxLength={100} value={draft.model} onChange={(event) => field("model", event.target.value)} placeholder="Opcional" /></label>
-        <label className="field-span-2">Notas<textarea rows={3} maxLength={500} value={draft.notes} onChange={(event) => field("notes", event.target.value)} placeholder="Detalles útiles para identificar este artículo" /></label>
+  return <>
+    <ModalFrame title={item ? "Editar artículo" : "Agregar artículo"} subtitle="Completa los datos del registro." onClose={closeEditor}>
+      <form className="modal-form" onSubmit={(event) => void submit(event)}>
+        <div className="form-grid">
+          <label className="field-span-2">Nombre<input autoFocus required maxLength={150} value={draft.name} onChange={(event) => field("name", event.target.value)} placeholder="Ej. Portátil de préstamo" /></label>
+          <label>Código<input required maxLength={50} value={draft.code} onChange={(event) => field("code", event.target.value)} placeholder="Ej. INT-ELE-016" /></label>
+          <label>Categoría<select required value={draft.categoryId} onChange={(event) => field("categoryId", event.target.value)}><option value="" disabled>Seleccionar</option>{categories.map((category) => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
+          {item
+            ? <label>Estado<select ref={statusSelectRef} disabled={isDecommissioned(item)} value={selectedStatus} onChange={(event) => selectStatus(event.target.value)}>{statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>
+            : <label>Estado inicial<select value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>{INITIAL_ASSET_STATUS_OPTIONS.map((status) => <option value={status} key={status}>{ASSET_STATUS_LABELS[status]}</option>)}</select></label>}
+          {item && originalStatus?.kind === "unknown" && <p className="modal-hint field-span-2">El estado original no es canónico. Puedes corregirlo a Disponible o a otro estado permitido; De baja requiere confirmación.</p>}
+          {item && statusChanged && selectedStatus !== "decommissioned" && <>
+            <label className="field-span-2">Motivo del cambio (Opcional)<textarea rows={2} value={draft.reason ?? ""} aria-describedby={reasonGuidanceId} onChange={(event) => field("reason", event.target.value)} placeholder="Explica brevemente el cambio de estado" /></label>
+            <p className="modal-hint field-span-2" id={reasonGuidanceId}>Se recortan los espacios; el límite de 200 caracteres se aplica al texto recortado.</p>
+          </>}
+          <label>Ubicación (Opcional)<input maxLength={100} value={draft.location} onChange={(event) => field("location", event.target.value)} placeholder="Ej. Administración" /></label>
+          <label>N.º de serie (Opcional)<input maxLength={100} value={draft.serialNumber} onChange={(event) => field("serialNumber", event.target.value)} placeholder="Opcional" /></label>
+          <label>Costo $ (Opcional)<input type="number" min="0" step="0.01" value={draft.cost ?? ""} onChange={(event) => field("cost", event.target.value === "" ? null : Number(event.target.value))} placeholder="0.00" /></label>
+          <label>Marca<input maxLength={100} value={draft.brand} onChange={(event) => field("brand", event.target.value)} placeholder="Opcional" /></label>
+          <label className="field-span-2">Modelo<input maxLength={100} value={draft.model} onChange={(event) => field("model", event.target.value)} placeholder="Opcional" /></label>
+          <label className="field-span-2">Notas<textarea rows={3} maxLength={500} value={draft.notes} onChange={(event) => field("notes", event.target.value)} placeholder="Detalles útiles para identificar este artículo" /></label>
+        </div>
+        {formError && <p className="form-error" role="alert">{formError}</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <div className="modal-footer"><span className="modal-hint">La fecha de ingreso se registra al guardar.</span><button className="button button-outline" type="button" onClick={onClose}>Cancelar</button><button className="button button-primary" disabled={saving}>{saving ? "Guardando..." : item ? "Guardar cambios" : "Agregar artículo"}</button></div>
+      </form>
+    </ModalFrame>
+    {decommissionConfirmationOpen && <ModalFrame
+      title="Confirmar baja"
+      subtitle="La baja es irreversible para este artículo."
+      className="decommission-confirmation"
+      onClose={cancelDecommissionConfirmation}
+      manageFocus
+      initialFocusRef={decommissionReasonRef}
+      dismissOnBackdrop={!saving}
+      hideHeaderClose={saving}
+    >
+      <div className="modal-form decommission-confirmation-content">
+        <p>Confirma la baja para guardar ahora todos los cambios del artículo y su motivo en un único movimiento.</p>
+        <label>Motivo de la baja<textarea
+          ref={decommissionReasonRef}
+          rows={3}
+          required
+          value={decommissionReason}
+          disabled={saving}
+          aria-describedby={decommissionReasonGuidanceId}
+          onChange={(event) => setDecommissionReason(event.target.value)}
+          placeholder="Escribe el motivo de la baja"
+        /></label>
+        <p className="modal-hint" id={decommissionReasonGuidanceId}>
+          {decommissionReasonLength}/200 caracteres después de recortar. Escribe entre 1 y 200 caracteres para habilitar la confirmación.
+        </p>
+        {decommissionReasonLength > 200 && <p className="form-error" role="alert">El motivo no puede superar los 200 caracteres después de recortar.</p>}
+        {error && <p className="form-error" role="alert">No se pudo guardar en la base local: {error}</p>}
+        {formError && <p className="form-error" role="alert">{formError}</p>}
+        <div className="modal-footer">
+          <button className="button button-outline" type="button" disabled={saving} onClick={cancelDecommissionConfirmation}>Cancelar</button>
+          <button className="button button-primary" type="button" disabled={!canConfirmDecommission || saving} onClick={() => void confirmDecommission()}>
+            {saving ? "Guardando..." : error ? "Reintentar baja" : "Confirmar baja"}
+          </button>
+        </div>
       </div>
-      {formError && <p className="form-error" role="alert">{formError}</p>}
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="modal-footer"><span className="modal-hint">La fecha de ingreso se registra al guardar.</span><button className="button button-outline" type="button" onClick={onClose}>Cancelar</button><button className="button button-primary" disabled={saving}>{saving ? "Guardando..." : item ? "Guardar cambios" : "Agregar artículo"}</button></div>
-    </form>
-  </ModalFrame>;
+    </ModalFrame>}
+  </>;
 }
 
 function editableStatusOptions(item: InventoryItem): Array<{ value: string; label: string }> {
@@ -1454,8 +1592,7 @@ function editableStatusOptions(item: InventoryItem): Array<{ value: string; labe
     current.kind === "unknown" ? `Desconocido — ${current.value}` : ASSET_STATUS_LABELS[current.value],
   );
   for (const status of getAllowedTransitions(item.status)) {
-    // La tarea T08 expondrá este destino al integrar su confirmación explícita.
-    if (status !== "decommissioned") options.set(status, ASSET_STATUS_LABELS[status]);
+    options.set(status, ASSET_STATUS_LABELS[status]);
   }
   return [...options].map(([value, label]) => ({ value, label }));
 }
