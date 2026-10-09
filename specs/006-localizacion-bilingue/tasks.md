@@ -51,3 +51,20 @@ Las tareas se ejecutan en orden. Cada una debe completarse y verificarse antes d
 - [x] **T10. `docs/figma-brief.md`, `docs/constitution.md`, `AGENTS.md` y `MEMORY.md` — cierre documental (20–30 min).** RF-1–RF-8 (Principios 2, 5, 6)
   - Documentar selector, formatos, accesibilidad, responsive e impresión; cambiar el principio 6 al texto aprobado exactamente; actualizar reglas y memoria local con idioma, persistencia y límites, manteniendo MEMORY.md en 50 líneas o menos.
   - Hecho cuando: el brief describe la interfaz bilingüe implementada, el principio 6 coincide carácter por carácter con el texto aprobado, AGENTS.md refleja las reglas actuales y MEMORY.md tiene como máximo 50 líneas.
+
+
+## Extensión aprobada; plan y tareas pendientes de aprobación
+
+T01–T10 quedan como historial completado. Las tareas nuevas quedan pendientes de aprobación y dependen de completar primero T11–T20 de la extensión de spec 005; después se ejecutan en este orden.
+
+- [ ] **T11. Catálogos bilingües para controles nuevos (src/i18n.ts) — 20–25 min.** RF-1, RF-2, RF-3, RF-7, RF-8, RF-9, RF-10 (Principios 2, 4, 6)
+  - Completar traducciones paralelas de las cuatro secciones, visibilidad de Valor registrado, monedas/tasas, formatos, tamaños de página y estados de confirmación, error, reintento e invalidación del vaciado.
+  - Hecho cuando: el chequeo de tipos no encuentra claves ausentes; cada etiqueta, ayuda y aviso nuevo tiene texto español e inglés de sentido equivalente y los valores de inventario no se traducen.
+
+- [ ] **T12. Integración localizada de preferencias y salidas (src/App.tsx, src/i18n.ts) — 25–30 min.** RF-3, RF-4, RF-5, RF-6, RF-7, RF-9, RF-10 (Principios 2, 4, 5, 6)
+  - Conectar los catálogos a los nuevos controles y a mensajes de vaciado; presentar monedas, fechas/horas y nombres accesibles del eje X según locale/preferencias en pantallas, CSV e impresos; conservar contenido raw, columnas y límites físicos.
+  - Hecho cuando: idioma se cambia sin recarga; ambos idiomas muestran las opciones monetarias exactas, formatos elegidos, eje compacto con fecha accesible completa, CSV sin columnas nuevas e impresos conformes a una página Carta/70 × 35 mm.
+
+- [ ] **T13. Cierre bilingüe y documentación (Chrome DevTools, docs/figma-brief.md, AGENTS.md, MEMORY.md) — 25–30 min.** RF-1–RF-10 (Principios 2, 4, 5, 6)
+  - Reunir la evidencia de T01–T12 para la cobertura completa de cada RF y matriz bilingüe, sin repetir las verificaciones funcionales exhaustivas. Ejecutar npm run build, realizar un smoke test integrado en ambos idiomas y actualizar el brief, AGENTS.md y MEMORY.md local.
+  - Hecho cuando: npm run build termina con código 0; el smoke test en ambos idiomas y a 1440, 375 y 360 px confirma textos clave localizados, navegación operable, un control nuevo de Ajustes, consola sin errores/advertencias y sin overflow; la evidencia de T01–T12 cubre todos los RF y casos; docs/figma-brief.md y AGENTS.md describen el comportamiento bilingüe final y MEMORY.md local queda actualizado con 50 líneas o menos.

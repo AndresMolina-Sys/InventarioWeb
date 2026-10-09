@@ -1,6 +1,6 @@
 # Especificación: ajustes y preferencias de InventarioWeb
 
-**Estado: pendiente de aprobación**
+**Estado: aprobada**
 
 ## Contexto y objetivo
 InventarioWeb Portfolio es una aplicación local de control interno para consultar artículos, categorías y movimientos. Esta funcionalidad permitirá adaptar tema, idioma, formatos de fecha y hora, moneda, tamaño de página, visibilidad del Resumen y densidad de tablas. También ofrecerá un vaciado explícito del inventario local separado del restablecimiento de preferencias. La localización español/inglés se define junto con la spec 006.

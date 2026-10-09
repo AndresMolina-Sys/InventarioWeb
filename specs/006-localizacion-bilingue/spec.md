@@ -1,6 +1,6 @@
 # Especificación: localización bilingüe de InventarioWeb
 
-**Estado: pendiente de aprobación**
+**Estado: aprobada**
 
 ## Contexto y objetivo
 

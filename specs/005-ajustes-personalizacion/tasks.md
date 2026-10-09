@@ -41,3 +41,58 @@ Las tareas son secuenciales y se implementan una por turno. Para cada tarea que 
 - [x] **T10. Verificación visual y documentación (`docs/figma-brief.md`, `AGENTS.md`, `MEMORY.md`) — 25–30 min.** RF-1–RF-8 (Principios P2, P4, P5, P6)
   - Documentar en el brief y en las notas locales el tema, cuatro preferencias, persistencia local, reglas de densidad, navegación, errores y límites; completar revisión final con Chrome en escritorio y móvil.
   - Hecho cuando: En Chrome DevTools se validan Claro/Oscuro/Sistema, impresión monocromática, los gráficos, densidad, teclado/foco y contraste a 1440, 375 y 360 px; cada cambio visible se refleja en menos de 100 ms, no hay desbordamiento ni mensajes de consola; `docs/figma-brief.md`, `AGENTS.md` y `MEMORY.md` reflejan solo el alcance 005, y `npm run build` pasa.
+
+
+## Extensión aprobada; plan y tareas pendientes de aprobación
+
+T01–T10 arriba son historial de la base implementada. Las diez tareas siguientes cubren solo el alcance ampliado y quedan pendientes de aprobación; después de aprobar este plan y este desglose, se ejecutan en orden, una por tarea. Las fases respetan la secuencia de tipos, lógica y persistencia, interfaz, estilos adaptables y verificación/documentación.
+
+### Fase 1: contratos y tipos
+
+- [ ] **T11. Contrato ampliado de preferencias (src/types.ts) — 20–25 min.** RF-2, RF-3, RF-7, RF-9, RF-10, RF-13, RF-14 (Principios 1, 3, 5, 6)
+  - Añadir showRegisteredValue, displayCurrency, crcPerUsd, eurPerUsd, tablePageSize, dateFormat y timeFormat a AppPreferences, conservando tema, idioma, visibilidad de gráficos y densidad. Definir uniones cerradas para moneda, tamaño y formatos.
+  - Hecho cuando: TypeScript acepta solo los valores previstos en la spec, el contrato conserva todas las preferencias existentes y npm run build termina correctamente.
+
+### Fase 2: lógica pura y persistencia
+
+- [ ] **T12. Normalización y formateadores locales (src/lib/preferencesRepository.ts, src/i18n.ts) — 25–30 min.** RF-2, RF-3, RF-7, RF-9, RF-13, RF-14 (Principios 1, 3, 5, 6)
+  - Ampliar defaults, lectura y normalización independiente del repositorio local. Incorporar funciones puras para convertir importes, sumar el total USD antes de convertir y formatear moneda, fecha y hora según preferencias e idioma.
+  - Hecho cuando: preferencias antiguas conservan sus valores válidos y cada campo nuevo inválido adopta su default; las tasas no finitas, no numéricas o no positivas se rechazan; la suma agregada se convierte una sola vez y las funciones conservan los instantes de fecha; npm run build pasa.
+
+- [ ] **T13. Vaciado transaccional y rechazo de operaciones obsoletas (src/lib/inventoryRepository.ts, src/data/demo.ts) — 25–30 min.** RF-8, RF-11, RF-15 (Principios 3, 4, 5)
+  - Implementar el vaciado del snapshot completo en IndexedDB, preservar un estado vacío que impida volver a sembrar datos y limpiar las copias legacy. Incorporar la revisión/invalidez necesaria para que ninguna mutación o escritura anterior al vaciado reponga datos; emitir la invalidación a las demás pestañas tras guardar el vacío.
+  - Hecho cuando: el commit vacío incluye artículos, categorías y movimientos; una mutación iniciada con una revisión previa se rechaza o queda sobrescrita antes del éxito; el inventario sigue vacío tras recargar y los errores de commit o de limpieza legacy permiten reintento sin declarar éxito.
+
+### Fase 3: interfaz y flujo de usuario
+
+- [ ] **T14. Pantalla y controles agrupados de Ajustes (src/App.tsx, src/i18n.ts) — 25–30 min.** RF-1, RF-2, RF-3, RF-7, RF-9, RF-10, RF-12–RF-14 (Principios 2, 4, 5, 6)
+  - Organizar la pantalla en los cuatro grupos especificados y conectar idioma, tema, densidad, tamaño de página, las tres visibilidades, moneda, tasas, fecha y hora. Mostrar fuentes/fechas de las tasas y su estado editado; actualizar la confirmación de restablecimiento para incluir todos los defaults. Añadir el disparador de vaciado en Zona de peligro.
+  - Hecho cuando: cada grupo y opción aparece en el orden de RF-12, los cambios se aplican sin recargar, tasas inválidas conservan la última válida con aviso accesible y restablecer/cancelar conserva el inventario íntegro; npm run build pasa.
+
+- [ ] **T15. Visibilidad y conversión del Resumen (src/App.tsx) — 20–25 min.** RF-2, RF-5, RF-9, RF-14 (Principios 2, 4, 5, 6)
+  - Conectar los tres controles independientes del Resumen. Convertir costos individuales desde USD y mostrar Valor registrado sumando primero los costos USD no nulos, convirtiendo el total una vez y redondeando solo al presentarlo.
+  - Hecho cuando: se verifican las ocho combinaciones de visibilidad sin huecos; costos ausentes se excluyen, cero se presenta con el símbolo elegido y cambiar visibilidad/moneda no modifica IndexedDB ni detiene el registro de actividad.
+
+- [ ] **T16. Paginación común de tablas (src/App.tsx) — 25–30 min.** RF-2, RF-10 (Principios 2, 4, 6)
+  - Aplicar tamaños 10, 15, 25, 50 y Ver todos a Artículos, Categorías, Movimientos y detalle de categoría. Reiniciar a la primera página al cambiar filtro o tamaño, ajustar la página al borrar filas y mantener Ingresos recientes en cinco elementos.
+  - Hecho cuando: cada tamaño limita los resultados filtrados correctamente en las cuatro tablas, los límites y borrados no dejan una página vacía mientras haya filas, Ver todos presenta una sola página y los cinco ingresos recientes no cambian.
+
+- [ ] **T17. Formatos en pantallas, CSV e impresos (src/App.tsx, src/i18n.ts) — 25–30 min.** RF-9, RF-13, RF-14 (Principios 2, 4, 5, 6)
+  - Aplicar moneda y formatos de fecha/hora seleccionados a importes y fechas completos de las vistas, el CSV existente de Artículos, la etiqueta y la ficha técnica. Mantener las etiquetas visuales compactas del eje X y completar su fecha accesible.
+  - Hecho cuando: las cuatro combinaciones fecha/hora presentan el mismo instante en pantalla, CSV e impresos; los importes impresos usan la moneda elegida; el CSV conserva sus columnas y otros datos, y etiqueta/barcode/hoja Carta mantienen sus dimensiones y restricciones.
+
+- [ ] **T18. Confirmación accesible de vaciado e invalidación visible (src/App.tsx) — 25–30 min.** RF-8, RF-11, RF-15 (Principios 2, 4, 5, 6)
+  - Implementar el diálogo de Zona de peligro con VACIAR/CLEAR según idioma, foco inicial, trampa de Tab/Mayús+Tab, Escape, restauración de foco, alertas y reintento. Conectar el aviso de invalidación para que otras pestañas descarten datos cargados y borradores antiguos.
+  - Hecho cuando: cancelar no cambia datos; solo el término recortado válido sin distinguir mayúsculas habilita confirmar; fallos conservan el diálogo y permiten reintentar; tras el commit todas las pestañas muestran vacío en menos de 100 ms y ningún borrador antiguo vuelve a persistir.
+
+### Fase 4: estilos, responsive y accesibilidad
+
+- [ ] **T19. Estilos de los nuevos controles y vistas (src/styles.css) — 25–30 min.** RF-2, RF-4, RF-5, RF-6, RF-10, RF-11, RF-12, RF-15 (Principios 2, 4, 6)
+  - Estilizar grupos, tasas, formatos, selector de página, toggle, tablas paginadas y diálogo destructivo después de integrar sus estructuras. Aplicar estados de foco/error, temas claros/oscuros, reflujo y espaciado para escritorio y móvil.
+  - Hecho cuando: a 1440, 375 y 360 px los grupos y controles no se solapan ni desbordan, todos los textos visibles miden al menos 12 px, el foco permanece visible y el diálogo contiene el scroll sin ocultar sus acciones.
+
+### Fase 5: verificación y documentación
+
+- [ ] **T20. Cierre integrado y documentación (npm run build, Chrome DevTools, docs/figma-brief.md, AGENTS.md, MEMORY.md) — 25–30 min.** RF-1–RF-15 (Principios 1, 2, 4, 5, 6)
+  - Reunir la evidencia de aceptación generada en T01–T19 para todas las matrices de la spec; no repetir sus verificaciones funcionales completas. Ejecutar el build final y un smoke test integrado representativo en Chrome DevTools, revisar la consola y actualizar el brief, AGENTS.md y MEMORY.md local.
+  - Hecho cuando: npm run build termina con código 0; el smoke test en 1440, 375 y 360 px confirma apertura de Ajustes, un cambio de preferencia, aplicación de un formato y el flujo visible de vaciado sin overflow ni errores/advertencias de consola; la evidencia de T01–T19 cubre cada RF y matriz completa; docs/figma-brief.md y AGENTS.md reflejan las reglas finales, y MEMORY.md local queda actualizado con 50 líneas o menos.
