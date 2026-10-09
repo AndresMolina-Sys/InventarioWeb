@@ -6,13 +6,20 @@ import { createDefaultAppPreferences, DEFAULT_CRC_PER_USD, DEFAULT_EUR_PER_USD, 
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemDraft, UpdateItemResult } from "./lib/inventoryRepository";
 import type { AppPreferences, AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot, ThemePreference } from "./types";
-import { formatCurrency, formatDate, formatGreeting, formatNumber, formatUsd, getLocale, presentAssetStatus, sumAndConvertUsdCosts, translate } from "./i18n";
+import { convertUsdAmount, formatCalendarDate, formatCurrency, formatDate, formatDateTime, formatGreeting, formatNumber, getLocale, presentAssetStatus, sumAndConvertUsdCosts, translate } from "./i18n";
 import type { TranslationKey, TranslationParameters } from "./i18n";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "settings" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
 type AssetStatusFilter = "all" | AssetLifecycleStatus;
 type TablePageSize = NonNullable<AppPreferences["tablePageSize"]>;
+type DisplayFormatting = Readonly<{
+  displayCurrency: NonNullable<AppPreferences["displayCurrency"]>;
+  crcPerUsd: number;
+  eurPerUsd: number;
+  dateFormat: NonNullable<AppPreferences["dateFormat"]>;
+  timeFormat: NonNullable<AppPreferences["timeFormat"]>;
+}>;
 type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers" | "currency" | "settings";
 
 const ASSET_STATUS_KEYS: Record<AssetLifecycleStatus, TranslationKey> = {
@@ -101,17 +108,21 @@ function isDecommissioned(item: InventoryItem): boolean {
   return resolveAssetStatus(item.status).value === "decommissioned";
 }
 
-function dateLabel(value: string, language: AppPreferences["language"] = "es"): string {
-  return formatDate(value, language);
+const DEFAULT_DISPLAY_FORMATTING: DisplayFormatting = {
+  displayCurrency: "USD",
+  crcPerUsd: DEFAULT_CRC_PER_USD,
+  eurPerUsd: DEFAULT_EUR_PER_USD,
+  dateFormat: "dmy",
+  timeFormat: "12h",
+};
+
+function dateLabel(value: string | Date, language: AppPreferences["language"] = "es", formatting: DisplayFormatting = DEFAULT_DISPLAY_FORMATTING): string {
+  return formatDateTime(value, language, formatting.dateFormat, formatting.timeFormat);
 }
 
-function costLabel(value: number | null, language: AppPreferences["language"] = "es"): string {
+function costLabel(value: number | null, language: AppPreferences["language"] = "es", formatting: DisplayFormatting = DEFAULT_DISPLAY_FORMATTING): string {
   if (value === null) return translated(language, "unspecified");
-  return formatUsd(value);
-}
-
-function registeredValueLabel(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+  return formatCurrency(convertUsdAmount(value, formatting.displayCurrency, formatting), formatting.displayCurrency, language);
 }
 
 function compactRegisteredValueLabel(value: number): string {
@@ -169,13 +180,13 @@ function optionalTextLabel(value: string | undefined, emptyLabel: string): strin
   return hasNonBlankText(value) ? value : emptyLabel;
 }
 
-function technicalSheetCostLabel(value: number | null | string | undefined, language: AppPreferences["language"]): string {
+function technicalSheetCostLabel(value: number | null | string | undefined, language: AppPreferences["language"], formatting: DisplayFormatting): string {
   return typeof value === "number" && Number.isFinite(value)
-    ? registeredValueLabel(value)
+    ? costLabel(value, language, formatting)
     : translated(language, "unspecified");
 }
 
-function technicalSheetDisplay(snapshot: TechnicalSheetSnapshot, language: AppPreferences["language"]) {
+function technicalSheetDisplay(snapshot: TechnicalSheetSnapshot, language: AppPreferences["language"], formatting: DisplayFormatting = DEFAULT_DISPLAY_FORMATTING) {
   return Object.freeze({
     code: optionalTextLabel(snapshot.code, translated(language, "unavailableInBrackets")),
     name: optionalTextLabel(snapshot.name, translated(language, "unavailableInBrackets")),
@@ -184,9 +195,9 @@ function technicalSheetDisplay(snapshot: TechnicalSheetSnapshot, language: AppPr
     model: optionalTextLabel(snapshot.model, translated(language, "unspecified")),
     serialNumber: optionalTextLabel(snapshot.serialNumber, translated(language, "unspecified")),
     location: optionalTextLabel(snapshot.location, translated(language, "unspecified")),
-    cost: technicalSheetCostLabel(snapshot.cost, language),
+    cost: technicalSheetCostLabel(snapshot.cost, language, formatting),
     createdAt: snapshot.createdAt && !Number.isNaN(Date.parse(snapshot.createdAt))
-      ? dateLabel(snapshot.createdAt, language)
+      ? dateLabel(snapshot.createdAt, language, formatting)
       : translated(language, "unavailableInBrackets"),
     notes: optionalTextLabel(snapshot.notes, translated(language, "noObservations")),
   });
@@ -196,6 +207,7 @@ export function prepareTechnicalSheetPreview(
   item: InventoryItem,
   categoryName: string | undefined,
   language: AppPreferences["language"] = "es",
+  formatting: DisplayFormatting = DEFAULT_DISPLAY_FORMATTING,
 ): TechnicalSheetPreviewState {
   const itemRecord = item as Partial<InventoryItem>;
   const snapshot = Object.freeze({
@@ -224,7 +236,7 @@ export function prepareTechnicalSheetPreview(
 
   return Object.freeze({
     snapshot,
-    display: technicalSheetDisplay(snapshot, language),
+    display: technicalSheetDisplay(snapshot, language, formatting),
     missingRequiredFields,
     barcode,
     canPrint: missingRequiredFields.length === 0 && barcode?.status === "printable",
@@ -326,6 +338,13 @@ function App() {
   const { preferences, effectiveTheme, preferencesNotice } = preferenceState;
   const language = preferences.language;
   const tablePageSize = preferences.tablePageSize ?? 25;
+  const displayFormatting: DisplayFormatting = {
+    displayCurrency: preferences.displayCurrency ?? "USD",
+    crcPerUsd: preferences.crcPerUsd ?? DEFAULT_CRC_PER_USD,
+    eurPerUsd: preferences.eurPerUsd ?? DEFAULT_EUR_PER_USD,
+    dateFormat: preferences.dateFormat ?? "dmy",
+    timeFormat: preferences.timeFormat ?? "12h",
+  };
   const [page, setPage] = useState<Page>("dashboard");
   const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [], movements: [] });
   const snapshotRef = useRef(snapshot);
@@ -476,7 +495,7 @@ function App() {
   function exportCsv() {
     const rows = [
       [translated(language, "name"), translated(language, "category"), translated(language, "entryDate")],
-      ...filteredItems.map((item) => [item.name, categoryName.get(item.categoryId) ?? "Sin categoría", dateLabel(item.createdAt, language)]),
+      ...filteredItems.map((item) => [item.name, categoryName.get(item.categoryId) ?? translated(language, "noCategory"), dateLabel(item.createdAt, language, displayFormatting)]),
     ];
     const csv = rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(",")).join("\r\n");
     const href = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
@@ -524,6 +543,7 @@ function App() {
         movements={snapshot.movements}
         categoryName={categoryName}
         language={language}
+        formatting={displayFormatting}
         showRecentActivityChart={preferences.showRecentActivityChart}
         showCategoryChart={preferences.showCategoryChart}
         showRegisteredValue={preferences.showRegisteredValue ?? true}
@@ -535,6 +555,7 @@ function App() {
       />}
       {page === "inventory" && <InventoryPage
         language={language}
+        formatting={displayFormatting}
         pageSize={tablePageSize}
         search={search}
         items={filteredItems}
@@ -562,6 +583,7 @@ function App() {
       />}
       {page === "category-detail" && selectedCategory && <CategoryDetailPage
         language={language}
+        formatting={displayFormatting}
         pageSize={tablePageSize}
         category={selectedCategory}
         items={snapshot.items.filter((item) => item.categoryId === selectedCategory.id)}
@@ -570,7 +592,7 @@ function App() {
         onEditItem={(item) => { setError(""); itemEditOriginRef.current = "category-detail"; setItemModal(item); }}
         onDeleteItem={(item) => { void removeItem(item); }}
       />}
-      {page === "movements" && <MovementsPage movements={snapshot.movements} pageSize={tablePageSize} language={language} />}
+      {page === "movements" && <MovementsPage movements={snapshot.movements} pageSize={tablePageSize} language={language} formatting={displayFormatting} />}
       {page === "settings" && <SettingsPage preferences={preferences} onChange={preferenceState.updatePreferences} onReset={() => preferenceState.updatePreferences(createDefaultAppPreferences())} />}
     </main>
 
@@ -586,6 +608,7 @@ function App() {
     />}
     {viewedItem && <ItemDetailModal
       language={language}
+      formatting={displayFormatting}
       item={viewedItem}
       categoryName={categoryName.get(viewedItem.categoryId)}
       onClose={() => setViewedItem(null)}
@@ -869,7 +892,7 @@ function localDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function buildWeeklyActivity(movements: InventoryMovement[], language: AppPreferences["language"]): WeeklyActivityDay[] {
+function buildWeeklyActivity(movements: InventoryMovement[], language: AppPreferences["language"], formatting: DisplayFormatting): WeeklyActivityDay[] {
   const today = new Date();
   const weekdayKeys: TranslationKey[] = ["weekdaySunday", "weekdayMonday", "weekdayTuesday", "weekdayWednesday", "weekdayThursday", "weekdayFriday", "weekdaySaturday"];
   const todayKey = localDateKey(today);
@@ -878,7 +901,7 @@ function buildWeeklyActivity(movements: InventoryMovement[], language: AppPrefer
     return {
       dateKey: localDateKey(date),
       label: `${translated(language, weekdayKeys[date.getDay()])} ${formatNumber(date.getDate(), language, { useGrouping: false })}`,
-      longLabel: formatDate(date, language, { weekday: "long", day: "numeric", month: "long" }),
+      longLabel: `${formatDate(date, language, { weekday: "long" })} ${dateLabel(date, language, formatting)}`,
       count: 0,
       isToday: localDateKey(date) === todayKey,
     };
@@ -895,9 +918,9 @@ function buildWeeklyActivity(movements: InventoryMovement[], language: AppPrefer
   return days.map((day) => ({ ...day, count: counts.get(day.dateKey) ?? 0 }));
 }
 
-function ActivityChart({ movements, language }: { movements: InventoryMovement[]; language: AppPreferences["language"] }) {
+function ActivityChart({ movements, language, formatting }: { movements: InventoryMovement[]; language: AppPreferences["language"]; formatting: DisplayFormatting }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
-  const days = useMemo(() => buildWeeklyActivity(movements, language), [movements, language]);
+  const days = useMemo(() => buildWeeklyActivity(movements, language, formatting), [movements, formatting, language]);
   const maximum = Math.max(1, ...days.map((day) => day.count));
   const yTicks = (maximum <= 3
     ? Array.from({ length: maximum + 1 }, (_, index) => maximum - index)
@@ -964,8 +987,8 @@ const movementAuditFieldsV2: Array<{ field: InventoryMovementAuditFieldV2; label
   { field: "status", label: "statusLabel" },
 ];
 
-function movementAuditValueLabel(value: string | number | null, language: AppPreferences["language"]): string {
-  if (typeof value === "number") return costLabel(value, language);
+function movementAuditValueLabel(value: string | number | null, language: AppPreferences["language"], formatting: DisplayFormatting): string {
+  if (typeof value === "number") return costLabel(value, language, formatting);
   return value?.trim() || translated(language, "unspecified");
 }
 
@@ -973,6 +996,7 @@ function historicalMovementValueLabel(
   snapshot: Partial<InventoryMovementAuditSnapshot> | undefined,
   field: InventoryMovementAuditField,
   language: AppPreferences["language"],
+  formatting: DisplayFormatting = DEFAULT_DISPLAY_FORMATTING,
 ): string {
   if (!snapshot || !Object.prototype.hasOwnProperty.call(snapshot, field) || snapshot[field] === undefined) {
     return translated(language, "noHistoricalData");
@@ -980,7 +1004,7 @@ function historicalMovementValueLabel(
 
   const value = snapshot[field];
   if (value === null) return translated(language, "unspecified");
-  if (typeof value === "number") return costLabel(value, language);
+  if (typeof value === "number") return costLabel(value, language, formatting);
 
   const trimmedValue = value.trim();
   if (trimmedValue) return trimmedValue;
@@ -996,8 +1020,8 @@ function movementStatusValueLabel(value: string, language: AppPreferences["langu
     : `${resolved.label} — ${resolved.rawValue}`;
 }
 
-function movementAuditValueLabelV2(value: string | number | null, field: InventoryMovementAuditFieldV2, language: AppPreferences["language"]): string {
-  return field === "status" ? movementStatusValueLabel(String(value ?? ""), language) : movementAuditValueLabel(value, language);
+function movementAuditValueLabelV2(value: string | number | null, field: InventoryMovementAuditFieldV2, language: AppPreferences["language"], formatting: DisplayFormatting): string {
+  return field === "status" ? movementStatusValueLabel(String(value ?? ""), language) : movementAuditValueLabel(value, language, formatting);
 }
 
 function movementItemNameLabel(movement: InventoryMovement, language: AppPreferences["language"]): string {
@@ -1013,7 +1037,7 @@ function movementItemSummaryLabel(movement: InventoryMovement, language: AppPref
   return `${historicalMovementValueLabel(movement.itemSnapshot, "code", language)} · ${historicalMovementValueLabel(movement.itemSnapshot, "categoryName", language)}`;
 }
 
-function MovementDetailContent({ movement, language }: { movement: InventoryMovement; language: AppPreferences["language"] }) {
+function MovementDetailContent({ movement, language, formatting }: { movement: InventoryMovement; language: AppPreferences["language"]; formatting: DisplayFormatting }) {
   const t = (key: TranslationKey) => translated(language, key);
   if (movement.auditVersion === 2 && movement.type === "updated") {
     const hasStatusChange = Object.prototype.hasOwnProperty.call(movement.changes, "status");
@@ -1026,8 +1050,8 @@ function MovementDetailContent({ movement, language }: { movement: InventoryMove
           if (!change) return null;
           return <div className="movement-diff-row" key={field}>
             <strong>{t(label)}</strong>
-            <div><span>{t("before")}</span><p>{movementAuditValueLabelV2(change.before, field, language)}</p></div>
-            <div><span>{t("after")}</span><p>{movementAuditValueLabelV2(change.after, field, language)}</p></div>
+            <div><span>{t("before")}</span><p>{movementAuditValueLabelV2(change.before, field, language, formatting)}</p></div>
+            <div><span>{t("after")}</span><p>{movementAuditValueLabelV2(change.after, field, language, formatting)}</p></div>
           </div>;
         })}
       </div>
@@ -1045,8 +1069,8 @@ function MovementDetailContent({ movement, language }: { movement: InventoryMove
           if (!change) return null;
           return <div className="movement-diff-row" key={field}>
             <strong>{t(label)}</strong>
-            <div><span>{t("before")}</span><p>{movementAuditValueLabel(change.before, language)}</p></div>
-            <div><span>{t("after")}</span><p>{movementAuditValueLabel(change.after, language)}</p></div>
+            <div><span>{t("before")}</span><p>{movementAuditValueLabel(change.before, language, formatting)}</p></div>
+            <div><span>{t("after")}</span><p>{movementAuditValueLabel(change.after, language, formatting)}</p></div>
           </div>;
         })}
       </div>
@@ -1060,12 +1084,12 @@ function MovementDetailContent({ movement, language }: { movement: InventoryMove
         <div><dt>{t("code")}</dt><dd>{snapshot.code}</dd></div>
         <div><dt>{t("name")}</dt><dd>{snapshot.name}</dd></div>
         <div><dt>{t("category")}</dt><dd>{snapshot.categoryName}</dd></div>
-        <div><dt>{t("serialNumber")}</dt><dd>{movementAuditValueLabel(snapshot.serialNumber, language)}</dd></div>
-        <div><dt>{t("location")}</dt><dd>{movementAuditValueLabel(snapshot.location, language)}</dd></div>
-        <div><dt>{t("cost")}</dt><dd>{costLabel(snapshot.cost, language)}</dd></div>
-        <div><dt>{t("brand")}</dt><dd>{movementAuditValueLabel(snapshot.brand, language)}</dd></div>
-        <div><dt>{t("model")}</dt><dd>{movementAuditValueLabel(snapshot.model, language)}</dd></div>
-        <div className="detail-span"><dt>{t("notes")}</dt><dd>{movementAuditValueLabel(snapshot.notes, language)}</dd></div>
+        <div><dt>{t("serialNumber")}</dt><dd>{movementAuditValueLabel(snapshot.serialNumber, language, formatting)}</dd></div>
+        <div><dt>{t("location")}</dt><dd>{movementAuditValueLabel(snapshot.location, language, formatting)}</dd></div>
+        <div><dt>{t("cost")}</dt><dd>{costLabel(snapshot.cost, language, formatting)}</dd></div>
+        <div><dt>{t("brand")}</dt><dd>{movementAuditValueLabel(snapshot.brand, language, formatting)}</dd></div>
+        <div><dt>{t("model")}</dt><dd>{movementAuditValueLabel(snapshot.model, language, formatting)}</dd></div>
+        <div className="detail-span"><dt>{t("notes")}</dt><dd>{movementAuditValueLabel(snapshot.notes, language, formatting)}</dd></div>
       </dl>
     </div>;
   }
@@ -1078,12 +1102,12 @@ function MovementDetailContent({ movement, language }: { movement: InventoryMove
         <div><dt>{t("code")}</dt><dd>{snapshot.code}</dd></div>
         <div><dt>{t("name")}</dt><dd>{snapshot.name}</dd></div>
         <div><dt>{t("category")}</dt><dd>{snapshot.categoryName}</dd></div>
-        <div><dt>{t("serialNumber")}</dt><dd>{movementAuditValueLabel(snapshot.serialNumber, language)}</dd></div>
-        <div><dt>{t("location")}</dt><dd>{movementAuditValueLabel(snapshot.location, language)}</dd></div>
-        <div><dt>{t("cost")}</dt><dd>{costLabel(snapshot.cost, language)}</dd></div>
-        <div><dt>{t("brand")}</dt><dd>{movementAuditValueLabel(snapshot.brand, language)}</dd></div>
-        <div><dt>{t("model")}</dt><dd>{movementAuditValueLabel(snapshot.model, language)}</dd></div>
-        <div className="detail-span"><dt>{t("notes")}</dt><dd>{movementAuditValueLabel(snapshot.notes, language)}</dd></div>
+        <div><dt>{t("serialNumber")}</dt><dd>{movementAuditValueLabel(snapshot.serialNumber, language, formatting)}</dd></div>
+        <div><dt>{t("location")}</dt><dd>{movementAuditValueLabel(snapshot.location, language, formatting)}</dd></div>
+        <div><dt>{t("cost")}</dt><dd>{costLabel(snapshot.cost, language, formatting)}</dd></div>
+        <div><dt>{t("brand")}</dt><dd>{movementAuditValueLabel(snapshot.brand, language, formatting)}</dd></div>
+        <div><dt>{t("model")}</dt><dd>{movementAuditValueLabel(snapshot.model, language, formatting)}</dd></div>
+        <div className="detail-span"><dt>{t("notes")}</dt><dd>{movementAuditValueLabel(snapshot.notes, language, formatting)}</dd></div>
         <div><dt>{statusLabel}</dt><dd>{movementStatusValueLabel(snapshot.status, language)}</dd></div>
       </dl>
     </div>;
@@ -1095,13 +1119,13 @@ function MovementDetailContent({ movement, language }: { movement: InventoryMove
     <dl className="article-detail-grid movement-audit-fields">
       {movementAuditFields.map(({ field, label }) => <div className={field === "notes" ? "detail-span" : undefined} key={field}>
         <dt>{t(label)}</dt>
-        <dd>{historicalMovementValueLabel(snapshot, field, language)}</dd>
+        <dd>{historicalMovementValueLabel(snapshot, field, language, formatting)}</dd>
       </div>)}
     </dl>
   </div>;
 }
 
-function MovementsPage({ movements, pageSize, language }: { movements: InventoryMovement[]; pageSize: TablePageSize; language: AppPreferences["language"] }) {
+function MovementsPage({ movements, pageSize, language, formatting }: { movements: InventoryMovement[]; pageSize: TablePageSize; language: AppPreferences["language"]; formatting: DisplayFormatting }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const [filter, setFilter] = useState<MovementFilter>("all");
   const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
@@ -1138,7 +1162,7 @@ function MovementsPage({ movements, pageSize, language }: { movements: Inventory
         <tbody>{pagination.rows.map((movement) => <tr key={movement.id}>
           <td><span className={`movement-action action-${movement.type}`}><Icon name={movementActionIcon(movement.type)} size={14} />{movementActionLabel(movement.type, language)}</span></td>
           <td><div className="movement-article"><strong>{movement.itemSnapshot ? movementItemNameLabel(movement, language) : t("itemWithoutAssociatedData")}</strong><small>{movementItemSummaryLabel(movement, language)}</small></div></td>
-          <td className="date-cell"><time dateTime={movement.occurredAt}>{dateLabel(movement.occurredAt, language)}</time></td>
+          <td className="date-cell"><time dateTime={movement.occurredAt}>{dateLabel(movement.occurredAt, language, formatting)}</time></td>
           <td><button className="button button-outline movement-detail-button" type="button" aria-label={t("viewDetails")} onClick={() => setSelectedMovement(movement)}><Icon name="view" size={15} />{t("viewDetails")}</button></td>
         </tr>)}</tbody>
       </table></div> : <EmptyState
@@ -1152,21 +1176,22 @@ function MovementsPage({ movements, pageSize, language }: { movements: Inventory
     </section>
     {selectedMovement && <ModalFrame
       title={movementItemNameLabel(selectedMovement, language)}
-      subtitle={`${selectedMovement.auditVersion === 1 ? selectedMovement.itemSnapshot.code : historicalMovementValueLabel(selectedMovement.itemSnapshot, "code", language)} · ${dateLabel(selectedMovement.occurredAt, language)}`}
+      subtitle={`${selectedMovement.auditVersion === 1 ? selectedMovement.itemSnapshot.code : historicalMovementValueLabel(selectedMovement.itemSnapshot, "code", language, formatting)} · ${dateLabel(selectedMovement.occurredAt, language, formatting)}`}
       badge={<span className={`movement-action action-${selectedMovement.type}`}><Icon name={movementActionIcon(selectedMovement.type)} size={14} />{movementActionLabel(selectedMovement.type, language)}</span>}
       closeLabel={translated(language, "close")}
       manageFocus
       onClose={() => setSelectedMovement(null)}
-    ><MovementDetailContent movement={selectedMovement} language={language} /></ModalFrame>}
+    ><MovementDetailContent movement={selectedMovement} language={language} formatting={formatting} /></ModalFrame>}
   </section>;
 }
 
-function DashboardPage({ items, categories, movements, categoryName, language, showRecentActivityChart, showCategoryChart, showRegisteredValue, displayCurrency, crcPerUsd, eurPerUsd, onViewInventory, onViewCategories }: {
+function DashboardPage({ items, categories, movements, categoryName, language, formatting, showRecentActivityChart, showCategoryChart, showRegisteredValue, displayCurrency, crcPerUsd, eurPerUsd, onViewInventory, onViewCategories }: {
   items: InventoryItem[];
   categories: Category[];
   movements: InventoryMovement[];
   categoryName: Map<string, string>;
   language: AppPreferences["language"];
+  formatting: DisplayFormatting;
   showRecentActivityChart: boolean;
   showCategoryChart: boolean;
   showRegisteredValue: boolean;
@@ -1212,7 +1237,7 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
   ];
   return <section className="page-content">
     <div className="page-heading dashboard-heading">
-      <div><div className="eyebrow">{formatDate(new Date(), language, { weekday: "long", day: "numeric", month: "long" })}</div><h1>{formatGreeting(new Date().getHours(), language)} <span className="wave">✦</span></h1><p>{t("dashboardDescription")}</p></div>
+      <div><div className="eyebrow">{formatDate(new Date(), language, { weekday: "long" })} · {formatCalendarDate(new Date(), language, formatting.dateFormat)}</div><h1>{formatGreeting(new Date().getHours(), language)} <span className="wave">✦</span></h1><p>{t("dashboardDescription")}</p></div>
       <div className="dashboard-actions"><button className="button button-outline" onClick={onViewCategories}><Icon name="layers" size={17} />{t("view")} {t("categories")}</button><button className="button button-primary" onClick={onViewInventory}><Icon name="box" size={17} />{t("view")} {t("articles")}</button></div>
     </div>
 
@@ -1229,7 +1254,7 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
     </div>
 
     <div className="dashboard-grid internal-dashboard-grid" data-show-activity-chart={showRecentActivityChart} data-show-category-chart={showCategoryChart}>
-      {showRecentActivityChart && <ActivityChart movements={movements} language={language} />}
+      {showRecentActivityChart && <ActivityChart movements={movements} language={language} formatting={formatting} />}
       <section className="panel recent-panel">
         <div className="panel-heading">
           <div className="recent-panel-heading-main">
@@ -1248,7 +1273,7 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
         {recentItems.length > 0 ? <div className="recent-list">
           {visibleRecentItems.map((item) => <div className="recent-row article-recent-row" key={item.id}>
             <span className="product-avatar avatar-violet">{item.name.slice(0, 1)}</span>
-            <span className="recent-copy"><strong>{item.name}</strong><small>{categoryName.get(item.categoryId) ?? t("noCategory")} · {formatDate(item.createdAt, language)}</small></span>
+            <span className="recent-copy"><strong>{item.name}</strong><small>{categoryName.get(item.categoryId) ?? t("noCategory")} · {dateLabel(item.createdAt, language, formatting)}</small></span>
           </div>)}
         </div> : <EmptyState title={t("noArticlesYet")} text={t("articlesWillAppear")} />}
       </section>
@@ -1282,7 +1307,7 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
   </section>;
 }
 
-function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, statusFilter, onStatusFilter, onNew, onView, onEdit, onDelete, onExport, pageSize, search, language }: {
+function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, statusFilter, onStatusFilter, onNew, onView, onEdit, onDelete, onExport, pageSize, search, language, formatting }: {
   items: InventoryItem[];
   allItems: InventoryItem[];
   categories: Category[];
@@ -1298,6 +1323,7 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
   pageSize: TablePageSize;
   search: string;
   language: AppPreferences["language"];
+  formatting: DisplayFormatting;
 }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const protectionDescriptionPrefix = useId();
@@ -1329,7 +1355,7 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
             <td><div className="product-cell"><span className={`product-avatar avatar-${index % 5}`}>{item.name.slice(0, 1)}</span><strong>{item.name}</strong></div></td>
             <td><span className="category-chip">{categories.find((category) => category.id === item.categoryId)?.name ?? t("noCategory")}</span></td>
             <td><AssetStatusBadge status={item.status} language={language} /></td>
-            <td className="date-cell">{dateLabel(item.createdAt, language)}</td>
+            <td className="date-cell">{dateLabel(item.createdAt, language, formatting)}</td>
             <td><div className="row-actions">
               <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onView(item)} title={`${t("view")} ${item.name}`} aria-label={`${t("view")} ${item.name}`}><Icon name="view" size={16} /></button>
               <button className="quiet-icon" onClick={(event) => { event.currentTarget.focus(); onEdit(item); }} title={protectedItem ? protectionMessage : `${t("edit")} ${item.name}`} aria-label={`${t("edit")} ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
@@ -1384,7 +1410,7 @@ function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete, pa
   </section>;
 }
 
-function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, onDeleteItem, pageSize, language }: {
+function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, onDeleteItem, pageSize, language, formatting }: {
   category: Category;
   items: InventoryItem[];
   onBack: () => void;
@@ -1393,6 +1419,7 @@ function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, o
   onDeleteItem: (item: InventoryItem) => void;
   pageSize: TablePageSize;
   language: AppPreferences["language"];
+  formatting: DisplayFormatting;
 }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const protectionDescriptionPrefix = useId();
@@ -1416,7 +1443,7 @@ function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, o
           <td><AssetStatusBadge status={item.status} language={language} /></td>
           <td>{item.serialNumber || "—"}</td>
           <td>{item.location || t("unspecified")}</td>
-          <td className="date-cell">{dateLabel(item.updatedAt, language)}</td>
+          <td className="date-cell">{dateLabel(item.updatedAt, language, formatting)}</td>
           <td><div className="row-actions">
             <button className="quiet-icon" data-item-view-id={item.id} onClick={() => onViewItem(item)} title={`${t("view")} ${item.name}`} aria-label={`${t("view")} ${item.name}`}><Icon name="view" size={16} /></button>
             <button className="quiet-icon" onClick={(event) => { event.currentTarget.focus(); onEditItem(item); }} title={protectedItem ? protectionMessage : `${t("edit")} ${item.name}`} aria-label={`${t("edit")} ${item.name}`} disabled={protectedItem} aria-disabled={protectedItem} aria-describedby={protectedItem ? protectionDescriptionId : undefined}><Icon name="edit" size={16} /></button>
@@ -1550,11 +1577,12 @@ function ModalFrame({ title, subtitle, onClose, children, className = "", badge,
   </div>;
 }
 
-function ItemDetailModal({ item, categoryName, onClose, language }: {
+function ItemDetailModal({ item, categoryName, onClose, language, formatting }: {
   item: InventoryItem;
   categoryName: string | undefined;
   onClose: () => void;
   language: AppPreferences["language"];
+  formatting: DisplayFormatting;
 }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const [labelPreviewOpen, setLabelPreviewOpen] = useState(false);
@@ -1587,7 +1615,7 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
 
   function openTechnicalSheetPreview() {
     setTechnicalSheetPrintError("");
-    setTechnicalSheetPreview(prepareTechnicalSheetPreview(item, categoryName, language));
+    setTechnicalSheetPreview(prepareTechnicalSheetPreview(item, categoryName, language, formatting));
   }
 
   function startTechnicalSheetPrint() {
@@ -1627,7 +1655,7 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
     onClose();
   };
   if (technicalSheetPreview) {
-    const display = technicalSheetDisplay(technicalSheetPreview.snapshot, language);
+    const display = technicalSheetDisplay(technicalSheetPreview.snapshot, language, formatting);
     const blockingMessage = technicalSheetBlockMessage(technicalSheetPreview, language);
     const printableBarcode = technicalSheetPreview.barcode?.status === "printable"
       ? technicalSheetPreview.barcode
@@ -1735,7 +1763,7 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
             <div><dt>{t("code")}</dt><dd className="print-label-code">{item.code}</dd></div>
             <div><dt>{t("name")}</dt><dd>{item.name}</dd></div>
             <div><dt>{t("category")}</dt><dd>{categoryName ?? t("noCategory")}</dd></div>
-            <div><dt>{t("entryDate")}</dt><dd>{dateLabel(item.createdAt, language)}</dd></div>
+            <div><dt>{t("entryDate")}</dt><dd>{dateLabel(item.createdAt, language, formatting)}</dd></div>
           </dl>
           {barcode.status === "blocked" ? <p className="form-error print-label-warning" id={blockedMessageId} role="alert">{code128BlockMessage(barcode.reason, language)}</p> : <svg
             className="print-label-barcode"
@@ -1770,12 +1798,12 @@ function ItemDetailModal({ item, categoryName, onClose, language }: {
       </div>
       <dl className="article-detail-grid">
         <div><dt>{t("category")}</dt><dd>{categoryName ?? t("noCategory")}</dd></div>
-        <div><dt>{t("entryDate")}</dt><dd>{dateLabel(item.createdAt, language)}</dd></div>
+        <div><dt>{t("entryDate")}</dt><dd>{dateLabel(item.createdAt, language, formatting)}</dd></div>
         <div><dt>{t("code")}</dt><dd>{item.code}</dd></div>
-        <div><dt>{t("lastModified")}</dt><dd>{dateLabel(item.updatedAt, language)}</dd></div>
+        <div><dt>{t("lastModified")}</dt><dd>{dateLabel(item.updatedAt, language, formatting)}</dd></div>
         <div><dt>{t("serialNumber")}</dt><dd>{item.serialNumber || t("unspecified")}</dd></div>
         <div><dt>{t("location")}</dt><dd>{item.location || t("unspecified")}</dd></div>
-        <div><dt>{t("cost")}</dt><dd>{costLabel(item.cost, language)}</dd></div>
+        <div><dt>{t("cost")}</dt><dd>{costLabel(item.cost, language, formatting)}</dd></div>
         <div><dt>{t("brand")} &amp; {t("model")}</dt><dd>{[item.brand, item.model].filter(Boolean).join(" · ") || t("unspecified")}</dd></div>
         <div className="detail-span"><dt>{t("notes")}</dt><dd>{item.notes || t("noNotes")}</dd></div>
       </dl>

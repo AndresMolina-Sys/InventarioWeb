@@ -77,7 +77,7 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
   - Aplicar tamaños 10, 15, 25, 50 y Ver todos a Artículos, Categorías, Movimientos y detalle de categoría. Reiniciar a la primera página al cambiar filtro o tamaño, ajustar la página al borrar filas y mantener Ingresos recientes en cinco elementos.
   - Hecho cuando: cada tamaño limita los resultados filtrados correctamente en las cuatro tablas, los límites y borrados no dejan una página vacía mientras haya filas, Ver todos presenta una sola página y los cinco ingresos recientes no cambian.
 
-- [ ] **T17. Formatos en pantallas, CSV e impresos (src/App.tsx, src/i18n.ts) — 25–30 min.** RF-9, RF-13, RF-14 (Principios 2, 4, 5, 6)
+- [x] **T17. Formatos en pantallas, CSV e impresos (src/App.tsx, src/i18n.ts) — 25–30 min.** RF-9, RF-13, RF-14 (Principios 2, 4, 5, 6)
   - Aplicar moneda y formatos de fecha/hora seleccionados a importes y fechas completos de las vistas, el CSV existente de Artículos, la etiqueta y la ficha técnica. Mantener las etiquetas visuales compactas del eje X y completar su fecha accesible.
   - Hecho cuando: las cuatro combinaciones fecha/hora presentan el mismo instante en pantalla, CSV e impresos; los importes impresos usan la moneda elegida; el CSV conserva sus columnas y otros datos, y etiqueta/barcode/hoja Carta mantienen sus dimensiones y restricciones.
 

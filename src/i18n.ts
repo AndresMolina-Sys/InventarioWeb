@@ -741,6 +741,20 @@ function parseLocalDate(value: string | number | Date): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+export function formatCalendarDate(
+  value: string | number | Date,
+  language: AppLanguage,
+  dateFormat: DateFormatPreference = "dmy",
+): string {
+  const date = parseLocalDate(value);
+  if (!date) return translate(language, "invalidDate");
+
+  const year = String(date.getFullYear()).padStart(4, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return dateFormat === "iso" ? `${year}-${month}-${day}` : `${day}/${month}/${year}`;
+}
+
 export function formatDateTime(
   value: string | number | Date,
   language: AppLanguage,
@@ -750,12 +764,7 @@ export function formatDateTime(
   const date = parseLocalDate(value);
   if (!date) return translate(language, "invalidDate");
 
-  const year = String(date.getFullYear()).padStart(4, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const dateLabel = dateFormat === "iso"
-    ? `${year}-${month}-${day}`
-    : `${day}/${month}/${year}`;
+  const dateLabel = formatCalendarDate(date, language, dateFormat);
   const timeOptions: Intl.DateTimeFormatOptions = timeFormat === "24h"
     ? { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }
     : { hour: "2-digit", minute: "2-digit", hour12: true };
