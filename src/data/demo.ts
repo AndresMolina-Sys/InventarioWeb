@@ -119,3 +119,8 @@ export function readLegacySnapshot(): InventorySnapshot | null {
   }
   return null;
 }
+
+export function clearLegacySnapshots(): void {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
+}

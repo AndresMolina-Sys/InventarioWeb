@@ -1,4 +1,4 @@
-import { createSampleSnapshot, readLegacySnapshot } from "../data/demo";
+import { clearLegacySnapshots, createSampleSnapshot, readLegacySnapshot } from "../data/demo";
 import type {
   AssetLifecycleStatus,
   Category,
@@ -30,12 +30,14 @@ const SNAPSHOT_ID = "current";
 type SnapshotRecord = {
   id: string;
   value: InventorySnapshot;
+  revision?: number;
 };
 
 type SnapshotChange<T> = {
   snapshot: InventorySnapshot;
   result: T;
   persist?: boolean;
+  revision?: number;
 };
 
 type SnapshotSource = "indexeddb" | "legacy" | "samples";
@@ -80,6 +82,58 @@ type AuditableItem = Pick<
 >;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
+let loadedSnapshotRevision: number | null = null;
+
+export type InventoryInvalidation = {
+  type: "cleared";
+  revision: number;
+};
+
+type InventoryInvalidationListener = (event: InventoryInvalidation) => void;
+
+const INVALIDATION_CHANNEL_NAME = "inventarioweb:inventory-invalidated:v1";
+const invalidationListeners = new Set<InventoryInvalidationListener>();
+let invalidationChannel: BroadcastChannel | null = null;
+
+function notifyInventoryInvalidation(event: InventoryInvalidation): void {
+  invalidationListeners.forEach((listener) => {
+    try {
+      listener(event);
+    } catch {
+      // Una vista suscrita no debe interrumpir la notificación a las demás.
+    }
+  });
+}
+
+export function subscribeInventoryInvalidation(listener: InventoryInvalidationListener): () => void {
+  invalidationListeners.add(listener);
+  if (typeof BroadcastChannel !== "undefined" && invalidationChannel === null) {
+    try {
+      invalidationChannel = new BroadcastChannel(INVALIDATION_CHANNEL_NAME);
+      invalidationChannel.onmessage = (message: MessageEvent<unknown>) => {
+        const value = message.data as Partial<InventoryInvalidation> | null;
+        if (value?.type !== "cleared" || !Number.isSafeInteger(value.revision)) return;
+        const event: InventoryInvalidation = { type: "cleared", revision: value.revision as number };
+        notifyInventoryInvalidation(event);
+      };
+    } catch {
+      invalidationChannel = null;
+    }
+  }
+  return () => invalidationListeners.delete(listener);
+}
+
+function publishInventoryInvalidation(event: InventoryInvalidation): void {
+  notifyInventoryInvalidation(event);
+  if (typeof BroadcastChannel === "undefined") return;
+  try {
+    const channel = invalidationChannel ?? new BroadcastChannel(INVALIDATION_CHANNEL_NAME);
+    invalidationChannel = channel;
+    channel.postMessage(event);
+  } catch {
+    // El estado vacío queda persistido aunque el navegador no admita la notificación entre pestañas.
+  }
+}
 
 type InitialAssetLifecycleStatus = typeof INITIAL_ASSET_LIFECYCLE_STATUSES[number];
 
@@ -397,30 +451,42 @@ function normalizeSnapshot(value: unknown): InventorySnapshot | null {
 }
 
 function transactSnapshot<T>(
-  change: (snapshot: InventorySnapshot, source: SnapshotSource) => SnapshotChange<T>,
+  change: (snapshot: InventorySnapshot, source: SnapshotSource, revision: number) => SnapshotChange<T>,
+  expectedRevision: number | null = loadedSnapshotRevision,
+  trackLoadedRevision = false,
 ): Promise<T> {
   return openDatabase().then((database) => new Promise<T>((resolve, reject) => {
     const transaction = database.transaction(SNAPSHOT_STORE, "readwrite");
     const store = transaction.objectStore(SNAPSHOT_STORE);
     const request = store.get(SNAPSHOT_ID);
     let result: T;
+    let committedRevision = 0;
     let operationError: unknown;
 
     request.onsuccess = () => {
       const stored = request.result as SnapshotRecord | undefined;
       const storedSnapshot = stored ? normalizeSnapshot(stored.value) : null;
+      const currentRevision = stored && Number.isSafeInteger(stored.revision) && (stored.revision ?? -1) >= 0
+        ? stored.revision as number
+        : 0;
+      if (expectedRevision !== null && expectedRevision !== undefined && expectedRevision !== currentRevision) {
+        operationError = new Error("El inventario cambió en otra pestaña. Recarga los datos antes de guardar.");
+        transaction.abort();
+        return;
+      }
       const legacySnapshot = storedSnapshot ? null : readLegacySnapshot();
-      const source: SnapshotSource = stored
+      const source: SnapshotSource = storedSnapshot
         ? "indexeddb"
         : legacySnapshot
           ? "legacy"
           : "samples";
       const snapshot = storedSnapshot || legacySnapshot || createSampleSnapshot();
       try {
-        const update = change(snapshot, source);
+        const update = change(snapshot, source, currentRevision);
         result = update.result;
+        committedRevision = update.revision ?? currentRevision;
         if (update.persist !== false) {
-          store.put({ id: SNAPSHOT_ID, value: update.snapshot } satisfies SnapshotRecord);
+          store.put({ id: SNAPSHOT_ID, value: update.snapshot, revision: committedRevision } satisfies SnapshotRecord);
         }
       } catch (error) {
         operationError = error;
@@ -432,7 +498,10 @@ function transactSnapshot<T>(
       operationError = request.error;
       transaction.abort();
     };
-    transaction.oncomplete = () => resolve(result);
+    transaction.oncomplete = () => {
+      if (trackLoadedRevision) loadedSnapshotRevision = committedRevision;
+      resolve(result);
+    };
     transaction.onabort = () => reject(operationError ?? transaction.error ?? new Error("No se pudo guardar el cambio local."));
     transaction.onerror = () => {
       operationError = transaction.error ?? new Error("No se pudo guardar el cambio local.");
@@ -645,7 +714,26 @@ export function loadSnapshot(): Promise<InventorySnapshot> {
     snapshot,
     result: snapshot,
     persist: source !== "indexeddb",
-  }));
+  }), null, true);
+}
+
+export async function clearInventorySnapshot(): Promise<void> {
+  let committedRevision = 0;
+  await transactSnapshot((_snapshot, _source, currentRevision) => {
+    committedRevision = currentRevision + 1;
+    return {
+      snapshot: { categories: [], items: [], movements: [] },
+      result: undefined,
+      revision: committedRevision,
+    };
+  }, null);
+
+  publishInventoryInvalidation({ type: "cleared", revision: committedRevision });
+  try {
+    clearLegacySnapshots();
+  } catch {
+    throw new Error("El inventario quedó vacío, pero no se pudieron eliminar las copias antiguas. Puedes reintentar.");
+  }
 }
 
 export function createItem(draft: ItemDraft): Promise<void> {

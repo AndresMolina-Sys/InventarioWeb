@@ -59,7 +59,7 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
   - Ampliar defaults, lectura y normalización independiente del repositorio local. Incorporar funciones puras para convertir importes, sumar el total USD antes de convertir y formatear moneda, fecha y hora según preferencias e idioma.
   - Hecho cuando: preferencias antiguas conservan sus valores válidos y cada campo nuevo inválido adopta su default; las tasas no finitas, no numéricas o no positivas se rechazan; la suma agregada se convierte una sola vez y las funciones conservan los instantes de fecha; npm run build pasa.
 
-- [ ] **T13. Vaciado transaccional y rechazo de operaciones obsoletas (src/lib/inventoryRepository.ts, src/data/demo.ts) — 25–30 min.** RF-8, RF-11, RF-15 (Principios 3, 4, 5)
+- [x] **T13. Vaciado transaccional y rechazo de operaciones obsoletas (src/lib/inventoryRepository.ts, src/data/demo.ts) — 25–30 min.** RF-8, RF-11, RF-15 (Principios 3, 4, 5)
   - Implementar el vaciado del snapshot completo en IndexedDB, preservar un estado vacío que impida volver a sembrar datos y limpiar las copias legacy. Incorporar la revisión/invalidez necesaria para que ninguna mutación o escritura anterior al vaciado reponga datos; emitir la invalidación a las demás pestañas tras guardar el vacío.
   - Hecho cuando: el commit vacío incluye artículos, categorías y movimientos; una mutación iniciada con una revisión previa se rechaza o queda sobrescrita antes del éxito; el inventario sigue vacío tras recargar y los errores de commit o de limpieza legacy permiten reintento sin declarar éxito.
 
