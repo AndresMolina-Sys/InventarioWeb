@@ -328,7 +328,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 /* Internal article register */
 .stats-grid-internal { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .dashboard-actions { display: flex; align-items: center; gap: 8px; }
-.internal-dashboard-grid { grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr); grid-template-areas: "activity recent" "categories categories"; }
+.internal-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "activity recent" "categories categories"; }
 .internal-dashboard-grid .activity-chart-panel { grid-area: activity; display: flex; flex-direction: column; }
 .internal-dashboard-grid .activity-chart-panel .chart-area { flex: 1 0 145px; height: auto; }
 .internal-dashboard-grid .activity-chart-panel .chart-legend { margin-top: auto; padding-top: 14px; }
@@ -466,7 +466,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
 }
 
 .internal-dashboard-grid[data-show-activity-chart="true"][data-show-category-chart="false"] {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas: "activity recent";
 }
 
@@ -2139,6 +2139,10 @@ button:disabled { cursor: not-allowed; opacity: .58; }
     line-height: 1.3;
   }
 
+  .settings-group .settings-rate-fields > label {
+    grid-template-rows: 1.3em 42px auto;
+  }
+
   .settings-group .modal-form :is(input, select) {
     width: 100%;
     min-width: 0;
@@ -2157,6 +2161,10 @@ button:disabled { cursor: not-allowed; opacity: .58; }
     height: 42px;
     padding-right: 34px;
     cursor: pointer;
+  }
+
+  .settings-group .settings-rate-fields input {
+    height: 42px;
   }
 
   .settings-group .modal-form label > .modal-hint {
@@ -2181,6 +2189,7 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   .settings-group[aria-labelledby="settings-danger-heading"] .modal-footer {
     margin-top: 0;
     padding-top: 16px;
+    align-items: flex-end;
     justify-content: space-between;
     gap: 14px;
   }
@@ -2197,6 +2206,11 @@ button:disabled { cursor: not-allowed; opacity: .58; }
   .settings-danger-preference .modal-hint {
     margin: 0;
     color: var(--theme-control-text-muted);
+  }
+
+  .settings-group[aria-labelledby="settings-danger-heading"] .settings-danger-preference .button,
+  .settings-group[aria-labelledby="settings-danger-heading"] .modal-footer > .button:last-child {
+    min-height: 42px;
   }
 
   .settings-group[aria-labelledby="settings-danger-heading"] .modal-footer > .button:last-child {

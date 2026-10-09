@@ -904,7 +904,7 @@ function SettingsPage({ preferences, onChange, onReset, onClear }: {
               <option value="EUR">€ EUR</option>
             </select>
           </label>
-          <div className="form-grid field-span-2">
+          <div className="form-grid field-span-2 settings-rate-fields">
             <label htmlFor="preference-crc-rate">{t("crcRateLabel")}
               <input id="preference-crc-rate" name="crcPerUsd" type="text" inputMode="decimal" value={rateDrafts.crcPerUsd} aria-invalid={rateErrors.crcPerUsd} aria-describedby={crcRateDescriptionId} onChange={(event) => updateRate("crcPerUsd", event.target.value)} />
               <span id={crcRateDescriptionId} className={rateErrors.crcPerUsd ? "form-error" : "modal-hint"} role={rateErrors.crcPerUsd ? "alert" : undefined}>
@@ -1357,7 +1357,7 @@ function DashboardPage({ items, categories, movements, categoryName, language, f
     compact: useCompactRegisteredValue,
   };
   const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string; currency?: boolean; exactValue?: string; compact?: boolean }> = [
-    { label: t("registeredArticles"), value: formatNumber(items.length, language).padStart(2, "0"), detail: t("currentRegister"), icon: "box", color: "violet" },
+    { label: t("registeredArticles"), value: formatNumber(items.length, language), detail: t("currentRegister"), icon: "box", color: "violet" },
     { label: t("categories"), value: formatNumber(categories.length, language), detail: t("toClassifyArticles"), icon: "layers", color: "blue" },
     ...(showRegisteredValue ? [registeredValueStat] : []),
   ];
