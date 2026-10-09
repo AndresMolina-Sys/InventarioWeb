@@ -6,7 +6,7 @@ import { createDefaultAppPreferences, DEFAULT_CRC_PER_USD, DEFAULT_EUR_PER_USD, 
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemDraft, UpdateItemResult } from "./lib/inventoryRepository";
 import type { AppPreferences, AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot, ThemePreference } from "./types";
-import { formatDate, formatGreeting, formatNumber, formatUsd, getLocale, presentAssetStatus, translate } from "./i18n";
+import { formatCurrency, formatDate, formatGreeting, formatNumber, formatUsd, getLocale, presentAssetStatus, sumAndConvertUsdCosts, translate } from "./i18n";
 import type { TranslationKey, TranslationParameters } from "./i18n";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "settings" | "category-detail";
@@ -81,6 +81,13 @@ function registeredValueLabel(value: number): string {
 function compactRegisteredValueLabel(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function compactDisplayValueLabel(value: number, currency: NonNullable<AppPreferences["displayCurrency"]>, language: AppPreferences["language"]): string {
+  if (currency === "USD") return compactRegisteredValueLabel(value);
+  return new Intl.NumberFormat(getLocale(language), {
+    style: "currency", currency, currencyDisplay: "narrowSymbol", notation: "compact", maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -482,6 +489,10 @@ function App() {
         language={language}
         showRecentActivityChart={preferences.showRecentActivityChart}
         showCategoryChart={preferences.showCategoryChart}
+        showRegisteredValue={preferences.showRegisteredValue ?? true}
+        displayCurrency={preferences.displayCurrency ?? "USD"}
+        crcPerUsd={preferences.crcPerUsd ?? DEFAULT_CRC_PER_USD}
+        eurPerUsd={preferences.eurPerUsd ?? DEFAULT_EUR_PER_USD}
         onViewInventory={() => setPage("inventory")}
         onViewCategories={() => setPage("categories")}
       />}
@@ -1121,7 +1132,7 @@ function MovementsPage({ movements, language }: { movements: InventoryMovement[]
   </section>;
 }
 
-function DashboardPage({ items, categories, movements, categoryName, language, showRecentActivityChart, showCategoryChart, onViewInventory, onViewCategories }: {
+function DashboardPage({ items, categories, movements, categoryName, language, showRecentActivityChart, showCategoryChart, showRegisteredValue, displayCurrency, crcPerUsd, eurPerUsd, onViewInventory, onViewCategories }: {
   items: InventoryItem[];
   categories: Category[];
   movements: InventoryMovement[];
@@ -1129,6 +1140,10 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
   language: AppPreferences["language"];
   showRecentActivityChart: boolean;
   showCategoryChart: boolean;
+  showRegisteredValue: boolean;
+  displayCurrency: NonNullable<AppPreferences["displayCurrency"]>;
+  crcPerUsd: number;
+  eurPerUsd: number;
   onViewInventory: () => void;
   onViewCategories: () => void;
 }) {
@@ -1147,22 +1162,24 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
   const firstRecentIndex = (currentRecentPage - 1) * recentPageSize;
   const visibleRecentItems = recentItems.slice(firstRecentIndex, firstRecentIndex + recentPageSize);
   useEffect(() => setRecentPage(1), [items]);
-  const registeredValue = items.reduce((total, item) => total + (item.cost !== null && Number.isFinite(item.cost) && item.cost >= 0 ? item.cost : 0), 0);
-  const fullRegisteredValue = formatUsd(registeredValue);
+  const registeredCosts = items.map((item) => item.cost !== null && Number.isFinite(item.cost) && item.cost >= 0 ? item.cost : null);
+  const registeredValue = sumAndConvertUsdCosts(registeredCosts, displayCurrency, { crcPerUsd, eurPerUsd });
+  const fullRegisteredValue = formatCurrency(registeredValue, displayCurrency, language);
   const useCompactRegisteredValue = fullRegisteredValue.length > 10;
+  const registeredValueStat = {
+    label: t("registeredValue"),
+    value: useCompactRegisteredValue ? compactDisplayValueLabel(registeredValue, displayCurrency, language) : fullRegisteredValue,
+    detail: t("capturedCostsSum"),
+    icon: "currency" as const,
+    color: "green",
+    currency: true,
+    exactValue: fullRegisteredValue,
+    compact: useCompactRegisteredValue,
+  };
   const stats: Array<{ label: string; value: string; detail: string; icon: IconName; color: string; currency?: boolean; exactValue?: string; compact?: boolean }> = [
     { label: t("registeredArticles"), value: formatNumber(items.length, language).padStart(2, "0"), detail: t("currentRegister"), icon: "box", color: "violet" },
     { label: t("categories"), value: formatNumber(categories.length, language), detail: t("toClassifyArticles"), icon: "layers", color: "blue" },
-    {
-      label: t("registeredValue"),
-      value: useCompactRegisteredValue ? compactRegisteredValueLabel(registeredValue) : fullRegisteredValue,
-      detail: t("capturedCostsSum"),
-      icon: "currency",
-      color: "green",
-      currency: true,
-      exactValue: fullRegisteredValue,
-      compact: useCompactRegisteredValue,
-    },
+    ...(showRegisteredValue ? [registeredValueStat] : []),
   ];
   return <section className="page-content">
     <div className="page-heading dashboard-heading">
@@ -1170,8 +1187,8 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
       <div className="dashboard-actions"><button className="button button-outline" onClick={onViewCategories}><Icon name="layers" size={17} />{t("view")} {t("categories")}</button><button className="button button-primary" onClick={onViewInventory}><Icon name="box" size={17} />{t("view")} {t("articles")}</button></div>
     </div>
 
-    <div className="stats-grid stats-grid-internal">
-      {stats.map((stat) => <article className="stat-card" key={stat.label}>
+    <div className="stats-grid stats-grid-internal" style={stats.length === 2 ? { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" } : undefined}>
+      {stats.map((stat) => <article className="stat-card" key={stat.label} style={stats.length === 2 ? { gridColumn: "auto" } : undefined}>
         <div className="stat-top"><span>{stat.label}</span><span className={`stat-icon ${stat.color}`}><Icon name={stat.icon} size={17} /></span></div>
         <strong
           className={`stat-value${stat.currency ? " stat-value-currency" : ""}`}

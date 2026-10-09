@@ -69,7 +69,7 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
   - Organizar la pantalla en los cuatro grupos especificados y conectar idioma, tema, densidad, tamaño de página, las tres visibilidades, moneda, tasas, fecha y hora. Mostrar fuentes/fechas de las tasas y su estado editado; actualizar la confirmación de restablecimiento para incluir todos los defaults; preparar los cuatro grupos de Ajustes sin incluir aún el disparador de vaciado, que se incorpora con el diálogo en T18.
   - Hecho cuando: cada grupo y opción aparece en el orden de RF-12, los cambios se aplican sin recargar, tasas inválidas conservan la última válida con aviso accesible y restablecer/cancelar conserva el inventario íntegro; npm run build pasa.
 
-- [ ] **T15. Visibilidad y conversión del Resumen (src/App.tsx) — 20–25 min.** RF-2, RF-5, RF-9, RF-14 (Principios 2, 4, 5, 6)
+- [x] **T15. Visibilidad y conversión del Resumen (src/App.tsx) — 20–25 min.** RF-2, RF-5, RF-9, RF-14 (Principios 2, 4, 5, 6)
   - Conectar los tres controles independientes del Resumen. Convertir costos individuales desde USD y mostrar Valor registrado sumando primero los costos USD no nulos, convirtiendo el total una vez y redondeando solo al presentarlo.
   - Hecho cuando: se verifican las ocho combinaciones de visibilidad sin huecos; costos ausentes se excluyen, cero se presenta con el símbolo elegido y cambiar visibilidad/moneda no modifica IndexedDB ni detiene el registro de actividad.
 
