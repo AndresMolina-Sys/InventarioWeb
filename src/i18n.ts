@@ -1,4 +1,10 @@
-import type { AppLanguage, AssetLifecycleStatus } from "./types";
+import type {
+  AppLanguage,
+  AssetLifecycleStatus,
+  DateFormatPreference,
+  DisplayCurrencyPreference,
+  TimeFormatPreference,
+} from "./types";
 
 const spanish = {
   appName: "InventarioWeb",
@@ -669,6 +675,47 @@ export function formatDate(
   return new Intl.DateTimeFormat(getLocale(language), options).format(date);
 }
 
+function parseLocalDate(value: string | number | Date): Date | null {
+  if (value instanceof Date) {
+    const copy = new Date(value.getTime());
+    return Number.isNaN(copy.getTime()) ? null : copy;
+  }
+
+  if (typeof value === "string") {
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (dateOnly) {
+      const localDate = new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+      return Number.isNaN(localDate.getTime()) ? null : localDate;
+    }
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export function formatDateTime(
+  value: string | number | Date,
+  language: AppLanguage,
+  dateFormat: DateFormatPreference = "dmy",
+  timeFormat: TimeFormatPreference = "12h",
+): string {
+  const date = parseLocalDate(value);
+  if (!date) return translate(language, "invalidDate");
+
+  const year = String(date.getFullYear()).padStart(4, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const dateLabel = dateFormat === "iso"
+    ? `${year}-${month}-${day}`
+    : `${day}/${month}/${year}`;
+  const timeOptions: Intl.DateTimeFormatOptions = timeFormat === "24h"
+    ? { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }
+    : { hour: "2-digit", minute: "2-digit", hour12: true };
+  const timeLabel = new Intl.DateTimeFormat(getLocale(language), timeOptions).format(date);
+
+  return `${dateLabel}, ${timeLabel}`;
+}
+
 export function formatNumber(
   value: number,
   language: AppLanguage,
@@ -684,6 +731,49 @@ export function formatUsd(value: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+export function formatCurrency(
+  value: number,
+  currency: DisplayCurrencyPreference,
+  language: AppLanguage,
+): string {
+  if (currency === "USD") return formatUsd(value);
+
+  return new Intl.NumberFormat(getLocale(language), {
+    style: "currency",
+    currency,
+    currencyDisplay: "narrowSymbol",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+export type CurrencyRates = Readonly<{
+  crcPerUsd: number;
+  eurPerUsd: number;
+}>;
+
+export function convertUsdAmount(
+  amountUsd: number,
+  currency: DisplayCurrencyPreference,
+  rates: CurrencyRates,
+): number {
+  if (currency === "CRC") return amountUsd * rates.crcPerUsd;
+  if (currency === "EUR") return amountUsd * rates.eurPerUsd;
+  return amountUsd;
+}
+
+export function sumUsdCosts(costs: readonly (number | null | undefined)[]): number {
+  return costs.reduce<number>((total, cost) => total + (cost ?? 0), 0);
+}
+
+export function sumAndConvertUsdCosts(
+  costs: readonly (number | null | undefined)[],
+  currency: DisplayCurrencyPreference,
+  rates: CurrencyRates,
+): number {
+  return convertUsdAmount(sumUsdCosts(costs), currency, rates);
 }
 
 export function formatOptionalText(value: string | null | undefined, language: AppLanguage): string {

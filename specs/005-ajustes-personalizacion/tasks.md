@@ -55,7 +55,7 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
 
 ### Fase 2: lógica pura y persistencia
 
-- [ ] **T12. Normalización y formateadores locales (src/lib/preferencesRepository.ts, src/i18n.ts) — 25–30 min.** RF-2, RF-3, RF-7, RF-9, RF-13, RF-14 (Principios 1, 3, 5, 6)
+- [x] **T12. Normalización y formateadores locales (src/lib/preferencesRepository.ts, src/i18n.ts) — 25–30 min.** RF-2, RF-3, RF-7, RF-9, RF-13, RF-14 (Principios 1, 3, 5, 6)
   - Ampliar defaults, lectura y normalización independiente del repositorio local. Incorporar funciones puras para convertir importes, sumar el total USD antes de convertir y formatear moneda, fecha y hora según preferencias e idioma.
   - Hecho cuando: preferencias antiguas conservan sus valores válidos y cada campo nuevo inválido adopta su default; las tasas no finitas, no numéricas o no positivas se rechazan; la suma agregada se convierte una sola vez y las funciones conservan los instantes de fecha; npm run build pasa.
 

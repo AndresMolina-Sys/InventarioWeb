@@ -1,11 +1,31 @@
 import type {
   AppLanguage,
   AppPreferences,
+  DateFormatPreference,
+  DisplayCurrencyPreference,
   TableDensityPreference,
+  TablePageSizePreference,
+  TimeFormatPreference,
   ThemePreference,
 } from "../types";
 
 export const PREFERENCES_STORAGE_KEY = "inventarioweb:preferences:v1";
+
+export const RATE_REFERENCE_DATE = "2026-10-08";
+export const DEFAULT_CRC_PER_USD = 453.92;
+export const DEFAULT_EUR_PER_USD = 1 / 1.1186;
+export const RATE_REFERENCE_METADATA = Object.freeze({
+  crc: Object.freeze({
+    source: "BCCR",
+    date: RATE_REFERENCE_DATE,
+    detail: "Midpoint of CRC 450.8100 purchase and CRC 457.0300 sale per USD.",
+  }),
+  eur: Object.freeze({
+    source: "ECB",
+    date: RATE_REFERENCE_DATE,
+    detail: "Inverse of the reference rate EUR 1 = USD 1.1186.",
+  }),
+});
 
 export const DEFAULT_APP_PREFERENCES: Readonly<AppPreferences> = Object.freeze({
   theme: "system",
@@ -13,6 +33,13 @@ export const DEFAULT_APP_PREFERENCES: Readonly<AppPreferences> = Object.freeze({
   showCategoryChart: true,
   tableDensity: "comfortable",
   language: "es",
+  showRegisteredValue: true,
+  displayCurrency: "USD",
+  crcPerUsd: DEFAULT_CRC_PER_USD,
+  eurPerUsd: DEFAULT_EUR_PER_USD,
+  tablePageSize: 25,
+  dateFormat: "dmy",
+  timeFormat: "12h",
 });
 
 export type PreferencesLoadResult =
@@ -46,6 +73,26 @@ function isAppLanguage(value: unknown): value is AppLanguage {
   return value === "es" || value === "en";
 }
 
+function isDisplayCurrency(value: unknown): value is DisplayCurrencyPreference {
+  return value === "USD" || value === "CRC" || value === "EUR";
+}
+
+function isPositiveFiniteRate(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isTablePageSize(value: unknown): value is TablePageSizePreference {
+  return value === 10 || value === 15 || value === 25 || value === 50 || value === "all";
+}
+
+function isDateFormat(value: unknown): value is DateFormatPreference {
+  return value === "dmy" || value === "iso";
+}
+
+function isTimeFormat(value: unknown): value is TimeFormatPreference {
+  return value === "12h" || value === "24h";
+}
+
 export function createDefaultAppPreferences(): AppPreferences {
   return { ...DEFAULT_APP_PREFERENCES };
 }
@@ -71,6 +118,28 @@ export function normalizeAppPreferences(value: unknown): AppPreferences {
     language: isAppLanguage(preferences.language)
       ? preferences.language
       : DEFAULT_APP_PREFERENCES.language,
+    showRegisteredValue:
+      typeof preferences.showRegisteredValue === "boolean"
+        ? preferences.showRegisteredValue
+        : DEFAULT_APP_PREFERENCES.showRegisteredValue,
+    displayCurrency: isDisplayCurrency(preferences.displayCurrency)
+      ? preferences.displayCurrency
+      : DEFAULT_APP_PREFERENCES.displayCurrency,
+    crcPerUsd: isPositiveFiniteRate(preferences.crcPerUsd)
+      ? preferences.crcPerUsd
+      : DEFAULT_APP_PREFERENCES.crcPerUsd,
+    eurPerUsd: isPositiveFiniteRate(preferences.eurPerUsd)
+      ? preferences.eurPerUsd
+      : DEFAULT_APP_PREFERENCES.eurPerUsd,
+    tablePageSize: isTablePageSize(preferences.tablePageSize)
+      ? preferences.tablePageSize
+      : DEFAULT_APP_PREFERENCES.tablePageSize,
+    dateFormat: isDateFormat(preferences.dateFormat)
+      ? preferences.dateFormat
+      : DEFAULT_APP_PREFERENCES.dateFormat,
+    timeFormat: isTimeFormat(preferences.timeFormat)
+      ? preferences.timeFormat
+      : DEFAULT_APP_PREFERENCES.timeFormat,
   };
 }
 
