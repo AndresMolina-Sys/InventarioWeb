@@ -93,6 +93,6 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
 
 ### Fase 5: verificación y documentación
 
-- [ ] **T20. Cierre integrado y documentación (npm run build, Chrome DevTools, docs/figma-brief.md, AGENTS.md, MEMORY.md) — 25–30 min.** RF-1–RF-15 (Principios 1, 2, 4, 5, 6)
+- [x] **T20. Cierre integrado y documentación (npm run build, Chrome DevTools, docs/figma-brief.md, AGENTS.md, MEMORY.md) — 25–30 min.** RF-1–RF-15 (Principios 1, 2, 4, 5, 6)
   - Reunir la evidencia de aceptación generada en T01–T19 para todas las matrices de la spec; no repetir sus verificaciones funcionales completas. Ejecutar el build final y un smoke test integrado representativo en Chrome DevTools, revisar la consola y actualizar el brief, AGENTS.md y MEMORY.md local.
   - Hecho cuando: npm run build termina con código 0; el smoke test en 1440, 375 y 360 px confirma apertura de Ajustes, un cambio de preferencia, aplicación de un formato y el flujo visible de vaciado sin overflow ni errores/advertencias de consola; la evidencia de T01–T19 cubre cada RF y matriz completa; docs/figma-brief.md y AGENTS.md reflejan las reglas finales, y MEMORY.md local queda actualizado con 50 líneas o menos.
