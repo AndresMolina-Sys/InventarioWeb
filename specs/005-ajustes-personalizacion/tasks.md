@@ -81,8 +81,8 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
   - Aplicar moneda y formatos de fecha/hora seleccionados a importes y fechas completos de las vistas, el CSV existente de Artículos, la etiqueta y la ficha técnica. Mantener las etiquetas visuales compactas del eje X y completar su fecha accesible.
   - Hecho cuando: las cuatro combinaciones fecha/hora presentan el mismo instante en pantalla, CSV e impresos; los importes impresos usan la moneda elegida; el CSV conserva sus columnas y otros datos, y etiqueta/barcode/hoja Carta mantienen sus dimensiones y restricciones.
 
-- [ ] **T18. Confirmación accesible de vaciado e invalidación visible (src/App.tsx) — 25–30 min.** RF-8, RF-11, RF-15 (Principios 2, 4, 5, 6)
-  - Añadir el disparador «Vaciar base de datos» a Zona de peligro e implementar su diálogo accesible con VACIAR/CLEAR según idioma, foco inicial, trampa de Tab/Mayús+Tab, Escape, restauración de foco, alertas y reintento. Conectar el aviso de invalidación para que otras pestañas descarten datos cargados y borradores antiguos.
+- [x] **T18. Confirmación accesible de vaciado e invalidación visible (src/App.tsx, src/i18n.ts) — 25–30 min.** RF-8, RF-11, RF-15 (Principios 2, 4, 5, 6)
+  - Añadir el disparador «Vaciar base de datos» a Zona de peligro e implementar su diálogo accesible con VACIAR/CLEAR según idioma, foco inicial, trampa de Tab/Mayús+Tab, Escape, restauración de foco, alertas y reintento. Centralizar los textos bilingües en i18n y conectar el aviso de invalidación para que otras pestañas descarten datos cargados y borradores antiguos.
   - Hecho cuando: cancelar no cambia datos; solo el término recortado válido sin distinguir mayúsculas habilita confirmar; fallos conservan el diálogo y permiten reintentar; tras el commit todas las pestañas muestran vacío en menos de 100 ms y ningún borrador antiguo vuelve a persistir.
 
 ### Fase 4: estilos, responsive y accesibilidad

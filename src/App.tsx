@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import { assetStatusesMatch, createCategory, createItem, deleteCategory, deleteItem, getAllowedTransitions, loadSnapshot, normalizeAssetStatusReason, resolveAssetStatus, updateCategory, updateItem } from "./lib/inventoryRepository";
+import { assetStatusesMatch, clearInventorySnapshot, createCategory, createItem, deleteCategory, deleteItem, getAllowedTransitions, loadSnapshot, normalizeAssetStatusReason, resolveAssetStatus, subscribeInventoryInvalidation, updateCategory, updateItem } from "./lib/inventoryRepository";
 import { CODE128_MODULE_WIDTH_MM, CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM, encodeCode128B } from "./lib/code128";
 import { createDefaultAppPreferences, DEFAULT_CRC_PER_USD, DEFAULT_EUR_PER_USD, loadAppPreferences, RATE_REFERENCE_METADATA, saveAppPreferences } from "./lib/preferencesRepository";
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
@@ -273,6 +273,7 @@ function translated(language: AppPreferences["language"], key: TranslationKey, p
 type EffectiveTheme = Exclude<ThemePreference, "system">;
 type PreferencesNotice = "read" | "write" | null;
 type PreferencesChange = Partial<AppPreferences> | ((current: AppPreferences) => AppPreferences);
+type ClearInventoryResult = "cleared" | "database-error" | "legacy-error";
 
 function getSystemTheme(): EffectiveTheme {
   return typeof window !== "undefined"
@@ -348,6 +349,7 @@ function App() {
   const [page, setPage] = useState<Page>("dashboard");
   const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [], movements: [] });
   const snapshotRef = useRef(snapshot);
+  const localClearInProgressRef = useRef(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [search, setSearch] = useState("");
@@ -395,6 +397,33 @@ function App() {
       active = false;
     };
   }, []);
+
+  useEffect(() => subscribeInventoryInvalidation(() => {
+    const emptySnapshot: InventorySnapshot = { categories: [], items: [], movements: [] };
+    snapshotRef.current = emptySnapshot;
+    setSnapshot(emptySnapshot);
+    setItemModal(null);
+    setViewedItem(null);
+    setCategoryModal(null);
+    setSelectedCategoryId(null);
+    setPendingItemViewFocusId(null);
+    itemEditOriginRef.current = null;
+    setSearch("");
+    setCategoryFilter("all");
+    setStatusFilter("all");
+    setError("");
+
+    if (!localClearInProgressRef.current) {
+      setNotice("inventoryClearedElsewhere");
+      window.setTimeout(() => setNotice(null), 5000);
+    }
+
+    // Actualiza la revisión del repositorio antes de aceptar nuevas escrituras.
+    void loadSnapshot().then((data) => {
+      snapshotRef.current = data;
+      setSnapshot(data);
+    }).catch((reason: unknown) => setError(errorMessage(reason)));
+  }), []);
 
   const categoryName = useMemo(() => new Map(snapshot.categories.map((category) => [category.id, category.name])), [snapshot.categories]);
   const filteredItems = useMemo(() => {
@@ -489,6 +518,28 @@ function App() {
     if (deleted && selectedCategoryId === category.id) {
       setSelectedCategoryId(null);
       setPage("categories");
+    }
+  }
+
+  async function clearInventory(): Promise<ClearInventoryResult> {
+    localClearInProgressRef.current = true;
+    setError("");
+    setNotice(null);
+    try {
+      await clearInventorySnapshot();
+      const data = await loadSnapshot().catch(() => ({ categories: [], items: [], movements: [] }));
+      snapshotRef.current = data;
+      setSnapshot(data);
+      setNotice("inventoryCleared");
+      window.setTimeout(() => setNotice(null), 5000);
+      return "cleared";
+    } catch (reason) {
+      if (reason instanceof Error && /inventario quedó vacío/i.test(reason.message)) {
+        return "legacy-error";
+      }
+      return "database-error";
+    } finally {
+      localClearInProgressRef.current = false;
     }
   }
 
@@ -593,7 +644,7 @@ function App() {
         onDeleteItem={(item) => { void removeItem(item); }}
       />}
       {page === "movements" && <MovementsPage movements={snapshot.movements} pageSize={tablePageSize} language={language} formatting={displayFormatting} />}
-      {page === "settings" && <SettingsPage preferences={preferences} onChange={preferenceState.updatePreferences} onReset={() => preferenceState.updatePreferences(createDefaultAppPreferences())} />}
+      {page === "settings" && <SettingsPage preferences={preferences} onChange={preferenceState.updatePreferences} onReset={() => preferenceState.updatePreferences(createDefaultAppPreferences())} onClear={clearInventory} />}
     </main>
 
     {itemModal && <ItemModal
@@ -686,13 +737,19 @@ function Sidebar({ page, onPage, itemCount, categoryCount, language }: { page: P
   </aside>;
 }
 
-function SettingsPage({ preferences, onChange, onReset }: {
+function SettingsPage({ preferences, onChange, onReset, onClear }: {
   preferences: AppPreferences;
   onChange: (change: PreferencesChange) => void;
   onReset: () => void;
+  onClear: () => Promise<ClearInventoryResult>;
 }) {
   const [resetOpen, setResetOpen] = useState(false);
   const cancelResetRef = useRef<HTMLButtonElement>(null);
+  const [clearOpen, setClearOpen] = useState(false);
+  const [clearConfirmation, setClearConfirmation] = useState("");
+  const [clearError, setClearError] = useState<Exclude<ClearInventoryResult, "cleared"> | null>(null);
+  const [clearing, setClearing] = useState(false);
+  const clearConfirmationRef = useRef<HTMLInputElement>(null);
   const formatRateInput = (rate: number) => String(Number(rate.toFixed(8)));
   const [rateDrafts, setRateDrafts] = useState(() => ({
     crcPerUsd: formatRateInput(preferences.crcPerUsd ?? DEFAULT_CRC_PER_USD),
@@ -703,6 +760,8 @@ function SettingsPage({ preferences, onChange, onReset }: {
   const tWith = (key: TranslationKey, parameters: TranslationParameters) => translated(preferences.language, key, parameters);
   const dateFormat = preferences.dateFormat ?? "dmy";
   const timeFormat = preferences.timeFormat ?? "12h";
+  const clearKeyword = preferences.language === "es" ? "VACIAR" : "CLEAR";
+  const canConfirmClear = clearConfirmation.trim().toLocaleUpperCase() === clearKeyword;
 
   function formatReferenceDate(value: string): string {
     const [year, month, day] = value.split("-");
@@ -727,6 +786,36 @@ function SettingsPage({ preferences, onChange, onReset }: {
     setRateErrors({ crcPerUsd: false, eurPerUsd: false });
     onReset();
     setResetOpen(false);
+  }
+
+  function openClearConfirmation() {
+    setClearConfirmation("");
+    setClearError(null);
+    setClearOpen(true);
+  }
+
+  function closeClearConfirmation() {
+    if (clearing) return;
+    setClearOpen(false);
+    setClearConfirmation("");
+    setClearError(null);
+  }
+
+  async function confirmInventoryClear() {
+    if (!canConfirmClear || clearing) return;
+    setClearing(true);
+    setClearError(null);
+    try {
+      const result = await onClear();
+      if (result === "cleared") {
+        setClearOpen(false);
+        setClearConfirmation("");
+      } else {
+        setClearError(result);
+      }
+    } finally {
+      setClearing(false);
+    }
   }
 
   const crcRate = preferences.crcPerUsd ?? DEFAULT_CRC_PER_USD;
@@ -853,8 +942,11 @@ function SettingsPage({ preferences, onChange, onReset }: {
       <div className="inventory-toolbar"><div><h2 id="settings-danger-heading">{t("dangerZone")}</h2><p>{t("dangerZoneDescription")}</p></div></div>
       <div className="modal-form">
         <div className="modal-footer">
-          <span className="modal-hint">{t("inventoryDataUnaffected")}</span>
-          <button className="button button-outline" type="button" onClick={() => setResetOpen(true)}>{t("resetPreferences")}</button>
+          <div className="settings-danger-preference">
+            <span className="modal-hint">{t("inventoryDataUnaffected")}</span>
+            <button className="button button-outline" type="button" onClick={() => setResetOpen(true)}>{t("resetPreferences")}</button>
+          </div>
+          <button className="button button-outline" type="button" onClick={openClearConfirmation}>{t("clearDatabase")}</button>
         </div>
       </div>
     </section>
@@ -874,6 +966,40 @@ function SettingsPage({ preferences, onChange, onReset }: {
         <div className="modal-footer">
           <button ref={cancelResetRef} className="button button-outline" type="button" onClick={() => setResetOpen(false)}>{t("cancel")}</button>
           <button className="button button-primary" type="button" onClick={resetPreferences}>{t("confirmResetPreferences")}</button>
+        </div>
+      </div>
+    </ModalFrame>}
+    {clearOpen && <ModalFrame
+      title={t("clearDatabaseTitle")}
+      subtitle={t("clearDatabaseWarning")}
+      onClose={closeClearConfirmation}
+      className="stock-modal"
+      badge={<span className="modal-mark"><Icon name="alert" size={18} /></span>}
+      closeLabel={t("closeConfirmation")}
+      manageFocus
+      dismissOnBackdrop={false}
+      initialFocusRef={clearConfirmationRef}
+    >
+      <div className="modal-form">
+        <label htmlFor="clear-database-confirmation">{t("clearDatabaseLabel")}
+          <input
+            ref={clearConfirmationRef}
+            id="clear-database-confirmation"
+            name="clearConfirmation"
+            type="text"
+            autoComplete="off"
+            value={clearConfirmation}
+            aria-describedby="clear-database-instruction"
+            onChange={(event) => { setClearConfirmation(event.target.value); setClearError(null); }}
+          />
+        </label>
+        <p id="clear-database-instruction" className="modal-hint">{tWith("clearDatabaseInstruction", { keyword: clearKeyword })}</p>
+        {clearError && <p className="form-error" role="alert">{t(clearError === "legacy-error" ? "clearLegacyCleanupFailure" : "clearDatabaseFailure")}</p>}
+        <div className="modal-footer">
+          <button className="button button-outline" type="button" disabled={clearing} onClick={closeClearConfirmation}>{t("cancel")}</button>
+          <button className="button button-primary" type="button" disabled={!canConfirmClear || clearing} onClick={() => void confirmInventoryClear()}>
+            {clearing ? t("saving") : clearError ? t("retryClearDatabase") : t("confirmClearDatabase")}
+          </button>
         </div>
       </div>
     </ModalFrame>}
