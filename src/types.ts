@@ -186,10 +186,25 @@ export type TableDensityPreference = "comfortable" | "compact";
 
 export type AppLanguage = "es" | "en";
 
+export type DisplayCurrencyPreference = "USD" | "CRC" | "EUR";
+
+export type TablePageSizePreference = 10 | 15 | 25 | 50 | "all";
+
+export type DateFormatPreference = "dmy" | "iso";
+
+export type TimeFormatPreference = "12h" | "24h";
+
 export type AppPreferences = {
   theme: ThemePreference;
   showRecentActivityChart: boolean;
   showCategoryChart: boolean;
   tableDensity: TableDensityPreference;
   language: AppLanguage;
+  showRegisteredValue?: boolean;
+  displayCurrency?: DisplayCurrencyPreference;
+  crcPerUsd?: number;
+  eurPerUsd?: number;
+  tablePageSize?: TablePageSizePreference;
+  dateFormat?: DateFormatPreference;
+  timeFormat?: TimeFormatPreference;
 };

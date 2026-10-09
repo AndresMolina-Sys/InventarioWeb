@@ -49,7 +49,7 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
 
 ### Fase 1: contratos y tipos
 
-- [ ] **T11. Contrato ampliado de preferencias (src/types.ts) — 20–25 min.** RF-2, RF-3, RF-7, RF-9, RF-10, RF-13, RF-14 (Principios 1, 3, 5, 6)
+- [x] **T11. Contrato ampliado de preferencias (src/types.ts) — 20–25 min.** RF-2, RF-3, RF-7, RF-9, RF-10, RF-13, RF-14 (Principios 1, 3, 5, 6)
   - Añadir showRegisteredValue, displayCurrency, crcPerUsd, eurPerUsd, tablePageSize, dateFormat y timeFormat a AppPreferences, conservando tema, idioma, visibilidad de gráficos y densidad. Definir uniones cerradas para moneda, tamaño y formatos.
   - Hecho cuando: TypeScript acepta solo los valores previstos en la spec, el contrato conserva todas las preferencias existentes y npm run build termina correctamente.
 
