@@ -65,8 +65,8 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
 
 ### Fase 3: interfaz y flujo de usuario
 
-- [ ] **T14. Pantalla y controles agrupados de Ajustes (src/App.tsx, src/i18n.ts) — 25–30 min.** RF-1, RF-2, RF-3, RF-7, RF-9, RF-10, RF-12–RF-14 (Principios 2, 4, 5, 6)
-  - Organizar la pantalla en los cuatro grupos especificados y conectar idioma, tema, densidad, tamaño de página, las tres visibilidades, moneda, tasas, fecha y hora. Mostrar fuentes/fechas de las tasas y su estado editado; actualizar la confirmación de restablecimiento para incluir todos los defaults. Añadir el disparador de vaciado en Zona de peligro.
+- [x] **T14. Pantalla y controles agrupados de Ajustes (src/App.tsx, src/i18n.ts) — 25–30 min.** RF-1, RF-2, RF-3, RF-7, RF-9, RF-10, RF-12–RF-14 (Principios 2, 4, 5, 6)
+  - Organizar la pantalla en los cuatro grupos especificados y conectar idioma, tema, densidad, tamaño de página, las tres visibilidades, moneda, tasas, fecha y hora. Mostrar fuentes/fechas de las tasas y su estado editado; actualizar la confirmación de restablecimiento para incluir todos los defaults; preparar los cuatro grupos de Ajustes sin incluir aún el disparador de vaciado, que se incorpora con el diálogo en T18.
   - Hecho cuando: cada grupo y opción aparece en el orden de RF-12, los cambios se aplican sin recargar, tasas inválidas conservan la última válida con aviso accesible y restablecer/cancelar conserva el inventario íntegro; npm run build pasa.
 
 - [ ] **T15. Visibilidad y conversión del Resumen (src/App.tsx) — 20–25 min.** RF-2, RF-5, RF-9, RF-14 (Principios 2, 4, 5, 6)
@@ -82,7 +82,7 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
   - Hecho cuando: las cuatro combinaciones fecha/hora presentan el mismo instante en pantalla, CSV e impresos; los importes impresos usan la moneda elegida; el CSV conserva sus columnas y otros datos, y etiqueta/barcode/hoja Carta mantienen sus dimensiones y restricciones.
 
 - [ ] **T18. Confirmación accesible de vaciado e invalidación visible (src/App.tsx) — 25–30 min.** RF-8, RF-11, RF-15 (Principios 2, 4, 5, 6)
-  - Implementar el diálogo de Zona de peligro con VACIAR/CLEAR según idioma, foco inicial, trampa de Tab/Mayús+Tab, Escape, restauración de foco, alertas y reintento. Conectar el aviso de invalidación para que otras pestañas descarten datos cargados y borradores antiguos.
+  - Añadir el disparador «Vaciar base de datos» a Zona de peligro e implementar su diálogo accesible con VACIAR/CLEAR según idioma, foco inicial, trampa de Tab/Mayús+Tab, Escape, restauración de foco, alertas y reintento. Conectar el aviso de invalidación para que otras pestañas descarten datos cargados y borradores antiguos.
   - Hecho cuando: cancelar no cambia datos; solo el término recortado válido sin distinguir mayúsculas habilita confirmar; fallos conservan el diálogo y permiten reintentar; tras el commit todas las pestañas muestran vacío en menos de 100 ms y ningún borrador antiguo vuelve a persistir.
 
 ### Fase 4: estilos, responsive y accesibilidad

@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { assetStatusesMatch, createCategory, createItem, deleteCategory, deleteItem, getAllowedTransitions, loadSnapshot, normalizeAssetStatusReason, resolveAssetStatus, updateCategory, updateItem } from "./lib/inventoryRepository";
 import { CODE128_MODULE_WIDTH_MM, CODE128_TECHNICAL_SHEET_MAX_WIDTH_MM, encodeCode128B } from "./lib/code128";
-import { createDefaultAppPreferences, loadAppPreferences, saveAppPreferences } from "./lib/preferencesRepository";
+import { createDefaultAppPreferences, DEFAULT_CRC_PER_USD, DEFAULT_EUR_PER_USD, loadAppPreferences, RATE_REFERENCE_METADATA, saveAppPreferences } from "./lib/preferencesRepository";
 import type { Code128BBlockedReason, Code128BResult } from "./lib/code128";
 import type { UpdateItemDraft, UpdateItemResult } from "./lib/inventoryRepository";
 import type { AppPreferences, AssetLifecycleStatus, Category, CategoryDraft, InventoryItem, InventoryMovement, InventoryMovementAuditField, InventoryMovementAuditFieldV2, InventoryMovementAuditSnapshot, InventorySnapshot, ThemePreference } from "./types";
@@ -618,15 +618,56 @@ function SettingsPage({ preferences, onChange, onReset }: {
 }) {
   const [resetOpen, setResetOpen] = useState(false);
   const cancelResetRef = useRef<HTMLButtonElement>(null);
+  const formatRateInput = (rate: number) => String(Number(rate.toFixed(8)));
+  const [rateDrafts, setRateDrafts] = useState(() => ({
+    crcPerUsd: formatRateInput(preferences.crcPerUsd ?? DEFAULT_CRC_PER_USD),
+    eurPerUsd: formatRateInput(preferences.eurPerUsd ?? DEFAULT_EUR_PER_USD),
+  }));
+  const [rateErrors, setRateErrors] = useState({ crcPerUsd: false, eurPerUsd: false });
   const t = (key: TranslationKey) => translated(preferences.language, key);
+  const tWith = (key: TranslationKey, parameters: TranslationParameters) => translated(preferences.language, key, parameters);
+  const dateFormat = preferences.dateFormat ?? "dmy";
+  const timeFormat = preferences.timeFormat ?? "12h";
+
+  function formatReferenceDate(value: string): string {
+    const [year, month, day] = value.split("-");
+    return dateFormat === "iso" ? value : `${day}/${month}/${year}`;
+  }
+
+  function updateRate(field: "crcPerUsd" | "eurPerUsd", value: string) {
+    setRateDrafts((current) => ({ ...current, [field]: value }));
+    const parsed = Number(value.trim());
+    const isValid = value.trim().length > 0 && Number.isFinite(parsed) && parsed > 0;
+    setRateErrors((current) => ({ ...current, [field]: !isValid }));
+    if (!isValid) return;
+    if (field === "crcPerUsd") onChange({ crcPerUsd: parsed });
+    else onChange({ eurPerUsd: parsed });
+  }
+
+  function resetPreferences() {
+    setRateDrafts({
+      crcPerUsd: formatRateInput(DEFAULT_CRC_PER_USD),
+      eurPerUsd: formatRateInput(DEFAULT_EUR_PER_USD),
+    });
+    setRateErrors({ crcPerUsd: false, eurPerUsd: false });
+    onReset();
+    setResetOpen(false);
+  }
+
+  const crcRate = preferences.crcPerUsd ?? DEFAULT_CRC_PER_USD;
+  const eurRate = preferences.eurPerUsd ?? DEFAULT_EUR_PER_USD;
+  const crcReferenceDate = formatReferenceDate(RATE_REFERENCE_METADATA.crc.date);
+  const eurReferenceDate = formatReferenceDate(RATE_REFERENCE_METADATA.eur.date);
+  const crcRateDescriptionId = "preference-crc-rate-description";
+  const eurRateDescriptionId = "preference-eur-rate-description";
 
   return <section className="page-content">
     <div className="page-heading">
       <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(preferences.language))}</div><h1>{t("settings")}</h1><p>{t("settingsDescription")}</p></div>
     </div>
-    <section className="panel inventory-panel">
+    <section className="panel inventory-panel settings-group" aria-labelledby="settings-interface-heading">
       <div className="inventory-toolbar">
-        <div><h2>{t("settingsTitle")}</h2><p>{t("localSettingsNote")}</p></div>
+        <div><h2 id="settings-interface-heading">{t("interfacePreferences")}</h2><p>{t("localSettingsNote")}</p></div>
       </div>
       <div className="modal-form">
         <div className="form-grid">
@@ -643,6 +684,29 @@ function SettingsPage({ preferences, onChange, onReset }: {
               <option value="dark">{t("themeDark")}</option>
             </select>
           </label>
+          <label htmlFor="preference-table-density">{t("tableDensity")}
+            <select id="preference-table-density" name="tableDensity" value={preferences.tableDensity} onChange={(event) => onChange({ tableDensity: event.target.value as AppPreferences["tableDensity"] })}>
+              <option value="comfortable">{t("densityComfortable")}</option>
+              <option value="compact">{t("densityCompact")}</option>
+            </select>
+          </label>
+          <label htmlFor="preference-page-size">{t("tablePageSize")}
+            <select id="preference-page-size" name="tablePageSize" value={preferences.tablePageSize ?? 25} onChange={(event) => onChange({ tablePageSize: event.target.value === "all" ? "all" : Number(event.target.value) as 10 | 15 | 25 | 50 })}>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value="all">{t("showAllRecords")}</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section className="panel inventory-panel settings-group" aria-labelledby="settings-summary-heading">
+      <div className="inventory-toolbar"><div><h2 id="settings-summary-heading">{t("summaryVisibility")}</h2><p>{t("summaryVisibilityDescription")}</p></div></div>
+      <div className="modal-form">
+        <div className="form-grid">
           <label htmlFor="preference-activity-chart">{t("activityChartPreference")}
             <select id="preference-activity-chart" name="showRecentActivityChart" value={preferences.showRecentActivityChart ? "shown" : "hidden"} onChange={(event) => onChange({ showRecentActivityChart: event.target.value === "shown" })}>
               <option value="shown">{t("visible")}</option>
@@ -655,19 +719,71 @@ function SettingsPage({ preferences, onChange, onReset }: {
               <option value="hidden">{t("hidden")}</option>
             </select>
           </label>
-          <label htmlFor="preference-table-density">{t("tableDensity")}
-            <select id="preference-table-density" name="tableDensity" value={preferences.tableDensity} onChange={(event) => onChange({ tableDensity: event.target.value as AppPreferences["tableDensity"] })}>
-              <option value="comfortable">{t("densityComfortable")}</option>
-              <option value="compact">{t("densityCompact")}</option>
+          <label htmlFor="preference-registered-value">{t("registeredValuePreference")}
+            <select id="preference-registered-value" name="showRegisteredValue" value={(preferences.showRegisteredValue ?? true) ? "shown" : "hidden"} onChange={(event) => onChange({ showRegisteredValue: event.target.value === "shown" })}>
+              <option value="shown">{t("visible")}</option>
+              <option value="hidden">{t("hidden")}</option>
             </select>
           </label>
         </div>
+      </div>
+    </section>
+
+    <section className="panel inventory-panel settings-group" aria-labelledby="settings-currency-heading">
+      <div className="inventory-toolbar"><div><h2 id="settings-currency-heading">{t("currencyAndFormat")}</h2><p>{t("currencyAndFormatDescription")}</p></div></div>
+      <div className="modal-form">
+        <div className="form-grid">
+          <label htmlFor="preference-currency">{t("mainCurrency")}
+            <select id="preference-currency" name="displayCurrency" value={preferences.displayCurrency ?? "USD"} onChange={(event) => onChange({ displayCurrency: event.target.value as NonNullable<AppPreferences["displayCurrency"]> })}>
+              <option value="USD">$ USD</option>
+              <option value="CRC">₡ CRC</option>
+              <option value="EUR">€ EUR</option>
+            </select>
+          </label>
+          <div className="form-grid field-span-2">
+            <label htmlFor="preference-crc-rate">{t("crcRateLabel")}
+              <input id="preference-crc-rate" name="crcPerUsd" type="text" inputMode="decimal" value={rateDrafts.crcPerUsd} aria-invalid={rateErrors.crcPerUsd} aria-describedby={crcRateDescriptionId} onChange={(event) => updateRate("crcPerUsd", event.target.value)} />
+              <span id={crcRateDescriptionId} className={rateErrors.crcPerUsd ? "form-error" : "modal-hint"} role={rateErrors.crcPerUsd ? "alert" : undefined}>
+                {rateErrors.crcPerUsd
+                  ? tWith("rateInvalid", { rate: crcRate })
+                  : <>{tWith("crcRateReference", { date: crcReferenceDate })} {crcRate !== DEFAULT_CRC_PER_USD ? t("rateModifiedLocally") : t("rateReferenceDefault")}</>}
+              </span>
+            </label>
+            <label htmlFor="preference-eur-rate">{t("eurRateLabel")}
+              <input id="preference-eur-rate" name="eurPerUsd" type="text" inputMode="decimal" value={rateDrafts.eurPerUsd} aria-invalid={rateErrors.eurPerUsd} aria-describedby={eurRateDescriptionId} onChange={(event) => updateRate("eurPerUsd", event.target.value)} />
+              <span id={eurRateDescriptionId} className={rateErrors.eurPerUsd ? "form-error" : "modal-hint"} role={rateErrors.eurPerUsd ? "alert" : undefined}>
+                {rateErrors.eurPerUsd
+                  ? tWith("rateInvalid", { rate: eurRate })
+                  : <>{tWith("eurRateReference", { date: eurReferenceDate })} {eurRate !== DEFAULT_EUR_PER_USD ? t("rateModifiedLocally") : t("rateReferenceDefault")}</>}
+              </span>
+            </label>
+          </div>
+          <label htmlFor="preference-date-format">{t("dateFormatPreference")}
+            <select id="preference-date-format" name="dateFormat" value={dateFormat} onChange={(event) => onChange({ dateFormat: event.target.value as NonNullable<AppPreferences["dateFormat"]> })}>
+              <option value="dmy">{t("dateFormatDmy")}</option>
+              <option value="iso">{t("dateFormatIso")}</option>
+            </select>
+          </label>
+          <label htmlFor="preference-time-format">{t("timeFormatPreference")}
+            <select id="preference-time-format" name="timeFormat" value={timeFormat} onChange={(event) => onChange({ timeFormat: event.target.value as NonNullable<AppPreferences["timeFormat"]> })}>
+              <option value="12h">{t("timeFormat12h")}</option>
+              <option value="24h">{t("timeFormat24h")}</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section className="panel inventory-panel settings-group" aria-labelledby="settings-danger-heading">
+      <div className="inventory-toolbar"><div><h2 id="settings-danger-heading">{t("dangerZone")}</h2><p>{t("dangerZoneDescription")}</p></div></div>
+      <div className="modal-form">
         <div className="modal-footer">
           <span className="modal-hint">{t("inventoryDataUnaffected")}</span>
           <button className="button button-outline" type="button" onClick={() => setResetOpen(true)}>{t("resetPreferences")}</button>
         </div>
       </div>
     </section>
+
     {resetOpen && <ModalFrame
       title={t("confirmResetPreferences")}
       subtitle={t("resetPreferencesWarning")}
@@ -682,7 +798,7 @@ function SettingsPage({ preferences, onChange, onReset }: {
         <p>{t("resetPreferencesSummary")}</p>
         <div className="modal-footer">
           <button ref={cancelResetRef} className="button button-outline" type="button" onClick={() => setResetOpen(false)}>{t("cancel")}</button>
-          <button className="button button-primary" type="button" onClick={() => { onReset(); setResetOpen(false); }}>{t("confirmResetPreferences")}</button>
+          <button className="button button-primary" type="button" onClick={resetPreferences}>{t("confirmResetPreferences")}</button>
         </div>
       </div>
     </ModalFrame>}
