@@ -78,10 +78,9 @@ Planifica cambios que afecten persistencia o varias pantallas. Mantén el alcanc
 
 - ✅ Siempre: conserva la persistencia local con IndexedDB y las versiones fijadas; ejecuta el build después de cambios de código.
 - ✅ Siempre: actualizar `MEMORY.md` al terminar cada tarea. 
-- ✅ Siempre: crea los commits con autor y committer `Andrés Molina <andresmolina.sys@outlook.com>`. Antes de cada commit, verifica `git var GIT_AUTHOR_IDENT` y `git var GIT_COMMITTER_IDENT`; si no coinciden, configura `git config user.name "Andrés Molina"` y `git config user.email "andresmolina.sys@outlook.com"` en este repositorio y vuelve a verificar.
 - ✅ Siempre: al terminar cambios, genera el commit en inglés usando estrictamente `<type>(<scope>): <subject>` (<50 chars) y un cuerpo con `<description>` (<100 chars, verbo en presente simple/imperativo respondiendo por qué y cómo; tipos: fix, feat, test, refactor, revert, build, chore).
 - ⚠️ Pregunta antes: añadir dependencias o archivos, o cambiar el formato persistido y sus migraciones.
-- 🚫 Nunca: edites la app WPF, expongas claves, conectes o apliques recursos Supabase desde Portfolio, ni incorpores autenticación o cuentas a esta versión.
+- 🚫 Nunca: agregues líneas de 'Co-authored-by' o atribución en los commits, edites la app WPF, expongas claves, conectes o apliques recursos Supabase desde Portfolio, ni incorpores autenticación o cuentas a esta versión.
 
 ## Verificación
 
