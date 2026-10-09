@@ -73,7 +73,7 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
   - Conectar los tres controles independientes del Resumen. Convertir costos individuales desde USD y mostrar Valor registrado sumando primero los costos USD no nulos, convirtiendo el total una vez y redondeando solo al presentarlo.
   - Hecho cuando: se verifican las ocho combinaciones de visibilidad sin huecos; costos ausentes se excluyen, cero se presenta con el símbolo elegido y cambiar visibilidad/moneda no modifica IndexedDB ni detiene el registro de actividad.
 
-- [ ] **T16. Paginación común de tablas (src/App.tsx) — 25–30 min.** RF-2, RF-10 (Principios 2, 4, 6)
+- [x] **T16. Paginación común de tablas (src/App.tsx) — 25–30 min.** RF-2, RF-10 (Principios 2, 4, 6)
   - Aplicar tamaños 10, 15, 25, 50 y Ver todos a Artículos, Categorías, Movimientos y detalle de categoría. Reiniciar a la primera página al cambiar filtro o tamaño, ajustar la página al borrar filas y mantener Ingresos recientes en cinco elementos.
   - Hecho cuando: cada tamaño limita los resultados filtrados correctamente en las cuatro tablas, los límites y borrados no dejan una página vacía mientras haya filas, Ver todos presenta una sola página y los cinco ingresos recientes no cambian.
 

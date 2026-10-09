@@ -12,6 +12,7 @@ import type { TranslationKey, TranslationParameters } from "./i18n";
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "settings" | "category-detail";
 type MovementFilter = "all" | InventoryMovement["type"];
 type AssetStatusFilter = "all" | AssetLifecycleStatus;
+type TablePageSize = NonNullable<AppPreferences["tablePageSize"]>;
 type IconName = "dashboard" | "box" | "search" | "plus" | "download" | "chevron" | "edit" | "trash" | "view" | "close" | "check" | "spark" | "clock" | "alert" | "layers" | "currency" | "settings";
 
 const ASSET_STATUS_KEYS: Record<AssetLifecycleStatus, TranslationKey> = {
@@ -23,6 +24,41 @@ const ASSET_STATUS_KEYS: Record<AssetLifecycleStatus, TranslationKey> = {
 
 const INITIAL_ASSET_STATUS_OPTIONS: readonly AssetLifecycleStatus[] = ["available", "assigned", "maintenance"];
 const ASSET_STATUS_FILTER_OPTIONS: readonly AssetLifecycleStatus[] = ["available", "assigned", "maintenance", "decommissioned"];
+
+function useTablePagination<T>(rows: T[], pageSize: TablePageSize, resetKey = "") {
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageCount = Math.max(1, pageSize === "all" ? 1 : Math.ceil(rows.length / pageSize));
+  const safePage = Math.min(currentPage, pageCount);
+  const pageLength = pageSize === "all" ? rows.length : pageSize;
+  const firstIndex = pageSize === "all" ? 0 : (safePage - 1) * pageLength;
+  const visibleRows = pageSize === "all" ? rows : rows.slice(firstIndex, firstIndex + pageLength);
+  const rangeStart = rows.length === 0 ? 0 : firstIndex + 1;
+  const rangeEnd = Math.min(firstIndex + pageLength, rows.length);
+  const previousState = useRef({ pageSize, resetKey, rowCount: rows.length });
+
+  useEffect(() => {
+    const shouldReset = previousState.current.pageSize !== pageSize || previousState.current.resetKey !== resetKey;
+    const rowsShrank = rows.length < previousState.current.rowCount;
+    previousState.current = { pageSize, resetKey, rowCount: rows.length };
+    if (shouldReset) setCurrentPage(1);
+    else if (rowsShrank) setCurrentPage((page) => Math.min(page, pageCount));
+  }, [pageCount, pageSize, resetKey, rows.length]);
+
+  return { currentPage: safePage, pageCount, rangeStart, rangeEnd, rows: visibleRows, setCurrentPage };
+}
+
+function TablePaginationControls({ page, pageCount, onPageChange, language }: {
+  page: number;
+  pageCount: number;
+  onPageChange: (page: number) => void;
+  language: AppPreferences["language"];
+}) {
+  return <nav className="movement-pagination" aria-label={translated(language, "pageLabel")}>
+    <button className="movement-page-button" type="button" aria-label={translated(language, "previousPage")} onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
+    <span aria-live="polite">{translated(language, "movementPageCount", { page: formatNumber(page, language), pages: formatNumber(pageCount, language) })}</span>
+    <button className="movement-page-button" type="button" aria-label={translated(language, "nextPage")} onClick={() => onPageChange(Math.min(pageCount, page + 1))} disabled={page === pageCount}><Icon name="chevron" size={15} /></button>
+  </nav>;
+}
 
 const iconPaths: Record<IconName, ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>,
@@ -289,6 +325,7 @@ function App() {
   const preferenceState = useAppPreferences();
   const { preferences, effectiveTheme, preferencesNotice } = preferenceState;
   const language = preferences.language;
+  const tablePageSize = preferences.tablePageSize ?? 25;
   const [page, setPage] = useState<Page>("dashboard");
   const [snapshot, setSnapshot] = useState<InventorySnapshot>({ categories: [], items: [], movements: [] });
   const snapshotRef = useRef(snapshot);
@@ -498,6 +535,8 @@ function App() {
       />}
       {page === "inventory" && <InventoryPage
         language={language}
+        pageSize={tablePageSize}
+        search={search}
         items={filteredItems}
         allItems={snapshot.items}
         categories={snapshot.categories}
@@ -513,6 +552,7 @@ function App() {
       />}
       {page === "categories" && <CategoriesPage
         language={language}
+        pageSize={tablePageSize}
         categories={snapshot.categories}
         items={snapshot.items}
         onNew={() => { setError(""); setCategoryModal("new"); }}
@@ -522,6 +562,7 @@ function App() {
       />}
       {page === "category-detail" && selectedCategory && <CategoryDetailPage
         language={language}
+        pageSize={tablePageSize}
         category={selectedCategory}
         items={snapshot.items.filter((item) => item.categoryId === selectedCategory.id)}
         onBack={() => setPage("categories")}
@@ -529,7 +570,7 @@ function App() {
         onEditItem={(item) => { setError(""); itemEditOriginRef.current = "category-detail"; setItemModal(item); }}
         onDeleteItem={(item) => { void removeItem(item); }}
       />}
-      {page === "movements" && <MovementsPage movements={snapshot.movements} language={language} />}
+      {page === "movements" && <MovementsPage movements={snapshot.movements} pageSize={tablePageSize} language={language} />}
       {page === "settings" && <SettingsPage preferences={preferences} onChange={preferenceState.updatePreferences} onReset={() => preferenceState.updatePreferences(createDefaultAppPreferences())} />}
     </main>
 
@@ -1060,27 +1101,19 @@ function MovementDetailContent({ movement, language }: { movement: InventoryMove
   </div>;
 }
 
-function MovementsPage({ movements, language }: { movements: InventoryMovement[]; language: AppPreferences["language"] }) {
+function MovementsPage({ movements, pageSize, language }: { movements: InventoryMovement[]; pageSize: TablePageSize; language: AppPreferences["language"] }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const [filter, setFilter] = useState<MovementFilter>("all");
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedMovement, setSelectedMovement] = useState<InventoryMovement | null>(null);
-  const pageSize = 25;
   const filteredMovements = useMemo(() => movements
     .map((movement, index) => ({ movement, index }))
     .filter(({ movement }) => filter === "all" || movement.type === filter)
     .sort((left, right) => Date.parse(right.movement.occurredAt) - Date.parse(left.movement.occurredAt) || right.index - left.index)
     .map(({ movement }) => movement), [filter, movements]);
-  const pageCount = Math.max(1, Math.ceil(filteredMovements.length / pageSize));
-  const safePage = Math.min(currentPage, pageCount);
-  const firstIndex = (safePage - 1) * pageSize;
-  const visibleMovements = filteredMovements.slice(firstIndex, firstIndex + pageSize);
-  const rangeStart = filteredMovements.length === 0 ? 0 : firstIndex + 1;
-  const rangeEnd = Math.min(firstIndex + pageSize, filteredMovements.length);
+  const pagination = useTablePagination(filteredMovements, pageSize, filter);
 
   function changeFilter(value: MovementFilter) {
     setFilter(value);
-    setCurrentPage(1);
   }
 
   return <section className="page-content">
@@ -1099,10 +1132,10 @@ function MovementsPage({ movements, language }: { movements: InventoryMovement[]
           </select>
         </label>
       </div>
-      {visibleMovements.length > 0 ? <div className="table-scroll"><table className="product-table movement-history-table">
+      {pagination.rows.length > 0 ? <div className="table-scroll"><table className="product-table movement-history-table">
         <caption className="sr-only">{t("fullMovementHistory")}</caption>
         <thead><tr><th scope="col">{t("action")}</th><th scope="col">{t("article")}</th><th scope="col">{t("dateAndTime")}</th><th scope="col">{t("actions")}</th></tr></thead>
-        <tbody>{visibleMovements.map((movement) => <tr key={movement.id}>
+        <tbody>{pagination.rows.map((movement) => <tr key={movement.id}>
           <td><span className={`movement-action action-${movement.type}`}><Icon name={movementActionIcon(movement.type)} size={14} />{movementActionLabel(movement.type, language)}</span></td>
           <td><div className="movement-article"><strong>{movement.itemSnapshot ? movementItemNameLabel(movement, language) : t("itemWithoutAssociatedData")}</strong><small>{movementItemSummaryLabel(movement, language)}</small></div></td>
           <td className="date-cell"><time dateTime={movement.occurredAt}>{dateLabel(movement.occurredAt, language)}</time></td>
@@ -1113,12 +1146,8 @@ function MovementsPage({ movements, language }: { movements: InventoryMovement[]
         text={movements.length === 0 ? t("recentMovementsEmpty") : t("tryAnotherMovementFilter")}
       />}
       <div className="table-foot movement-table-foot">
-        <span>{t("showing")} <strong>{formatNumber(rangeStart, language)}–{formatNumber(rangeEnd, language)}</strong> {t("of")} <strong>{formatNumber(filteredMovements.length, language)}</strong> {t("movementPlural")}</span>
-        {filteredMovements.length > 0 && <nav className="movement-pagination" aria-label={t("movementPagination")}>
-          <button className="movement-page-button" aria-label={t("previousPage")} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={safePage === 1}><Icon name="chevron" size={15} className="rotate-left" /></button>
-          <span aria-live="polite">{t("movementPageCount", { page: formatNumber(safePage, language), pages: formatNumber(pageCount, language) })}</span>
-          <button className="movement-page-button" aria-label={t("nextPage")} onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))} disabled={safePage === pageCount}><Icon name="chevron" size={15} /></button>
-        </nav>}
+        <span>{t("showing")} <strong>{formatNumber(pagination.rangeStart, language)}–{formatNumber(pagination.rangeEnd, language)}</strong> {t("of")} <strong>{formatNumber(filteredMovements.length, language)}</strong> {t("movementPlural")}</span>
+        {filteredMovements.length > 0 && <TablePaginationControls page={pagination.currentPage} pageCount={pagination.pageCount} onPageChange={(page) => pagination.setCurrentPage(page)} language={language} />}
       </div>
     </section>
     {selectedMovement && <ModalFrame
@@ -1253,7 +1282,7 @@ function DashboardPage({ items, categories, movements, categoryName, language, s
   </section>;
 }
 
-function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, statusFilter, onStatusFilter, onNew, onView, onEdit, onDelete, onExport, language }: {
+function InventoryPage({ items, allItems, categories, categoryFilter, onCategoryFilter, statusFilter, onStatusFilter, onNew, onView, onEdit, onDelete, onExport, pageSize, search, language }: {
   items: InventoryItem[];
   allItems: InventoryItem[];
   categories: Category[];
@@ -1266,10 +1295,13 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
   onEdit: (item: InventoryItem) => void;
   onDelete: (item: InventoryItem) => void;
   onExport: () => void;
+  pageSize: TablePageSize;
+  search: string;
   language: AppPreferences["language"];
 }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const protectionDescriptionPrefix = useId();
+  const pagination = useTablePagination(items, pageSize, `${categoryFilter}:${statusFilter}:${search}`);
   return <section className="page-content">
     <div className="page-heading">
       <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(language))}</div><h1>{t("articles")}</h1><p>{t("inventoryDescription")}</p></div>
@@ -1287,9 +1319,9 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
           <button className="button button-outline" onClick={onExport} disabled={items.length === 0}><Icon name="download" size={16} />{t("export")}</button>
         </div>
       </div>
-      {items.length > 0 ? <div className="table-scroll"><table className="product-table article-table">
+      {pagination.rows.length > 0 ? <div className="table-scroll"><table className="product-table article-table">
         <thead><tr><th>{t("name")}</th><th>{t("categoryColumn")}</th><th>{t("statusLabel")}</th><th>{t("entryDate")}</th><th>{t("actions")}</th></tr></thead>
-        <tbody>{items.map((item, index) => {
+        <tbody>{pagination.rows.map((item, index) => {
           const protectedItem = isDecommissioned(item);
           const protectionDescriptionId = `${protectionDescriptionPrefix}-item-${index}`;
           const protectionMessage = t("decommissionedProtection");
@@ -1307,22 +1339,24 @@ function InventoryPage({ items, allItems, categories, categoryFilter, onCategory
           </tr>;
         })}</tbody>
       </table></div> : <EmptyState title={t("noArticlesToShow")} text={t("adjustArticleFilter")} />}
-      <div className="table-foot"><span>{t("allItemCount", { visible: formatNumber(items.length, language), total: formatNumber(allItems.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(items.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span></div>
+      <div className="table-foot"><span>{t("allItemCount", { visible: formatNumber(items.length, language), total: formatNumber(allItems.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(items.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span>{items.length > 0 && <TablePaginationControls page={pagination.currentPage} pageCount={pagination.pageCount} onPageChange={(page) => pagination.setCurrentPage(page)} language={language} />}</div>
     </section>
   </section>;
 }
 
-function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete, language }: {
+function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete, pageSize, language }: {
   categories: Category[];
   items: InventoryItem[];
   onNew: () => void;
   onView: (category: Category) => void;
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
+  pageSize: TablePageSize;
   language: AppPreferences["language"];
 }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const sortedCategories = [...categories].sort((left, right) => left.name.localeCompare(right.name, getLocale(language)));
+  const pagination = useTablePagination(sortedCategories, pageSize);
   return <section className="page-content">
     <div className="page-heading">
       <div><div className="eyebrow">{t("internalControl").toLocaleUpperCase(getLocale(language))}</div><h1>{t("categories")}</h1><p>{t("categoryDescription")}</p></div>
@@ -1330,9 +1364,9 @@ function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete, la
     </div>
     <section className="panel inventory-panel">
       <div className="inventory-toolbar"><div><h2>{t("categoryRegistry")}</h2><p className="inventory-count">{t("allCategoryCount", { count: formatNumber(categories.length, language) })}</p></div></div>
-      {sortedCategories.length > 0 ? <div className="table-scroll"><table className="product-table category-table">
+      {pagination.rows.length > 0 ? <div className="table-scroll"><table className="product-table category-table">
         <thead><tr><th>{t("name")}</th><th>{t("associatedArticles")}</th><th>{t("actions")}</th></tr></thead>
-        <tbody>{sortedCategories.map((category, index) => {
+        <tbody>{pagination.rows.map((category, index) => {
           const count = items.filter((item) => item.categoryId === category.id).length;
           return <tr key={category.id}>
             <td><div className="product-cell"><span className={`category-mark mark-${index % 4}`}>{category.name.slice(0, 1)}</span><strong>{category.name}</strong></div></td>
@@ -1345,32 +1379,34 @@ function CategoriesPage({ categories, items, onNew, onView, onEdit, onDelete, la
           </tr>;
         })}</tbody>
       </table></div> : <EmptyState title={t("noCategoriesYet")} text={t("addCategoryToClassify")} />}
-      <div className="table-foot"><span>{t("allCategoryCount", { count: formatNumber(categories.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(categories.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span></div>
+      <div className="table-foot"><span>{t("allCategoryCount", { count: formatNumber(categories.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(categories.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span>{categories.length > 0 && <TablePaginationControls page={pagination.currentPage} pageCount={pagination.pageCount} onPageChange={(page) => pagination.setCurrentPage(page)} language={language} />}</div>
     </section>
   </section>;
 }
 
-function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, onDeleteItem, language }: {
+function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, onDeleteItem, pageSize, language }: {
   category: Category;
   items: InventoryItem[];
   onBack: () => void;
   onViewItem: (item: InventoryItem) => void;
   onEditItem: (item: InventoryItem) => void;
   onDeleteItem: (item: InventoryItem) => void;
+  pageSize: TablePageSize;
   language: AppPreferences["language"];
 }) {
   const t = (key: TranslationKey, parameters?: TranslationParameters) => translated(language, key, parameters);
   const protectionDescriptionPrefix = useId();
   const sortedItems = [...items].sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+  const pagination = useTablePagination(sortedItems, pageSize, category.id);
   return <section className="page-content">
     <div className="page-heading">
       <div><button className="text-link category-back" onClick={onBack}><Icon name="chevron" size={15} />{t("backToCategories")}</button><div className="eyebrow">{t("categoryDetailEyebrow")}</div><h1>{category.name}</h1><p>{t(items.length === 1 ? "associatedArticleSingular" : "associatedArticlePlural", { count: formatNumber(items.length, language) })}.</p></div>
     </div>
     <section className="panel inventory-panel">
       <div className="inventory-toolbar"><div><h2>{t("articleListForCategory", { category: category.name })}</h2><p>{t("lastModificationDescription")}</p></div></div>
-      {sortedItems.length > 0 ? <div className="table-scroll"><table className="product-table category-detail-table">
+      {pagination.rows.length > 0 ? <div className="table-scroll"><table className="product-table category-detail-table">
         <thead><tr><th>{t("code")}</th><th>{t("name")}</th><th>{t("statusLabel")}</th><th>{t("serialNumber")}</th><th>{t("location")}</th><th>{t("lastModified")}</th><th>{t("actions")}</th></tr></thead>
-        <tbody>{sortedItems.map((item, index) => {
+        <tbody>{pagination.rows.map((item, index) => {
           const protectedItem = isDecommissioned(item);
           const protectionDescriptionId = `${protectionDescriptionPrefix}-item-${index}`;
           const protectionMessage = t("decommissionedProtection");
@@ -1390,7 +1426,7 @@ function CategoryDetailPage({ category, items, onBack, onViewItem, onEditItem, o
           </tr>;
         })}</tbody>
       </table></div> : <EmptyState title={t("noAssociatedArticles")} text={t("categoryArticlesWillAppear")} />}
-      <div className="table-foot"><span>{t("categoryDetailItemCount", { count: formatNumber(items.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(items.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span></div>
+      <div className="table-foot"><span>{t("categoryDetailItemCount", { count: formatNumber(items.length, language) })}</span><span className="table-foot-note"><Icon name="layers" size={14} />{t(items.length === 1 ? "savedInBrowserSingular" : "savedInBrowserPlural")}</span>{items.length > 0 && <TablePaginationControls page={pagination.currentPage} pageCount={pagination.pageCount} onPageChange={(page) => pagination.setCurrentPage(page)} language={language} />}</div>
     </section>
   </section>;
 }
