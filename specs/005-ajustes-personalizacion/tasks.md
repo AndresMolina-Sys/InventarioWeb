@@ -87,7 +87,7 @@ T01–T10 arriba son historial de la base implementada. Las diez tareas siguient
 
 ### Fase 4: estilos, responsive y accesibilidad
 
-- [ ] **T19. Estilos de los nuevos controles y vistas (src/styles.css) — 25–30 min.** RF-2, RF-4, RF-5, RF-6, RF-10, RF-11, RF-12, RF-15 (Principios 2, 4, 6)
+- [x] **T19. Estilos de los nuevos controles y vistas (src/styles.css) — 25–30 min.** RF-2, RF-4, RF-5, RF-6, RF-10, RF-11, RF-12, RF-15 (Principios 2, 4, 6)
   - Estilizar grupos, tasas, formatos, selector de página, toggle, tablas paginadas y diálogo destructivo después de integrar sus estructuras. Aplicar estados de foco/error, temas claros/oscuros, reflujo y espaciado para escritorio y móvil.
   - Hecho cuando: a 1440, 375 y 360 px los grupos y controles no se solapan ni desbordan, todos los textos visibles miden al menos 12 px, el foco permanece visible y el diálogo contiene el scroll sin ocultar sus acciones.
 
