@@ -273,7 +273,7 @@ function translated(language: AppPreferences["language"], key: TranslationKey, p
 type EffectiveTheme = Exclude<ThemePreference, "system">;
 type PreferencesNotice = "read" | "write" | null;
 type PreferencesChange = Partial<AppPreferences> | ((current: AppPreferences) => AppPreferences);
-type ClearInventoryResult = "cleared" | "database-error" | "legacy-error";
+type ClearInventoryResult = "cleared" | "database-error" | "legacy-error" | "verification-error";
 
 function getSystemTheme(): EffectiveTheme {
   return typeof window !== "undefined"
@@ -525,9 +525,14 @@ function App() {
     localClearInProgressRef.current = true;
     setError("");
     setNotice(null);
+    const emptySnapshot = { categories: [], items: [], movements: [] };
+    let clearCommitted = false;
     try {
       await clearInventorySnapshot();
-      const data = await loadSnapshot().catch(() => ({ categories: [], items: [], movements: [] }));
+      clearCommitted = true;
+      snapshotRef.current = emptySnapshot;
+      setSnapshot(emptySnapshot);
+      const data = await loadSnapshot();
       snapshotRef.current = data;
       setSnapshot(data);
       setNotice("inventoryCleared");
@@ -535,9 +540,11 @@ function App() {
       return "cleared";
     } catch (reason) {
       if (reason instanceof Error && /inventario quedó vacío/i.test(reason.message)) {
+        snapshotRef.current = emptySnapshot;
+        setSnapshot(emptySnapshot);
         return "legacy-error";
       }
-      return "database-error";
+      return clearCommitted ? "verification-error" : "database-error";
     } finally {
       localClearInProgressRef.current = false;
     }
@@ -994,7 +1001,7 @@ function SettingsPage({ preferences, onChange, onReset, onClear }: {
           />
         </label>
         <p id="clear-database-instruction" className="modal-hint">{tWith("clearDatabaseInstruction", { keyword: clearKeyword })}</p>
-        {clearError && <p className="form-error" role="alert">{t(clearError === "legacy-error" ? "clearLegacyCleanupFailure" : "clearDatabaseFailure")}</p>}
+        {clearError && <p className="form-error" role="alert">{t(clearError === "legacy-error" ? "clearLegacyCleanupFailure" : clearError === "verification-error" ? "clearVerificationFailure" : "clearDatabaseFailure")}</p>}
         <div className="modal-footer">
           <button className="button button-outline" type="button" disabled={clearing} onClick={closeClearConfirmation}>{t("cancel")}</button>
           <button className="button button-primary" type="button" disabled={!canConfirmClear || clearing} onClick={() => void confirmInventoryClear()}>
