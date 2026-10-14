@@ -5,3 +5,5 @@ dist/
 .env
 # Keep session memory local; project skills, agents, docs, and specs are versioned.
 /MEMORY.md
+/graphify-out/.graphify_python
+/graphify-out/.graphify_root
