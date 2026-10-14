@@ -555,7 +555,12 @@ function App() {
       [translated(language, "name"), translated(language, "category"), translated(language, "entryDate")],
       ...filteredItems.map((item) => [item.name, categoryName.get(item.categoryId) ?? translated(language, "noCategory"), dateLabel(item.createdAt, language, displayFormatting)]),
     ];
-    const csv = rows.map((row) => row.map((value) => `"${value.replaceAll('"', '""')}"`).join(",")).join("\r\n");
+    const csvCell = (value: string) => {
+      const formulaLike = /^[\u0000-\u0020\uFEFF]*[=+\-@＝＋－＠]/u.test(value);
+      const safeValue = formulaLike ? `\t${value}` : value;
+      return `"${safeValue.replaceAll('"', '""')}"`;
+    };
+    const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
     const href = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = href;
