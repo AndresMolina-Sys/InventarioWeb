@@ -66,6 +66,7 @@ export function compactDisplayValueLabel(value: number, currency: NonNullable<Ap
 
 export function localizedAppError(message: string, language: AppPreferences["language"]): string {
   const patterns: Array<[RegExp, TranslationKey]> = [
+    [/El inventario cambió en otra pestaña\. Recarga los datos antes de guardar\./, "inventoryChangedInAnotherTab"],
     [/Escribe el código del artículo\./, "writeItemCode"],
     [/Escribe un nombre para el artículo\.|Escribe el nombre del artículo\./, "writeItemName"],
     [/Ya existe un artículo con ese código\./, "duplicateItemCode"],
