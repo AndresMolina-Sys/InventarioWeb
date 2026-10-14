@@ -70,6 +70,7 @@ npm run preview
 ## Forma de trabajar
 
 Planifica cambios que afecten persistencia o varias pantallas. Mantén el alcance acotado y actualiza `docs/figma-brief.md` ante cambios de interfaz. Al terminar, resume los archivos modificados y cómo verificaste el cambio.
+- Cuando necesites entender arquitectura, relaciones entre módulos o contenido del proyecto, consulta el grafo persistente de `graphify-out/` con `graphify query`, `graphify path` o `graphify explain`. Usa el grafo como mapa y verifica las conclusiones relevantes en los archivos fuente; si falta o está desactualizado, actualízalo antes de basarte en él.
 
 ## Reglas
 - Lee `docs/constitution.md` y la spec activa (`specs/NNN-*/`) antes de tocar código. 
