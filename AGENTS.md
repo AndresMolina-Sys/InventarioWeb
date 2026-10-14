@@ -4,7 +4,7 @@ InventarioWeb Portfolio es un registro web de control interno para consultar y m
 
 ## Stack y estructura
 
-- React 19.3, TypeScript 5.9, Vite 8.3 y Node.js 22+.
+- React 19.3, TypeScript 5.9, Vite 8.3 y Node.js 22+; `npm test` requiere type stripping nativo disponible desde Node 22.6.
 - `src/App.tsx`: pantallas y diálogos; `src/types.ts`: modelos compartidos.
 - `src/i18n.ts`: catálogos tipados, textos y formatos por idioma; `src/lib/preferencesRepository.ts`: preferencias locales.
 - `src/lib/inventoryRepository.ts`: operaciones IndexedDB y validaciones; `src/data/demo.ts`: categorías, artículos de ejemplo y migración desde `localStorage`.
@@ -16,11 +16,12 @@ InventarioWeb Portfolio es un registro web de control interno para consultar y m
 ```powershell
 npm ci
 npm run dev
+npm test
 npm run build
 npm run preview
 ```
 
-`npm run build` valida TypeScript y genera el bundle. No hay scripts de pruebas ni lint configurados. No se requieren variables de entorno.
+`npm test` ejecuta pruebas con `node:test` y una simulación en memoria de IndexedDB; no instala dependencias. `npm run build` valida TypeScript y genera el bundle. No hay lint configurado ni se requieren variables de entorno.
 
 ## Convenciones
 
@@ -85,5 +86,5 @@ Planifica cambios que afecten persistencia o varias pantallas. Mantén el alcanc
 
 ## Verificación
 
-- Ejecuta `npm run build`. Si cambia el arranque o la persistencia, comprueba que `npm run dev` abra sin variables de entorno y que los datos sobrevivan una recarga. No hay scripts de pruebas ni lint configurados.
+- Ejecuta `npm test` y `npm run build`. Las pruebas usan una simulación en memoria de IndexedDB y complementan, pero no sustituyen, la verificación del navegador. Si cambia el arranque o la persistencia, comprueba que `npm run dev` abra sin variables de entorno y que los datos sobrevivan una recarga. No hay lint configurado.
 - Despues de cada cambio, verifica con el MCP de Chrome DevTools: abre la web, prueba la funcionalidad, revisa la consola y comprueba la vista móvil.

@@ -1,4 +1,4 @@
-import { clearLegacySnapshots, createSampleSnapshot, readLegacySnapshot } from "../data/demo";
+import { clearLegacySnapshots, createSampleSnapshot, readLegacySnapshot } from "../data/demo.ts";
 import type {
   AssetLifecycleStatus,
   Category,
