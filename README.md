@@ -44,7 +44,7 @@ npm run dev
 
 Abre la dirección que indique Vite en la terminal, normalmente `http://localhost:5173`. No se necesita un archivo `.env`.
 
-La primera base local se inicializa con **25 categorías y 500 artículos de ejemplo**: 15 registros descriptivos y 485 registros de rendimiento distribuidos entre 22 categorías de prueba. Puedes modificarlos para explorar la aplicación. Después de vaciar el inventario desde Ajustes, los ejemplos no se vuelven a crear al recargar.
+Una instalación nueva inicia con el inventario vacío. Agrega categorías y artículos desde la interfaz para comenzar a usarla. Si migras datos de versiones anteriores, se conservan los registros guardados; después de vaciar el inventario desde Ajustes, permanece vacío al recargar.
 
 ## Comandos
 
@@ -81,7 +81,7 @@ src/
     movements/              Historial y detalle de auditoría
     settings/               Preferencias y verificación del vaciado
   lib/                      Persistencia, validaciones, formatos y barcode
-  data/demo.ts              Muestras y migración de datos heredados
+  data/demo.ts              Migración de datos heredados desde localStorage
   i18n.ts                   Textos tipados y formatos en español e inglés
   types.ts                  Modelos compartidos
   styles.css                Temas, diseño adaptable y estilos de impresión

@@ -7,7 +7,7 @@ InventarioWeb Portfolio es un registro web de control interno para consultar y m
 - React 19.3, TypeScript 5.9, Vite 8.3 y Node.js 22+; `npm test` requiere type stripping nativo disponible desde Node 22.6.
 - `src/App.tsx`: pantallas y diálogos; `src/types.ts`: modelos compartidos.
 - `src/i18n.ts`: catálogos tipados, textos y formatos por idioma; `src/lib/preferencesRepository.ts`: preferencias locales.
-- `src/lib/inventoryRepository.ts`: operaciones IndexedDB y validaciones; `src/data/demo.ts`: categorías, artículos de ejemplo y migración desde `localStorage`.
+- `src/lib/inventoryRepository.ts`: operaciones IndexedDB y validaciones; `src/data/demo.ts`: migración desde `localStorage`.
 - `docs/figma-brief.md` y `.cursor/rules/inventory-app.mdc` describen diseño y convenciones.
 - `supabase/` contiene archivos históricos no usados por Portfolio. No ejecutar su SQL ni conectar recursos remotos desde esta app.
 
@@ -27,11 +27,11 @@ npm run preview
 
 - Componentes funcionales; dos espacios, comillas dobles, punto y coma y nombres camelCase.
 - Mantén los identificadores internos en inglés. La interfaz y los mensajes al usuario usan español o inglés según la preferencia local, con español inicial; escribe los comentarios breves del código en español. Centraliza textos y formatos en `src/i18n.ts`; sigue `.cursor/rules/inventory-app.mdc` y conserva accesibilidad, teclado y diseño adaptable.
-- Mantén la persistencia en el repositorio y el contenido inicial en `src/data/demo.ts`.
+- Mantén la persistencia en el repositorio y las migraciones heredadas en `src/data/demo.ts`; no generes datos de ejemplo al iniciar.
 
 ## Reglas de dominio / trampas conocidas
 
-- La primera base IndexedDB recibe 25 categorías y 500 artículos (15 ejemplos y 485 registros de rendimiento); no volver a sembrarlos después de vaciarla. Las migraciones conservan el conjunto histórico de muestras.
+- Una base IndexedDB nueva inicia sin categorías ni artículos. No siembres datos de ejemplo; las migraciones conservan los registros que ya estén guardados.
 - Migra `inventario-web-demo-v2` y `inventario-web-demo-v1`; conserva artículos y categorías, `department` pasa a `location` y `price` a `cost`.
 - Código y nombre de categoría no se duplican; el número de serie es único si se proporciona. No borrar categorías con artículos asociados.
 - La fecha de ingreso se conserva al editar; `updatedAt` usa la hora del navegador en cada modificación.

@@ -1,4 +1,4 @@
-import { clearLegacySnapshots, createSampleSnapshot, readLegacySnapshot } from "../data/demo.ts";
+import { clearLegacySnapshots, readLegacySnapshot } from "../data/demo.ts";
 import type {
   AssetLifecycleStatus,
   Category,
@@ -40,7 +40,7 @@ type SnapshotChange<T> = {
   revision?: number;
 };
 
-type SnapshotSource = "indexeddb" | "legacy" | "samples";
+type SnapshotSource = "indexeddb" | "legacy" | "empty";
 
 type NonEmptyInventoryMovementChangesV2 = {
   [Field in InventoryMovementAuditFieldV2]: Required<Pick<InventoryMovementChangesV2, Field>>
@@ -479,8 +479,8 @@ function transactSnapshot<T>(
         ? "indexeddb"
         : legacySnapshot
           ? "legacy"
-          : "samples";
-      const snapshot = storedSnapshot || legacySnapshot || createSampleSnapshot();
+          : "empty";
+      const snapshot = storedSnapshot || legacySnapshot || { categories: [], items: [], movements: [] };
       try {
         const update = change(snapshot, source, currentRevision);
         result = update.result;

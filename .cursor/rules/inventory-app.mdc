@@ -15,7 +15,7 @@ alwaysApply: true
 
 # Architecture and quality
 
-- Keep UI components presentational where practical; persistence belongs in `src/lib/inventoryRepository.ts` and demo fixtures in `src/data/demo.ts`.
+- Keep UI components presentational where practical; persistence belongs in `src/lib/inventoryRepository.ts` and legacy migrations in `src/data/demo.ts`. Do not seed sample records on startup.
 - Keep persistence and validation in `src/lib/inventoryRepository.ts`. Use shared camelCase models from `src/types.ts`.
 - Validate required values, duplicate codes, duplicate category names, and unique non-empty serial numbers. Show useful Spanish errors.
 - Set `createdAt` and `updatedAt` with the system time on creation; update only `updatedAt` when editing.
