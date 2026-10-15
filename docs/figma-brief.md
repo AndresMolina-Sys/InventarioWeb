@@ -124,6 +124,7 @@ El tema oscuro usa lienzo `#141922`, superficie `#1D2430`, texto principal `#EDF
 ## Componentes e interacción
 
 - Reutiliza marca, navegación, botones, búsqueda, tarjetas, filtro de categoría, fila de artículo y diálogos.
+- La barra de búsqueda conserva un borde de 1 px y usa un halo exterior discreto de 1 px al enfocarse; mantiene el indicador accesible de foco del campo.
 - “Ver” abre los datos registrados en modo lectura; “Editar” valida y guarda; “Borrar” pide confirmación.
 - Guardar una edición sin cambios auditables cierra el formulario y avisa «No hubo cambios para guardar.» sin alterar el registro ni el historial.
 - La fecha de ingreso y la última modificación usan la hora del navegador.
