@@ -44,7 +44,7 @@ npm run dev
 
 Abre la dirección que indique Vite en la terminal, normalmente `http://localhost:5173`. No se necesita un archivo `.env`.
 
-La primera base local se inicializa con **3 categorías y 15 artículos de ejemplo**. Puedes modificarlos para explorar la aplicación. Después de vaciar el inventario desde Ajustes, los ejemplos no se vuelven a crear al recargar.
+La primera base local se inicializa con **25 categorías y 500 artículos de ejemplo**: 15 registros descriptivos y 485 registros de rendimiento distribuidos entre 22 categorías de prueba. Puedes modificarlos para explorar la aplicación. Después de vaciar el inventario desde Ajustes, los ejemplos no se vuelven a crear al recargar.
 
 ## Comandos
 

@@ -1,10 +1,20 @@
 import type { Category, InventoryItem, InventorySnapshot } from "../types";
 
-export const defaultCategories: Category[] = [
+const legacyDemoCategories: Category[] = [
   { id: "cat-electronica", name: "Electrónica" },
   { id: "cat-hogar", name: "Hogar y Cocina" },
   { id: "cat-oficina", name: "Oficina y Papelería" },
 ];
+
+export const defaultCategories: Category[] = [
+  ...legacyDemoCategories,
+  ...Array.from({ length: 22 }, (_, index) => {
+    const suffix = String(index + 1).padStart(2, "0");
+    return { id: `cat-performance-${suffix}`, name: `QA Rendimiento ${suffix}` };
+  }),
+];
+
+const PERFORMANCE_ITEM_COUNT = 500 - 15;
 
 export const testArticles = [
   { code: "INT-ELE-001", name: "Portátil de préstamo", category: "Electrónica", brand: "Lenovo", model: "ThinkPad E14", location: "Administración", notes: "Asignado al puesto de recepción." },
@@ -32,9 +42,8 @@ type LegacyInventoryItem = Partial<InventoryItem> & {
   price?: number | string | null;
 };
 
-export function buildDemoItems(categories: Category[]): InventoryItem[] {
+function buildLegacyDemoItems(categories: Category[], now: number): InventoryItem[] {
   const categoryIds = new Map(categories.map((category) => [category.name, category.id]));
-  const now = Date.now();
   return testArticles.map((article, index) => {
     const createdAt = new Date(now - index * 86_400_000).toISOString();
     return {
@@ -54,6 +63,43 @@ export function buildDemoItems(categories: Category[]): InventoryItem[] {
       updatedAt: createdAt,
     };
   });
+}
+
+function buildPerformanceDemoItems(categories: Category[], now: number): InventoryItem[] {
+  const categoryIds = new Map(categories.map((category) => [category.name, category.id]));
+  const performanceCategories = defaultCategories.slice(legacyDemoCategories.length);
+
+  return Array.from({ length: PERFORMANCE_ITEM_COUNT }, (_, index) => {
+    const sequence = index + testArticles.length + 1;
+    const suffix = String(sequence).padStart(4, "0");
+    const category = performanceCategories[index % performanceCategories.length];
+    const createdAt = new Date(now - sequence * 60_000).toISOString();
+
+    return {
+      id: `demo-perf-${suffix}`,
+      code: `PERF-${suffix}`,
+      name: `Artículo de rendimiento ${suffix}`,
+      sku: "",
+      serialNumber: index % 3 === 0 ? `QA-SN-${suffix}` : "",
+      brand: ["Lenovo", "Dell", "HP", "Epson", "Cisco"][index % 5],
+      model: `QA-${String((index % 40) + 1).padStart(2, "0")}`,
+      location: ["Operaciones", "Administración", "Tecnología", "Salas"][index % 4],
+      notes: index % 10 === 0 ? `Registro de prueba de rendimiento ${suffix}.` : "",
+      categoryId: categoryIds.get(category.name) ?? category.id,
+      cost: index % 5 === 0 ? null : Number((45 + ((index * 37) % 900) / 10).toFixed(2)),
+      status: "available",
+      createdAt,
+      updatedAt: createdAt,
+    };
+  });
+}
+
+export function buildDemoItems(categories: Category[]): InventoryItem[] {
+  const now = Date.now();
+  return [
+    ...buildLegacyDemoItems(categories, now),
+    ...buildPerformanceDemoItems(categories, now),
+  ];
 }
 
 function normalizeSnapshot(value: unknown, categoriesFallback: Category[], addMissingSamples: boolean): InventorySnapshot | null {
@@ -88,13 +134,13 @@ function normalizeSnapshot(value: unknown, categoriesFallback: Category[], addMi
   if (!addMissingSamples) return { categories, items: savedItems, movements: [] };
 
   const categoriesWithDefaults = [...categories];
-  for (const defaultCategory of defaultCategories) {
+  for (const defaultCategory of legacyDemoCategories) {
     if (!categoriesWithDefaults.some((category) => category.name.trim().toLocaleLowerCase("es-CR") === defaultCategory.name.toLocaleLowerCase("es-CR"))) {
       categoriesWithDefaults.push(defaultCategory);
     }
   }
   const knownCodes = new Set(savedItems.map((item) => item.code.trim().toLocaleLowerCase("es-CR")));
-  const sampleItems = buildDemoItems(categoriesWithDefaults).filter((item) => !knownCodes.has(item.code.toLocaleLowerCase("es-CR")));
+  const sampleItems = buildLegacyDemoItems(categoriesWithDefaults, Date.now()).filter((item) => !knownCodes.has(item.code.toLocaleLowerCase("es-CR")));
   return { categories: categoriesWithDefaults, items: [...savedItems, ...sampleItems], movements: [] };
 }
 

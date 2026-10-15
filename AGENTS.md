@@ -31,7 +31,7 @@ npm run preview
 
 ## Reglas de dominio / trampas conocidas
 
-- La primera base IndexedDB recibe 3 categorías y 15 artículos; no volver a sembrarlos después.
+- La primera base IndexedDB recibe 25 categorías y 500 artículos (15 ejemplos y 485 registros de rendimiento); no volver a sembrarlos después de vaciarla. Las migraciones conservan el conjunto histórico de muestras.
 - Migra `inventario-web-demo-v2` y `inventario-web-demo-v1`; conserva artículos y categorías, `department` pasa a `location` y `price` a `cost`.
 - Código y nombre de categoría no se duplican; el número de serie es único si se proporciona. No borrar categorías con artículos asociados.
 - La fecha de ingreso se conserva al editar; `updatedAt` usa la hora del navegador en cada modificación.

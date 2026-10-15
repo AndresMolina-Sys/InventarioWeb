@@ -219,8 +219,8 @@ test("persiste altas, transiciones, ediciones sin cambios y bajas con auditor√≠a
   resetStorage();
   const repository = await loadRepository();
   const initial = await repository.loadSnapshot();
-  assert.equal(initial.categories.length, 3);
-  assert.equal(initial.items.length, 15);
+  assert.equal(initial.categories.length, 25);
+  assert.equal(initial.items.length, 500);
 
   await repository.createItem(draftFor(initial.categories[0].id));
   let snapshot = await repository.loadSnapshot();
@@ -304,7 +304,7 @@ test("el vaciado conserva el estado previo si falla la escritura y persiste vac√
   memory.failNextPut = true;
   await assert.rejects(repository.clearInventorySnapshot(), /Fallo de escritura/);
   const preserved = await repository.loadSnapshot();
-  assert.equal(preserved.items.length, 15);
+  assert.equal(preserved.items.length, 500);
 
   await repository.clearInventorySnapshot();
   assert.equal(globalThis.localStorage.getItem("inventario-web-demo-v2"), null);
