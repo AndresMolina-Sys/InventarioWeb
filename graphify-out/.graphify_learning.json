@@ -1,5 +1,240 @@
 {
-  "generated_at": "2026-10-14T22:49:39.497684+00:00",
-  "nodes": {},
+  "generated_at": "2026-10-14T23:55:58.356097+00:00",
+  "nodes": {
+    "src_app": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "App.tsx",
+      "last": "2026-10-14T22:50:47.599057+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 0.99895474,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_app": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "App()",
+      "last": "2026-10-14T23:13:44.914514+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T23:13:44.914514+00:00",
+          "outcome": "useful",
+          "q": "¿Puedes verificar estos hallazgos?"
+        }
+      ],
+      "score": 0.999322742,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_app_clearinventory": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "clearInventory()",
+      "last": "2026-10-14T23:13:44.914514+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T23:13:44.914514+00:00",
+          "outcome": "useful",
+          "q": "¿Puedes verificar estos hallazgos?"
+        }
+      ],
+      "score": 0.999322742,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_app_exportcsv": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "exportCsv()",
+      "last": "2026-10-14T23:13:44.914514+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T23:13:44.914514+00:00",
+          "outcome": "useful",
+          "q": "¿Puedes verificar estos hallazgos?"
+        }
+      ],
+      "score": 0.999322742,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_clearinventoryresult": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "ClearInventoryResult",
+      "last": "2026-10-14T22:50:47.599057+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 0.99895474,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_dashboardpage": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "DashboardPage()",
+      "last": "2026-10-14T22:50:47.599057+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 0.99895474,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_localizedapperror": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "localizedAppError()",
+      "last": "2026-10-14T23:13:44.914514+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T23:13:44.914514+00:00",
+          "outcome": "useful",
+          "q": "¿Puedes verificar estos hallazgos?"
+        }
+      ],
+      "score": 0.999322742,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_settingspage": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "SettingsPage()",
+      "last": "2026-10-14T23:13:44.914514+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T23:13:44.914514+00:00",
+          "outcome": "useful",
+          "q": "¿Puedes verificar estos hallazgos?"
+        },
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 1.998277482,
+      "source_file": "src/App.tsx",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_app_translated": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "translated()",
+      "last": "2026-10-14T22:50:47.599057+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 0.99895474,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_app_useapppreferences": {
+      "code_fingerprint": "3b20a5fc6b8b909273ba7b739a4494f9a85edf52988ce7478123e8470f27958b",
+      "label": "useAppPreferences()",
+      "last": "2026-10-14T22:50:47.599057+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 0.99895474,
+      "source_file": "src/App.tsx",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_i18n_getlocale": {
+      "code_fingerprint": "e847071422eda18b746342ff521b1743511ef415783478bb6e8640753e7a1745",
+      "label": "getLocale()",
+      "last": "2026-10-14T22:50:47.599057+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 0.99895474,
+      "source_file": "src/i18n.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_lib_inventoryrepository_clearinventorysnapshot": {
+      "code_fingerprint": "e87c93a665a68413f4ac2d368c9cccbd6e8995567a57d7e108d95d94b9fcf9e7",
+      "label": "clearInventorySnapshot()",
+      "last": "2026-10-14T23:13:44.914514+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T23:13:44.914514+00:00",
+          "outcome": "useful",
+          "q": "¿Puedes verificar estos hallazgos?"
+        },
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 1.998277482,
+      "source_file": "src/lib/inventoryRepository.ts",
+      "status": "preferred",
+      "uses": 2
+    },
+    "src_lib_preferencesrepository": {
+      "code_fingerprint": "43d546f13787386d2bca165f13b74dd670087480b74a207b5ef490c63fcbe4a4",
+      "label": "preferencesRepository.ts",
+      "last": "2026-10-14T22:50:47.599057+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 0.99895474,
+      "source_file": "src/lib/preferencesRepository.ts",
+      "status": "tentative",
+      "uses": 1
+    },
+    "src_types_apppreferences": {
+      "code_fingerprint": "d80143434c2528d54b577e418d8b9e5ce50125024f3faf2c1013719119acad67",
+      "label": "AppPreferences",
+      "last": "2026-10-14T22:50:47.599057+00:00",
+      "provenance": [
+        {
+          "date": "2026-10-14T22:50:47.599057+00:00",
+          "outcome": "useful",
+          "q": "Why does SettingsPage() connect Settings and Inventory Clear to Main Application Data Types, Dashboard Tables and Charts, and Dashboard and Localization UI?"
+        }
+      ],
+      "score": 0.99895474,
+      "source_file": "src/types.ts",
+      "status": "tentative",
+      "uses": 1
+    }
+  },
   "version": 1
 }
