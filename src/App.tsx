@@ -14,7 +14,9 @@ import { InventoryPage, CategoriesPage, CategoryDetailPage } from "./features/in
 import { CategoryModal, ItemDetailModal, ItemModal } from "./features/inventory/ItemDialogs";
 import { MovementsPage } from "./features/movements/MovementsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { clearAndVerifyInventory } from "./features/settings/clearInventoryAction";
 import type { ClearInventoryResult, PreferencesChange } from "./features/settings/SettingsPage";
+import { serializeCsvRows } from "./features/inventory/csvExport";
 
 type Page = "dashboard" | "inventory" | "categories" | "movements" | "settings" | "category-detail";
 type AssetStatusFilter = "all" | AssetLifecycleStatus;
@@ -272,25 +274,19 @@ function App() {
     setError("");
     setNotice(null);
     const emptySnapshot = { categories: [], items: [], movements: [] };
-    let clearCommitted = false;
     try {
-      await clearInventorySnapshot();
-      clearCommitted = true;
-      snapshotRef.current = emptySnapshot;
-      setSnapshot(emptySnapshot);
-      const data = await loadSnapshot();
-      snapshotRef.current = data;
-      setSnapshot(data);
-      setNotice("inventoryCleared");
-      window.setTimeout(() => setNotice(null), 5000);
-      return "cleared";
-    } catch (reason) {
-      if (reason instanceof Error && /inventario quedó vacío/i.test(reason.message)) {
-        snapshotRef.current = emptySnapshot;
-        setSnapshot(emptySnapshot);
-        return "legacy-error";
+      const outcome = await clearAndVerifyInventory(clearInventorySnapshot, loadSnapshot);
+      if (outcome.status === "cleared") {
+        snapshotRef.current = outcome.snapshot;
+        setSnapshot(outcome.snapshot);
+        setNotice("inventoryCleared");
+        window.setTimeout(() => setNotice(null), 5000);
+      } else if (outcome.status === "legacy-error" || outcome.status === "verification-error") {
+        const currentSnapshot = "snapshot" in outcome ? outcome.snapshot ?? emptySnapshot : emptySnapshot;
+        snapshotRef.current = currentSnapshot;
+        setSnapshot(currentSnapshot);
       }
-      return clearCommitted ? "verification-error" : "database-error";
+      return outcome.status;
     } finally {
       localClearInProgressRef.current = false;
     }
@@ -301,12 +297,7 @@ function App() {
       [translated(language, "name"), translated(language, "category"), translated(language, "entryDate")],
       ...filteredItems.map((item) => [item.name, categoryName.get(item.categoryId) ?? translated(language, "noCategory"), dateLabel(item.createdAt, language, displayFormatting)]),
     ];
-    const csvCell = (value: string) => {
-      const formulaLike = /^[\u0000-\u0020\uFEFF]*[=+\-@＝＋－＠]/u.test(value);
-      const safeValue = formulaLike ? `\t${value}` : value;
-      return `"${safeValue.replaceAll('"', '""')}"`;
-    };
-    const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+    const csv = serializeCsvRows(rows);
     const href = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = href;

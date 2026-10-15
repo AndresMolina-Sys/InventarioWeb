@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { serializeCsvRows } from "../src/features/inventory/csvExport.ts";
+import { clearAndVerifyInventory } from "../src/features/settings/clearInventoryAction.ts";
+import { localizeAppError } from "../src/lib/appError.ts";
 
 const memory = {
   database: null,
@@ -131,6 +134,52 @@ function draftFor(categoryId, overrides = {}) {
 }
 
 installBrowserStorage();
+
+test("el vaciado informa error si falla la verificación posterior al commit", async () => {
+  let committed = false;
+  const result = await clearAndVerifyInventory(
+    async () => { committed = true; },
+    async () => {
+      assert.equal(committed, true);
+      throw new Error("Fallo de lectura simulado.");
+    },
+  );
+
+  assert.deepEqual(result, { status: "verification-error" });
+});
+
+test("el vaciado no informa éxito si la verificación devuelve registros", async () => {
+  const snapshot = { categories: [{ id: "cat" }], items: [], movements: [] };
+  const result = await clearAndVerifyInventory(async () => {}, async () => snapshot);
+
+  assert.deepEqual(result, { status: "verification-error", snapshot });
+});
+
+test("el CSV neutraliza fórmulas y conserva el escape de comillas", () => {
+  const csv = serializeCsvRows([[
+    "=1+1",
+    " +SUM(1,2)",
+    "-cmd",
+    "@SUM(1,2)",
+    "＝1+1",
+    'Equipo, "especial"',
+  ]]);
+
+  assert.equal(csv, '"\t=1+1","\t +SUM(1,2)","\t-cmd","\t@SUM(1,2)","\t＝1+1","Equipo, ""especial"""');
+});
+
+test("localiza el conflicto entre pestañas y el motivo requerido de baja", () => {
+  assert.equal(
+    localizeAppError("El inventario cambió en otra pestaña. Recarga los datos antes de guardar.", "es"),
+    "El inventario cambió en otra pestaña. Recarga los datos antes de guardar.",
+  );
+  assert.equal(
+    localizeAppError("El inventario cambió en otra pestaña. Recarga los datos antes de guardar.", "en"),
+    "The inventory changed in another tab. Reload the data before saving.",
+  );
+  assert.equal(localizeAppError("Escribe el motivo de la baja.", "es"), "Motivo de la baja");
+  assert.equal(localizeAppError("Escribe el motivo de la baja.", "en"), "Decommissioning reason");
+});
 
 test("resuelve estados y valida transiciones y motivos", async () => {
   resetStorage();

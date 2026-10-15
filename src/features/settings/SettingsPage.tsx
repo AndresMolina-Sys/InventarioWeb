@@ -5,9 +5,11 @@ import type { TranslationKey, TranslationParameters } from "../../i18n";
 import { DEFAULT_CRC_PER_USD, DEFAULT_EUR_PER_USD, RATE_REFERENCE_METADATA } from "../../lib/preferencesRepository";
 import { translated } from "../../lib/appPresentation";
 import { Icon, ModalFrame } from "../../components/AppPrimitives";
+import type { ClearInventoryResult } from "./clearInventoryAction";
 
 export type PreferencesChange = Partial<AppPreferences> | ((current: AppPreferences) => AppPreferences);
-export type ClearInventoryResult = "cleared" | "database-error" | "legacy-error" | "verification-error";
+
+export type { ClearInventoryResult } from "./clearInventoryAction";
 export function SettingsPage({ preferences, onChange, onReset, onClear }: {
   preferences: AppPreferences;
   onChange: (change: PreferencesChange) => void;
